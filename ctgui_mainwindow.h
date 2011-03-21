@@ -50,6 +50,8 @@ private:
   QCaMotorGUI * bgMotor;
   QCaMotorGUI * loopMotor;
   QCaMotorGUI * subLoopMotor;
+  QCaMotorGUI * dynoMotor;
+  QCaMotorGUI * dyno2Motor;
 
   QEpicsPV * opnSts;
   QEpicsPV * clsSts;
@@ -106,6 +108,7 @@ private:
     qDebug() << msg;
   }
 
+  void acquire(const QString & filename);
 
   void engine(const bool dryRun);
 
@@ -164,6 +167,8 @@ private slots:
   void lockBgStart(bool lock);
   void lockLoopStart(bool lock);
   void lockSubLoopStart(bool lock);
+  void lockDynoStart(bool lock);
+  void lockDyno2Start(bool lock);
 
   void onBrowseExpPath();
   void onExpPathChanges();
@@ -223,6 +228,24 @@ private slots:
   void onSubLoopStepChanges();
   void onSubLoopStartChanges();
   void onSubLoopEndChanges();
+
+  void onDynoChanges();
+  void onDynoPosChanges();
+  void setDynoUnits();
+  void setDynoPrec();
+  void onDynoMotorChanges();
+  void onDynoRangeChanges();
+  void onDynoStartChanges();
+  void onDynoEndChanges();
+
+  void onDyno2Changes();
+  void onDyno2PosChanges();
+  void setDyno2Units();
+  void setDyno2Prec();
+  void onDyno2MotorChanges();
+  void onDyno2RangeChanges();
+  void onDyno2StartChanges();
+  void onDyno2EndChanges();
 
   void onDetectorCommandChanges();
   void onSampleFileChanges();
