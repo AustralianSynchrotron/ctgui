@@ -373,7 +373,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->dynoEnd, SIGNAL(valueChanged(double)),
           SLOT(onDynoEndChanges()));
 
-  connect(ui->dyno2, SIGNAL(toggled(bool)),
+  connect(ui->dyno2Shot, SIGNAL(toggled(bool)),
           SLOT(onDyno2Changes()));
   connect(dyno2Motor, SIGNAL(changedUserPosition(double)),
           ui->dyno2Current, SLOT(setValue(double)));
@@ -576,6 +576,33 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   }
 
+  if (ui->dynoShot->isChecked()) {
+
+    config.setValue("dynoshot",true);
+
+    config.beginGroup("dynoshot");
+    config.setValue("motor",dynoMotor->getPv());
+    if ( ! ui->lockDynoStart->isChecked() )
+      config.setValue("start", ui->dynoStart->value());
+    config.setValue("range", ui->dynoRange->value());
+
+    if (ui->dyno2Shot->isChecked()) {
+
+      config.setValue("dyno2shot",true);
+
+      config.beginGroup("dyno2shot");
+      config.setValue("motor",dyno2Motor->getPv());
+      if ( ! ui->lockDyno2Start->isChecked() )
+        config.setValue("start", ui->dyno2Start->value());
+      config.setValue("range", ui->dyno2Range->value());
+      config.endGroup();
+
+    }
+
+    config.endGroup();
+
+  }
+
   config.beginGroup("detector");
   config.setValue("sampleFile", ui->sampleFile->text());
   config.setValue("backgroundFile", ui->bgFile->text());
@@ -617,10 +644,9 @@ void MainWindow::loadConfiguration(QString fileName) {
 
   config.beginGroup("scan");
   if ( config.contains("motor")  )  thetaMotor->setPv( config.value("motor").toString() );
+  ui->lockScanStart->setChecked( ! config.contains("start") );
   if ( config.contains("start")  )
     ui->scanStart->setValue( config.value("start").toDouble() );
-  else
-    ui->lockScanStart->setChecked(true);
   if ( config.contains("range")  )
     ui->scanRange->setValue( config.value("range").toDouble() );
   if ( config.contains("steps")  )
@@ -659,10 +685,9 @@ void MainWindow::loadConfiguration(QString fileName) {
       ui->multiBg->setChecked( config.value("singleBackground").toBool() );
     if ( config.contains("motor")  )
       loopMotor->setPv( config.value("motor").toString() );
+    ui->lockLoopStart->setChecked( ! config.contains("start") );
     if ( config.contains("start")  )
       ui->loopStart->setValue( config.value("start").toDouble() ) ;
-    else
-      ui->lockLoopStart->setChecked(true);
     if ( config.contains("range")  )
       ui->loopRange->setValue( config.value("range").toDouble() ) ;
     if ( config.contains("steps")  )
@@ -675,10 +700,9 @@ void MainWindow::loadConfiguration(QString fileName) {
       config.beginGroup("subloop");
       if ( config.contains("motor")  )
         subLoopMotor->setPv( config.value("motor").toString() );
+      ui->lockSubLoopStart->setChecked( ! config.contains("start") );
       if ( config.contains("start")  )
         ui->subLoopStart->setValue( config.value("start").toDouble() ) ;
-      else
-        ui->lockSubLoopStart->setChecked(true);
       if ( config.contains("range")  )
         ui->subLoopRange->setValue( config.value("range").toDouble() );
       if ( config.contains("steps")  )
@@ -690,6 +714,42 @@ void MainWindow::loadConfiguration(QString fileName) {
     config.endGroup();
 
   }
+
+
+  if ( config.contains("dynoshot") ) {
+
+    ui->dynoShot->setChecked(true);
+
+    config.beginGroup("dynoshot");
+
+    if ( config.contains("motor")  )
+      dynoMotor->setPv( config.value("motor").toString() );
+    ui->lockDynoStart->setChecked( ! config.contains("start") );
+    if ( config.contains("start")  )
+      ui->dynoStart->setValue( config.value("start").toDouble() ) ;
+    if ( config.contains("range")  )
+      ui->dynoRange->setValue( config.value("range").toDouble() ) ;
+
+    if ( config.contains("dyno2shot") ) {
+
+      ui->dyno2Shot->setChecked(true);
+
+      config.beginGroup("dyno2shot");
+      if ( config.contains("motor")  )
+        dyno2Motor->setPv( config.value("motor").toString() );
+      ui->lockDyno2Start->setChecked( ! config.contains("start") );
+      if ( config.contains("start")  )
+        ui->dyno2Start->setValue( config.value("start").toDouble() ) ;
+      if ( config.contains("range")  )
+        ui->dyno2Range->setValue( config.value("range").toDouble() ) ;
+      config.endGroup();
+
+    }
+
+    config.endGroup();
+
+  }
+
 
   config.beginGroup("detector");
   if ( config.contains("sampleFile")  )
@@ -856,6 +916,39 @@ void MainWindow::setEnv(const char * var, const char * val){
       desc = "Actual position of the sub-loop stage.";
     else if ( ! strcmp( var, "SUBLOOPN" ) )
       desc = "Total number of aqcuisitions in the sub-loop series.";
+    else if ( ! strcmp( var, "DYNOPOS" ) )
+      desc = "Actual position of the stage controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNOMOTORUNITS" ) )
+      desc = "Units of the motor controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNOMOTORPREC" ) )
+      desc = "Precsicion of the motor controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNOMOTORPV" ) )
+      desc = "EPICS PV of the stage controlling dynamic shot";
+    else if ( ! strcmp( var, "DYNOMOTORDESC" ) )
+      desc = "EPICS descriptiopn of the stage controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNORANGE" ) )
+      desc = "Total travel range of the stage controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNOSTART" ) )
+      desc = "Start point of the stage controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNOEND" ) )
+      desc = "End point of the stage controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNO2POS" ) )
+      desc = "Actual position of the second stage controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNO2MOTORUNITS" ) )
+      desc = "Units of the motor controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNO2MOTORPREC" ) )
+      desc = "Precsicion of the motor controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNO2MOTORPV" ) )
+      desc = "EPICS PV of the second stage controlling dynamic shot";
+    else if ( ! strcmp( var, "DYNO2MOTORDESC" ) )
+      desc = "EPICS descriptiopn of the second stage controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNO2RANGE" ) )
+      desc = "Total travel range of the second stage controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNO2START" ) )
+      desc = "Start point of the second stage controlling dynamic shot.";
+    else if ( ! strcmp( var, "DYNO2END" ) )
+      desc = "End point of the second stage controlling dynamic shot.";
+
 
     hui->table->setItem( rowCount, 2, new QTableWidgetItem(desc));
 
@@ -871,7 +964,7 @@ void MainWindow::setEnv(const char * var, const char * val){
 }
 
 
-void MainWindow::onFocusChange( QWidget * old, QWidget * now ) {
+void MainWindow::onFocusChange( QWidget * , QWidget * now ) {
   hDialog->setVisible( widgetsNeededHelp.contains(now) ||
                       QApplication::activeWindow() == hDialog ||
                       engineIsOn );
@@ -2013,7 +2106,7 @@ void MainWindow::setDyno2Prec() {
 void MainWindow::onDyno2MotorChanges(){
 
   bool itemOK =
-      ! ui->dyno2->isChecked() ||
+      ! ui->dyno2Shot->isChecked() ||
       ! ui->dynoShot->isChecked() || dyno2Motor->isConnected();
   check(dyno2Motor->basicUI()->setup, itemOK);
 
@@ -2034,7 +2127,7 @@ void MainWindow::onDyno2RangeChanges() {
   setEnv("DYNO2RANGE", dist);
 
   bool itemOK =
-      ! ui->dyno2->isChecked() ||
+      ! ui->dyno2Shot->isChecked() ||
       ! ui->dynoShot->isChecked() || dist != 0.0;
   check(ui->dyno2Range, itemOK);
 
@@ -2051,7 +2144,7 @@ void MainWindow::onDyno2StartChanges() {
   setEnv("DYNO2START", pos);
 
   bool itemOK =
-      ! ui->dyno2->isChecked() ||
+      ! ui->dyno2Shot->isChecked() ||
       ! ui->dynoShot->isChecked() || ! dyno2Motor->isConnected() ||
       ( pos >= dyno2Motor->getUserLoLimit()  &&
        pos <= dyno2Motor->getUserHiLimit() );
@@ -2072,7 +2165,7 @@ void MainWindow::onDyno2EndChanges() {
   setEnv("DYNO2END", pos);
 
   bool itemOK =
-      ! ui->dyno2->isChecked() ||
+      ! ui->dyno2Shot->isChecked() ||
       ! ui->dynoShot->isChecked() || ! dyno2Motor->isConnected() ||
       ( pos >= dyno2Motor->getUserLoLimit()  &&
        pos <= dyno2Motor->getUserHiLimit() );
@@ -2255,7 +2348,7 @@ void MainWindow::acquire(const QString & filename) {
     appendMessage(CONTROL, "Start moving dyno-shot motor to " + QString::number(goal) + ".");
     dynoMotor->goUserPosition(goal, false);
   }
-  if ( ui->dyno2->isChecked() ) {
+  if ( ui->dyno2Shot->isChecked() ) {
     dyno2Motor->wait_stop();
     double goal = ui->dyno2End->value();
     appendMessage(CONTROL, "Start moving second dyno-shot motor to " + QString::number(goal) + ".");
@@ -2271,7 +2364,7 @@ void MainWindow::acquire(const QString & filename) {
     appendMessage(CONTROL, "Returning dyno-shot motor to " + QString::number(dStart) + ".");
     dynoMotor->goUserPosition(dStart, false);
   }
-  if ( ui->dyno2->isChecked() ) {
+  if ( ui->dyno2Shot->isChecked() ) {
     appendMessage(CONTROL, "Stopping dyno-shot motor.");
     dyno2Motor->stop(true);
     appendMessage(CONTROL, "Returning second dyno-shot motor to " + QString::number(d2Start) + ".");
@@ -2284,7 +2377,7 @@ void MainWindow::acquire(const QString & filename) {
 
   if ( ui->dynoShot->isChecked() )
     dynoMotor->wait_stop();
-  if ( ui->dyno2->isChecked() )
+  if ( ui->dyno2Shot->isChecked() )
     dyno2Motor->wait_stop();
 
 }

@@ -24,7 +24,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>6</number>
+       <number>5</number>
       </property>
       <widget class="QWidget" name="tabGeneral">
        <property name="toolTip">
@@ -1391,7 +1391,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="dyno2">
+            <widget class="QCheckBox" name="dyno2Shot">
              <property name="text">
               <string>Use second motor</string>
              </property>
@@ -1938,7 +1938,7 @@
    </hints>
   </connection>
   <connection>
-   <sender>dyno2</sender>
+   <sender>dyno2Shot</sender>
    <signal>toggled(bool)</signal>
    <receiver>dyno2Wg</receiver>
    <slot>setEnabled(bool)</slot>
