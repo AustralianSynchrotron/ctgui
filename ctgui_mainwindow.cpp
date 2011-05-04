@@ -52,7 +52,8 @@ static int checkScript(const QString & script, QString & result) {
 
 
 
-
+QHash<QString,QString> MainWindow::envDesc;
+const bool MainWindow::inited = MainWindow::init();
 const QString MainWindow::shutterPvBaseName = "SR08ID01PSS01:HU01A_BL_SHUTTER";
 const QIcon MainWindow::badIcon = QIcon(":/icons/warn.svg");
 const QIcon MainWindow::goodIcon = QIcon();
@@ -65,8 +66,10 @@ MainWindow::MainWindow(QWidget *parent) :
   scanList(new QStandardItemModel(0,4,this)),
   proxyModel(new QSortFilterProxyModel(this)),
   transQty(0),
-  stopMe(false),
-  engineIsOn(false)
+  readyForAq(false),
+  isAqcuiring(false),
+  stopMe(true),
+  engineStatus(Stopped)
 {
 
   aqExec = new QFile( QString(tmpnam(0)) + ".ctgui_aq", this) ;
@@ -113,6 +116,13 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->scanView->setModel(proxyModel);
   setScanTable();
 
+  motorsInitials[thetaMotor] = 0 ;
+  motorsInitials[bgMotor] = 0 ;
+  motorsInitials[loopMotor] = 0 ;
+  motorsInitials[subLoopMotor] = 0 ;
+  motorsInitials[dynoMotor] = 0 ;
+  motorsInitials[dyno2Motor] = 0 ;
+
   opnSts = new QEpicsPV(shutterPvBaseName + "_OPEN_STS", ui->tabFF) ;
   clsSts = new QEpicsPV(shutterPvBaseName + "_CLOSE_STS", ui->tabFF) ;
   opnCmd = new QEpicsPV(shutterPvBaseName + "_OPEN_CMD", ui->tabFF) ;
@@ -139,6 +149,11 @@ MainWindow::MainWindow(QWidget *parent) :
           SLOT(onFocusChange(QWidget*,QWidget*)));
   connect(hui->table, SIGNAL(cellClicked(int,int)),
           SLOT(onHelpClecked(int)));
+
+  connect(ui->startStop, SIGNAL(clicked()),
+          SLOT(onStartStop()));
+  connect(ui->assistant, SIGNAL(clicked()),
+          SLOT(onAssistant()));
 
   connect(ui->browseExpPath, SIGNAL(clicked()),
           SLOT(onBrowseExpPath()));
@@ -187,8 +202,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(thetaMotor, SIGNAL(changedUserHiLimit(double)),
           SLOT(onThetaMotorChanges()));
 
-  connect(ui->lockScanStart, SIGNAL(toggled(bool)),
-          SLOT(lockThetaStart(bool)));
+  connect(ui->getScanStart, SIGNAL(clicked()),
+          SLOT(getThetaStart()));
   connect(ui->scanRange, SIGNAL(valueChanged(double)),
           SLOT(onScanRangeChanges()));
   connect(ui->scanStep, SIGNAL(valueChanged(double)),
@@ -203,8 +218,6 @@ MainWindow::MainWindow(QWidget *parent) :
           SLOT(onScanAddChanges()));
   connect(ui->selectiveScan, SIGNAL(toggled(bool)),
           SLOT(onSelectiveScanChanges()));
-  connect(ui->startStop, SIGNAL(clicked()),
-          SLOT(onStartStop()));
 
   connect(ui->listFilter, SIGNAL(textChanged(QString)),
           SLOT(onFilterChanges(QString)));
@@ -240,8 +253,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(bgMotor, SIGNAL(changedUserHiLimit(double)),
           SLOT(onTransMotorChanges()));
 
-  connect(ui->lockTransIn, SIGNAL(toggled(bool)),
-          SLOT(lockBgStart(bool)));
+  connect(ui->getTransIn, SIGNAL(clicked()),
+          SLOT(getBgStart()));
   connect(ui->transInterval, SIGNAL(valueChanged(int)),
           SLOT(onTransIntervalChanges()));
   connect(ui->transDist, SIGNAL(valueChanged(double)),
@@ -296,8 +309,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(loopMotor, SIGNAL(changedUserHiLimit(double)),
           SLOT(onLoopMotorChanges()));
 
-  connect(ui->lockLoopStart, SIGNAL(toggled(bool)),
-          SLOT(lockLoopStart(bool)));
+  connect(ui->getLoopStart, SIGNAL(clicked()),
+          SLOT(getLoopStart()));
   connect(ui->loopRange, SIGNAL(valueChanged(double)),
           SLOT(onLoopRangeChanges()));
   connect(ui->loopNumber, SIGNAL(valueChanged(int)),
@@ -330,8 +343,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(subLoopMotor, SIGNAL(changedUserHiLimit(double)),
           SLOT(onSubLoopMotorChanges()));
 
-  connect(ui->lockSubLoopStart, SIGNAL(toggled(bool)),
-          SLOT(lockSubLoopStart(bool)));
+  connect(ui->getSubLoopStart, SIGNAL(clicked()),
+          SLOT(getSubLoopStart()));
   connect(ui->subLoopRange, SIGNAL(valueChanged(double)),
           SLOT(onSubLoopRangeChanges()));
   connect(ui->subLoopNumber, SIGNAL(valueChanged(int)),
@@ -364,8 +377,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(ui->dynoShot, SIGNAL(toggled(bool)),
           SLOT(onDynoChanges()));
-  connect(ui->lockDynoStart, SIGNAL(toggled(bool)),
-          SLOT(lockDynoStart(bool)));
+  connect(ui->getDynoStart, SIGNAL(clicked()),
+          SLOT(getDynoStart()));
   connect(ui->dynoRange, SIGNAL(valueChanged(double)),
           SLOT(onDynoRangeChanges()));
   connect(ui->dynoStart, SIGNAL(valueChanged(double)),
@@ -394,8 +407,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(dyno2Motor, SIGNAL(changedUserHiLimit(double)),
           SLOT(onDyno2MotorChanges()));
 
-  connect(ui->lockDyno2Start, SIGNAL(toggled(bool)),
-          SLOT(lockDyno2Start(bool)));
+  connect(ui->getDyno2Start, SIGNAL(clicked()),
+          SLOT(getDyno2Start()));
   connect(ui->dyno2Range, SIGNAL(valueChanged(double)),
           SLOT(onDyno2RangeChanges()));
   connect(ui->dyno2Start, SIGNAL(valueChanged(double)),
@@ -418,6 +431,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   ui->control->setCurrentIndex(0);
 
+  setEngineStatus(Stopped);
 
   setThetaUnits();
   setBgUnits();
@@ -428,11 +442,6 @@ MainWindow::MainWindow(QWidget *parent) :
   setBgPrec();
   setLoopPrec();
   setSubLoopPrec();
-
-  lockThetaStart(ui->lockScanStart->isChecked());
-  lockBgStart(ui->lockTransIn->isChecked());
-  lockLoopStart(ui->lockLoopStart->isChecked());
-  lockSubLoopStart(ui->lockSubLoopStart->isChecked());
 
   onExpPathChanges();
   onExpNameChanges();
@@ -509,6 +518,95 @@ MainWindow::~MainWindow()
 }
 
 
+bool MainWindow::init() {
+
+  envDesc["GTRANSPOS"] = "Directed position of the translation stage.";
+  envDesc["FILE"] = "Name of the last aquired image.";
+  envDesc["BGFILE"] = "Name of the last aquired background image.";
+  envDesc["SAMPLEFILE"] = "Name of the last aquired image.";
+  envDesc["AQTYPE"] = "Role of the image being acquired: DARKCURRENT, BACKGROUND, SAMPLE or SINGLESHOT.";
+  envDesc["DFTYPE"] = "Role of the dark field image being acquired: BEFORE or AFTER the scan.";
+  envDesc["DFBEFORECOUNT"] = "Count of the dark field image in the before-scan series.";
+  envDesc["DFAFTERCOUNT"] = "Count of the dark field image in the after-scan series.";
+  envDesc["DFCOUNT"] = "Count of the dark field image.";
+  envDesc["GSCANPOS"] = "Directed position of the sample rotation stage.";
+  envDesc["BGCOUNT"] = "Count of the background image.";
+  envDesc["PCOUNT"] = "Sample projection counter.";
+  envDesc["LOOPCOUNT"] = "Count of the image in the loop series.";
+  envDesc["GLOOPPOS"] = "Directed position of the loop stage.";
+  envDesc["SUBLOOPCOUNT"] = "Count of the image in the sub-loop series.";
+  envDesc["GSUBLOOPPOS"] = "Directed position of the sub-loop stage.";
+  envDesc["COUNT"] = "Total image counter (excluding dark field).";
+  envDesc["SCANMOTORUNITS"] = "Units of the rotation stage.";
+  envDesc["TRANSMOTORUNITS"] = "Units of the translation stage.";
+  envDesc["LOOPMOTORUNITS"] = "Units of the loop stage.";
+  envDesc["SUBLOOPMOTORUNITS"] = "Units of the sub-loop stage.";
+  envDesc["SCANMOTORPREC"] = "Precsicion of the rotation stage.";
+  envDesc["TRANSMOTORPREC"] = "Precsicion of the translation stage.";
+  envDesc["LOOPMOTORPREC"] = "Precsicion of the loop stage.";
+  envDesc["SUBLOOPMOTORPREC"] = "Precsicion of the sub-loop stage.";
+  envDesc["EXPPATH"] = "Working directory.";
+  envDesc["EXPNAME"] = "Experiment name.";
+  envDesc["EXPDESC"] = "Description of the experiment.";
+  envDesc["SAMPLEDESC"] = "Sample description.";
+  envDesc["PEOPLE"] = "Experimentalists list.";
+  envDesc["SCANMOTORPV"] = "EPICS PV of the rotation stage.";
+  envDesc["SCANMOTORDESC"] = "EPICS descriptiopn of the rotation stage.";
+  envDesc["SCANPOS"] = "Actual position of the rotation stage.";
+  envDesc["SCANRANGE"] = "Travel range of the rotation stage in the scan.";
+  envDesc["SCANSTEP"] = "Rotation step between two projections.";
+  envDesc["PROJECTIONS"] = "Total number of projections.";
+  envDesc["SCANSTART"] = "Start point of the rotation stage.";
+  envDesc["SCANEND"] = "End point of rotation stage.";
+  envDesc["TRANSMOTORPV"] = "EPICS PV of the translation stage.";
+  envDesc["TRANSMOTORDESC"] = "EPICS descriptiopn of the translation stage.";
+  envDesc["TRANSPOS"] = "Actual position of the translation stage.";
+  envDesc["TRANSINTERVAL"] = "Interval (number of projections) between two background acquisitions.";
+  envDesc["TRANSN"] = "Total number of backgrounds in the scan.";
+  envDesc["TRANSDIST"] = "Travel of the translation stage.";
+  envDesc["TRANSIN"] = "Position of the translation stage in-beam.";
+  envDesc["TRANSOUT"] = "Position of the translation stage out of the beam.";
+  envDesc["DFBEFORE"] = "Total number of dark current acquisitions before the scan.";
+  envDesc["DFAFTER"] = "Total number of dark current acquisitions after the scan.";
+  envDesc["DFTOTAL"] = "Total number of dark current acquisitions.";
+  envDesc["LOOPMOTORPV"] = "EPICS PV of the loop stage.";
+  envDesc["LOOPMOTORDESC"] = "EPICS descriptiopn of the loop stage.";
+  envDesc["LOOPRANGE"] = "Total travel range of the loop stage.";
+  envDesc["LOOPSTEP"] = "Single step between two acquisitions in the loop series.";
+  envDesc["LOOPSTART"] = "Start point of the loop stage.";
+  envDesc["LOOPEND"] = "End point of the loop stage.";
+  envDesc["SUBLOOPMOTORPV"] = "EPICS PV of the sub-loop stage.";
+  envDesc["SUBLOOPMOTORDESC"] = "EPICS descriptiopn of the sub-loop stage.";
+  envDesc["SUBLOOPRANGE"] = "Total travel range of the sub-loop stage.";
+  envDesc["SUBLOOPSTEP"] = "Single step between two acquisitions in the sub-loop series.";
+  envDesc["SUBLOOPSTART"] = "Start point of the sub-loop stage.";
+  envDesc["SUBLOOPEND"] = "End point of the sub-loop stage.";
+  envDesc["LOOPPOS"] = "Actual position of the loop stage.";
+  envDesc["LOOPN"] = "Total number of aqcuisitions in the loop series.";
+  envDesc["SUBLOOPPOS"] = "Actual position of the sub-loop stage.";
+  envDesc["SUBLOOPN"] = "Total number of aqcuisitions in the sub-loop series.";
+  envDesc["DYNOPOS"] = "Actual position of the stage controlling dynamic shot.";
+  envDesc["DYNOMOTORUNITS"] = "Units of the motor controlling dynamic shot.";
+  envDesc["DYNOMOTORPREC"] = "Precsicion of the motor controlling dynamic shot.";
+  envDesc["DYNOMOTORPV"] = "EPICS PV of the stage controlling dynamic shot";
+  envDesc["DYNOMOTORDESC"] = "EPICS descriptiopn of the stage controlling dynamic shot.";
+  envDesc["DYNORANGE"] = "Total travel range of the stage controlling dynamic shot.";
+  envDesc["DYNOSTART"] = "Start point of the stage controlling dynamic shot.";
+  envDesc["DYNOEND"] = "End point of the stage controlling dynamic shot.";
+  envDesc["DYNO2POS"] = "Actual position of the second stage controlling dynamic shot.";
+  envDesc["DYNO2MOTORUNITS"] = "Units of the motor controlling dynamic shot.";
+  envDesc["DYNO2MOTORPREC"] = "Precsicion of the motor controlling dynamic shot.";
+  envDesc["DYNO2MOTORPV"] = "EPICS PV of the second stage controlling dynamic shot";
+  envDesc["DYNO2MOTORDESC"] = "EPICS descriptiopn of the second stage controlling dynamic shot.";
+  envDesc["DYNO2RANGE"] = "Total travel range of the second stage controlling dynamic shot.";
+  envDesc["DYNO2START"] = "Start point of the second stage controlling dynamic shot.";
+  envDesc["DYNO2END"] = "End point of the second stage controlling dynamic shot.";
+
+  return true;
+
+}
+
+
 
 void MainWindow::saveConfiguration(QString fileName) {
 
@@ -531,19 +629,18 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   config.beginGroup("scan");
   config.setValue("motor", thetaMotor->getPv());
-  if ( ! ui->lockScanStart->isChecked() )
-    config.setValue("start", ui->scanStart->value());
+  config.setValue("prec", thetaMotor->getPrecision());
+  config.setValue("start", ui->scanStart->value());
   config.setValue("range", ui->scanRange->value());
   config.setValue("steps", ui->projections->value());
   config.setValue("add", ui->scanAdd->isChecked());
-  config.setValue("return", ui->returnToOrigin->isChecked());
   config.endGroup();
 
   config.beginGroup("flatfield");
   config.setValue("interval", ui->transInterval->value());
   config.setValue("motor", bgMotor->getPv());
-  if ( ! ui->lockTransIn->isChecked() )
-    config.setValue("inbeam", ui->transIn->value());
+  config.setValue("prec", bgMotor->getPrecision());
+  config.setValue("inbeam", ui->transIn->value());
   config.setValue("distance", ui->transDist->value());
   config.setValue("before", ui->dfBefore->value());
   config.setValue("after", ui->dfAfter->value());
@@ -556,8 +653,8 @@ void MainWindow::saveConfiguration(QString fileName) {
     config.beginGroup("loop");
     config.setValue("singleBackground", ! ui->multiBg->isChecked() );
     config.setValue("motor", loopMotor->getPv());
-    if ( ! ui->lockLoopStart->isChecked() )
-      config.setValue("start", ui->loopStart->value());
+    config.setValue("prec", loopMotor->getPrecision());
+    config.setValue("start", ui->loopStart->value());
     config.setValue("range", ui->loopRange->value());
     config.setValue("steps", ui->loopNumber->value());
 
@@ -565,8 +662,8 @@ void MainWindow::saveConfiguration(QString fileName) {
       config.setValue("subloop",true);
       config.beginGroup("subloop");
       config.setValue("motor", subLoopMotor->getPv());
-      if ( ! ui->lockSubLoopStart->isChecked() )
-        config.setValue("start", ui->subLoopStart->value());
+      config.setValue("prec", subLoopMotor->getPrecision());
+      config.setValue("start", ui->subLoopStart->value());
       config.setValue("range", ui->subLoopRange->value());
       config.setValue("steps", ui->subLoopNumber->value());
       config.endGroup();
@@ -581,9 +678,9 @@ void MainWindow::saveConfiguration(QString fileName) {
     config.setValue("dynoshot",true);
 
     config.beginGroup("dynoshot");
-    config.setValue("motor",dynoMotor->getPv());
-    if ( ! ui->lockDynoStart->isChecked() )
-      config.setValue("start", ui->dynoStart->value());
+    config.setValue("motor", dynoMotor->getPv());
+    config.setValue("prec", dynoMotor->getPrecision());
+    config.setValue("start", ui->dynoStart->value());
     config.setValue("range", ui->dynoRange->value());
 
     if (ui->dyno2Shot->isChecked()) {
@@ -591,9 +688,9 @@ void MainWindow::saveConfiguration(QString fileName) {
       config.setValue("dyno2shot",true);
 
       config.beginGroup("dyno2shot");
-      config.setValue("motor",dyno2Motor->getPv());
-      if ( ! ui->lockDyno2Start->isChecked() )
-        config.setValue("start", ui->dyno2Start->value());
+      config.setValue("motor", dyno2Motor->getPv());
+      config.setValue("prec", dyno2Motor->getPrecision());
+      config.setValue("start", ui->dyno2Start->value());
       config.setValue("range", ui->dyno2Range->value());
       config.endGroup();
 
@@ -617,12 +714,14 @@ void MainWindow::saveConfiguration(QString fileName) {
 void MainWindow::loadConfiguration(QString fileName) {
 
 
+  engineStatus=Paused; // to prevent scanView table updates;
+
   if ( fileName.isEmpty() )
     fileName = QFileDialog::getOpenFileName(0, "Load configuration", QDir::currentPath());
 
-
-
   QSettings config(fileName, QSettings::IniFormat);
+
+  int prec=0;
 
   config.beginGroup("general");
   if ( config.contains("title")  )
@@ -643,29 +742,32 @@ void MainWindow::loadConfiguration(QString fileName) {
   config.endGroup();
 
   config.beginGroup("scan");
-  if ( config.contains("motor")  )  thetaMotor->setPv( config.value("motor").toString() );
-  ui->lockScanStart->setChecked( ! config.contains("start") );
+  if ( config.contains("prec") &&
+       ( prec = config.value("prec").toInt() ) )
+    setThetaPrec(prec);
+  if ( config.contains("motor")  )
+    thetaMotor->setPv( config.value("motor").toString() );
   if ( config.contains("start")  )
     ui->scanStart->setValue( config.value("start").toDouble() );
   if ( config.contains("range")  )
     ui->scanRange->setValue( config.value("range").toDouble() );
   if ( config.contains("steps")  )
     ui->projections->setValue( config.value("steps").toInt() );
+
   if ( config.contains("add")  )
     ui->scanAdd->setChecked( config.value("add").toBool() );
-  if ( config.contains("return")  )
-    ui->returnToOrigin->setChecked( config.value("return").toBool() );
   config.endGroup();
 
   config.beginGroup("flatfield");
   if ( config.contains("interval")  )
     ui->transInterval->setValue( config.value("interval").toInt() );
+  if ( config.contains("prec") &&
+       ( prec = config.value("prec").toInt() ) )
+    setBgPrec(prec);
   if ( config.contains("motor")  )
     bgMotor->setPv( config.value("motor").toString() );
   if ( config.contains("inbeam")  )
     ui->transIn->setValue( config.value("inbeam").toDouble() );
-  else
-    ui->lockTransIn->setChecked(true);
   if ( config.contains("distance")  )
     ui->transDist->setValue( config.value("distance").toDouble() );
   if ( config.contains("before")  )
@@ -683,9 +785,11 @@ void MainWindow::loadConfiguration(QString fileName) {
 
     if ( config.contains("singleBackground")  )
       ui->multiBg->setChecked( config.value("singleBackground").toBool() );
+    if ( config.contains("prec") &&
+         ( prec = config.value("prec").toInt() ) )
+      setLoopPrec(prec);
     if ( config.contains("motor")  )
       loopMotor->setPv( config.value("motor").toString() );
-    ui->lockLoopStart->setChecked( ! config.contains("start") );
     if ( config.contains("start")  )
       ui->loopStart->setValue( config.value("start").toDouble() ) ;
     if ( config.contains("range")  )
@@ -698,15 +802,18 @@ void MainWindow::loadConfiguration(QString fileName) {
       ui->subLoop->setChecked(true);
 
       config.beginGroup("subloop");
+      if ( config.contains("prec") &&
+           ( prec = config.value("prec").toInt() ) )
+        setSubLoopPrec(prec);
       if ( config.contains("motor")  )
         subLoopMotor->setPv( config.value("motor").toString() );
-      ui->lockSubLoopStart->setChecked( ! config.contains("start") );
       if ( config.contains("start")  )
         ui->subLoopStart->setValue( config.value("start").toDouble() ) ;
       if ( config.contains("range")  )
         ui->subLoopRange->setValue( config.value("range").toDouble() );
       if ( config.contains("steps")  )
         ui->subLoopNumber->setValue( config.value("steps").toInt() );
+
       config.endGroup();
 
     }
@@ -722,9 +829,11 @@ void MainWindow::loadConfiguration(QString fileName) {
 
     config.beginGroup("dynoshot");
 
+    if ( config.contains("prec") &&
+         ( prec = config.value("prec").toInt() ) )
+      setDynoPrec(prec);
     if ( config.contains("motor")  )
       dynoMotor->setPv( config.value("motor").toString() );
-    ui->lockDynoStart->setChecked( ! config.contains("start") );
     if ( config.contains("start")  )
       ui->dynoStart->setValue( config.value("start").toDouble() ) ;
     if ( config.contains("range")  )
@@ -735,9 +844,11 @@ void MainWindow::loadConfiguration(QString fileName) {
       ui->dyno2Shot->setChecked(true);
 
       config.beginGroup("dyno2shot");
+      if ( config.contains("prec") &&
+           ( prec = config.value("prec").toInt() ) )
+        setDyno2Prec(prec);
       if ( config.contains("motor")  )
         dyno2Motor->setPv( config.value("motor").toString() );
-      ui->lockDyno2Start->setChecked( ! config.contains("start") );
       if ( config.contains("start")  )
         ui->dyno2Start->setValue( config.value("start").toDouble() ) ;
       if ( config.contains("range")  )
@@ -765,6 +876,13 @@ void MainWindow::loadConfiguration(QString fileName) {
   config.endGroup();
 
 
+  if ( ui->expPath->text().isEmpty() )
+    ui->expPath->setText( QFileInfo(fileName).absolutePath());
+
+  engineStatus=Stopped; // to reenable scanView table updates;
+  setScanTable();
+
+
 }
 
 
@@ -784,173 +902,14 @@ void MainWindow::setEnv(const char * var, const char * val){
 
   if (found < 0) {
 
+    QString desc = envDesc.contains(var) ? envDesc[var] : "" ;
+
+    hui->table->setSortingEnabled(false); // needed to prevent sorting after settingItem
     hui->table->insertRow(rowCount);
     hui->table->setItem( rowCount, 0, new QTableWidgetItem( QString(var) ));
     hui->table->setItem( rowCount, 1, new QTableWidgetItem( QString(val) ));
-
-    QString desc;
-
-    if ( ! strcmp( var, "GTRANSPOS" ) )
-      desc = "Directed position of the translation stage.";
-    else if ( ! strcmp( var, "FILE" ) )
-      desc = "Name of the last aquired image.";
-    else if ( ! strcmp( var, "AQTYPE" ) )
-      desc = "Role of the image being acquired: DARKCURRENT, BACKGROUND, SAMPLE or SINGLESHOT.";
-    else if ( ! strcmp( var, "DFTYPE" ) )
-      desc = "Role of the dark field image being acquired: BEFORE or AFTER the scan.";
-    else if ( ! strcmp( var, "DFBEFORECOUNT" ) )
-      desc = "Count of the dark field image in the before-scan series.";
-    else if ( ! strcmp( var, "DFAFTERCOUNT" ) )
-      desc = "Count of the dark field image in the after-scan series.";
-    else if ( ! strcmp( var, "DFCOUNT" ) )
-      desc = "Count of the dark field image.";
-    else if ( ! strcmp( var, "GSCANPOS" ) )
-      desc = "Directed position of the sample rotation stage.";
-    else if ( ! strcmp( var, "BGCOUNT" ) )
-      desc = "Count of the background image.";
-    else if ( ! strcmp( var, "PCOUNT" ) )
-      desc = "Sample projection counter.";
-    else if ( ! strcmp( var, "LOOPCOUNT" ) )
-      desc = "Count of the image in the loop series.";
-    else if ( ! strcmp( var, "GLOOPPOS" ) )
-      desc = "Directed position of the loop stage.";
-    else if ( ! strcmp( var, "SUBLOOPCOUNT" ) )
-      desc = "Count of the image in the sub-loop series.";
-    else if ( ! strcmp( var, "GSUBLOOPPOS" ) )
-      desc = "Directed position of the sub-loop stage.";
-    else if ( ! strcmp( var, "COUNT" ) )
-      desc = "Total image counter (excluding dark field).";
-    else if ( ! strcmp( var, "SCANMOTORUNITS" ) )
-      desc = "Units of the rotation stage.";
-    else if ( ! strcmp( var, "TRANSMOTORUNITS" ) )
-      desc = "Units of the translation stage.";
-    else if ( ! strcmp( var, "LOOPMOTORUNITS" ) )
-      desc = "Units of the loop stage.";
-    else if ( ! strcmp( var, "SUBLOOPMOTORUNITS" ) )
-      desc = "Units of the sub-loop stage.";
-    else if ( ! strcmp( var, "SCANMOTORPREC" ) )
-      desc = "Precsicion of the rotation stage.";
-    else if ( ! strcmp( var, "TRANSMOTORPREC" ) )
-      desc = "Precsicion of the translation stage.";
-    else if ( ! strcmp( var, "LOOPMOTORPREC" ) )
-      desc = "Precsicion of the loop stage.";
-    else if ( ! strcmp( var, "SUBLOOPMOTORPREC" ) )
-      desc = "Precsicion of the sub-loop stage.";
-    else if ( ! strcmp( var, "EXPPATH" ) )
-      desc = "Working directory.";
-    else if ( ! strcmp( var, "EXPNAME" ) )
-      desc = "Experiment name.";
-    else if ( ! strcmp( var, "EXPDESC" ) )
-      desc = "Description of the experiment.";
-    else if ( ! strcmp( var, "SAMPLEDESC" ) )
-      desc = "Sample description.";
-    else if ( ! strcmp( var, "PEOPLE" ) )
-      desc = "Experimentalists list.";
-    else if ( ! strcmp( var, "SCANMOTORPV" ) )
-      desc = "EPICS PV of the rotation stage.";
-    else if ( ! strcmp( var, "SCANMOTORDESC" ) )
-      desc = "EPICS descriptiopn of the rotation stage.";
-    else if ( ! strcmp( var, "SCANPOS" ) )
-      desc = "Actual position of the rotation stage.";
-    else if ( ! strcmp( var, "SCANRANGE" ) )
-      desc = "Travel range of the rotation stage in the scan.";
-    else if ( ! strcmp( var, "SCANSTEP" ) )
-      desc = "Rotation step between two projections.";
-    else if ( ! strcmp( var, "PROJECTIONS" ) )
-      desc = "Total number of projections.";
-    else if ( ! strcmp( var, "SCANSTART" ) )
-      desc = "Start point of the rotation stage.";
-    else if ( ! strcmp( var, "SCANEND" ) )
-      desc = "End point of rotation stage.";
-    else if ( ! strcmp( var, "TRANSMOTORPV" ) )
-      desc = "EPICS PV of the translation stage.";
-    else if ( ! strcmp( var, "TRANSMOTORDESC" ) )
-      desc = "EPICS descriptiopn of the translation stage.";
-    else if ( ! strcmp( var, "TRANSPOS" ) )
-      desc = "Actual position of the translation stage.";
-    else if ( ! strcmp( var, "TRANSINTERVAL" ) )
-      desc = "Interval (number of projections) between two background acquisitions.";
-    else if ( ! strcmp( var, "TRANSN" ) )
-      desc = "Total number of backgrounds in the scan.";
-    else if ( ! strcmp( var, "TRANSDIST" ) )
-      desc = "Travel of the translation stage.";
-    else if ( ! strcmp( var, "TRANSIN" ) )
-      desc = "Position of the translation stage in-beam.";
-    else if ( ! strcmp( var, "TRANSOUT" ) )
-      desc = "Position of the translation stage out of the beam.";
-    else if ( ! strcmp( var, "DFBEFORE" ) )
-      desc = "Total number of dark current acquisitions before the scan.";
-    else if ( ! strcmp( var, "DFAFTER" ) )
-      desc = "Total number of dark current acquisitions after the scan.";
-    else if ( ! strcmp( var, "DFTOTAL" ) )
-      desc = "Total number of dark current acquisitions.";
-    else if ( ! strcmp( var, "LOOPMOTORPV" ) )
-      desc = "EPICS PV of the loop stage.";
-    else if ( ! strcmp( var, "LOOPMOTORDESC" ) )
-      desc = "EPICS descriptiopn of the loop stage.";
-    else if ( ! strcmp( var, "LOOPRANGE" ) )
-      desc = "Total travel range of the loop stage.";
-    else if ( ! strcmp( var, "LOOPSTEP" ) )
-      desc = "Single step between two acquisitions in the loop series.";
-    else if ( ! strcmp( var, "LOOPSTART" ) )
-      desc = "Start point of the loop stage.";
-    else if ( ! strcmp( var, "LOOPEND" ) )
-      desc = "End point of the loop stage.";
-    else if ( ! strcmp( var, "SUBLOOPMOTORPV" ) )
-      desc = "EPICS PV of the sub-loop stage.";
-    else if ( ! strcmp( var, "SUBLOOPMOTORDESC" ) )
-      desc = "EPICS descriptiopn of the sub-loop stage.";
-    else if ( ! strcmp( var, "SUBLOOPRANGE" ) )
-      desc = "Total travel range of the sub-loop stage.";
-    else if ( ! strcmp( var, "SUBLOOPSTEP" ) )
-      desc = "Single step between two acquisitions in the sub-loop series.";
-    else if ( ! strcmp( var, "SUBLOOPSTART" ) )
-      desc = "Start point of the sub-loop stage.";
-    else if ( ! strcmp( var, "SUBLOOPEND" ) )
-      desc = "End point of the sub-loop stage.";
-    else if ( ! strcmp( var, "LOOPPOS" ) )
-      desc = "Actual position of the loop stage.";
-    else if ( ! strcmp( var, "LOOPN" ) )
-      desc = "Total number of aqcuisitions in the loop series.";
-    else if ( ! strcmp( var, "SUBLOOPPOS" ) )
-      desc = "Actual position of the sub-loop stage.";
-    else if ( ! strcmp( var, "SUBLOOPN" ) )
-      desc = "Total number of aqcuisitions in the sub-loop series.";
-    else if ( ! strcmp( var, "DYNOPOS" ) )
-      desc = "Actual position of the stage controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNOMOTORUNITS" ) )
-      desc = "Units of the motor controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNOMOTORPREC" ) )
-      desc = "Precsicion of the motor controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNOMOTORPV" ) )
-      desc = "EPICS PV of the stage controlling dynamic shot";
-    else if ( ! strcmp( var, "DYNOMOTORDESC" ) )
-      desc = "EPICS descriptiopn of the stage controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNORANGE" ) )
-      desc = "Total travel range of the stage controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNOSTART" ) )
-      desc = "Start point of the stage controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNOEND" ) )
-      desc = "End point of the stage controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNO2POS" ) )
-      desc = "Actual position of the second stage controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNO2MOTORUNITS" ) )
-      desc = "Units of the motor controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNO2MOTORPREC" ) )
-      desc = "Precsicion of the motor controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNO2MOTORPV" ) )
-      desc = "EPICS PV of the second stage controlling dynamic shot";
-    else if ( ! strcmp( var, "DYNO2MOTORDESC" ) )
-      desc = "EPICS descriptiopn of the second stage controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNO2RANGE" ) )
-      desc = "Total travel range of the second stage controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNO2START" ) )
-      desc = "Start point of the second stage controlling dynamic shot.";
-    else if ( ! strcmp( var, "DYNO2END" ) )
-      desc = "End point of the second stage controlling dynamic shot.";
-
-
     hui->table->setItem( rowCount, 2, new QTableWidgetItem(desc));
+    hui->table->setSortingEnabled(true);
 
     hui->table->resizeColumnToContents(0);
     hui->table->resizeColumnToContents(1);
@@ -967,7 +926,7 @@ void MainWindow::setEnv(const char * var, const char * val){
 void MainWindow::onFocusChange( QWidget * , QWidget * now ) {
   hDialog->setVisible( widgetsNeededHelp.contains(now) ||
                       QApplication::activeWindow() == hDialog ||
-                      engineIsOn );
+                      engineStatus == Running || engineStatus == Paused );
   if ( widgetsNeededHelp.contains(now) )
     insertVariableIntoMe = now;
   else if ( QApplication::activeWindow() != hDialog )
@@ -1123,13 +1082,11 @@ void MainWindow::setSubLoopUnits() {
 
 }
 
-void MainWindow::setThetaPrec(){
+void MainWindow::setThetaPrec(int prec){
 
-  const int prec = thetaMotor->getPrecision();
+  if ( ! prec )
+    prec = thetaMotor->getPrecision();
   setEnv("SCANMOTORPREC", prec);
-
-  if ( sender() != thetaMotor)
-    return;
 
   ui->currentPos->setDecimals(prec);
   ui->scanRange->setDecimals(prec);
@@ -1139,13 +1096,11 @@ void MainWindow::setThetaPrec(){
 
 }
 
-void MainWindow::setBgPrec() {
+void MainWindow::setBgPrec(int prec){
 
-  const int prec = bgMotor->getPrecision();
+  if ( ! prec )
+    prec = bgMotor->getPrecision();
   setEnv("TRANSMOTORPREC", prec);
-
-  if ( sender() != bgMotor)
-    return;
 
   ui->transCurrent->setDecimals(prec);
   ui->transDist->setDecimals(prec);
@@ -1154,13 +1109,11 @@ void MainWindow::setBgPrec() {
 
 }
 
-void MainWindow::setLoopPrec() {
+void MainWindow::setLoopPrec(int prec){
 
-  const int prec = loopMotor->getPrecision();
+  if ( ! prec )
+    prec = loopMotor->getPrecision();
   setEnv("LOOPMOTORPREC", prec);
-
-  if ( sender() != loopMotor)
-    return;
 
   ui->loopCurrent->setDecimals(prec);
   ui->loopRange->setDecimals(prec);
@@ -1170,13 +1123,11 @@ void MainWindow::setLoopPrec() {
 
 }
 
-void MainWindow::setSubLoopPrec() {
+void MainWindow::setSubLoopPrec(int prec){
 
-  const int prec = subLoopMotor->getPrecision();
+  if ( ! prec )
+    prec = subLoopMotor->getPrecision();
   setEnv("SUBLOOPMOTORPREC", prec);
-
-  if ( sender() != subLoopMotor)
-    return;
 
   ui->subLoopCurrent->setDecimals(prec);
   ui->subLoopRange->setDecimals(prec);
@@ -1189,70 +1140,28 @@ void MainWindow::setSubLoopPrec() {
 
 
 
-void MainWindow::lockThetaStart(bool lock) {
-  ui->scanStart->setValue(thetaMotor->get());
-  ui->scanStart->setEnabled(!lock);
-  if (lock)
-    connect(thetaMotor, SIGNAL(changedUserPosition(double)),
-            ui->scanStart, SLOT(setValue(double)));
-  else
-    disconnect(thetaMotor, SIGNAL(changedUserPosition(double)),
-               ui->scanStart, SLOT(setValue(double)));
+void MainWindow::getThetaStart() {
+  ui->scanStart->setValue(ui->currentPos->value());
 }
 
-void MainWindow::lockBgStart(bool lock)  {
-  ui->transIn->setValue(bgMotor->get());
-  ui->transIn->setEnabled(!lock);;
-  if (lock)
-    connect(bgMotor, SIGNAL(changedUserPosition(double)),
-            ui->transIn, SLOT(setValue(double)));
-  else
-    disconnect(bgMotor, SIGNAL(changedUserPosition(double)),
-               ui->transIn, SLOT(setValue(double)));
+void MainWindow::getBgStart()  {
+  ui->transIn->setValue(ui->transCurrent->value());
 }
 
-void MainWindow::lockLoopStart(bool lock) {
-  ui->loopStart->setValue(loopMotor->get());
-  ui->loopStart->setEnabled(!lock);;
-  if (lock)
-    connect(loopMotor, SIGNAL(changedUserPosition(double)),
-            ui->loopStart, SLOT(setValue(double)));
-  else
-    disconnect(loopMotor, SIGNAL(changedUserPosition(double)),
-               ui->loopStart, SLOT(setValue(double)));
+void MainWindow::getLoopStart() {
+    ui->loopStart->setValue(ui->loopCurrent->value());
 }
 
-void MainWindow::lockSubLoopStart(bool lock) {
-  ui->subLoopStart->setValue(subLoopMotor->get());
-  ui->subLoopStart->setEnabled(!lock);;
-  if (lock)
-    connect(subLoopMotor, SIGNAL(changedUserPosition(double)),
-            ui->subLoopStart, SLOT(setValue(double)));
-  else
-    disconnect(subLoopMotor, SIGNAL(changedUserPosition(double)),
-               ui->subLoopStart, SLOT(setValue(double)));
+void MainWindow::getSubLoopStart() {
+    ui->subLoopStart->setValue(ui->subLoopCurrent->value());
 }
 
-void MainWindow::lockDynoStart(bool lock) {
-  ui->dynoStart->setValue(dynoMotor->get());
-  ui->dynoStart->setEnabled(!lock);;
-  if (lock)
-    connect(dynoMotor, SIGNAL(changedUserPosition(double)),
-            ui->dynoStart, SLOT(setValue(double)));
-  else
-    disconnect(dynoMotor, SIGNAL(changedUserPosition(double)),
-               ui->dynoStart, SLOT(setValue(double)));
+void MainWindow::getDynoStart() {
+  ui->dynoStart->setValue(ui->dynoCurrent->value());
 }
 
-void MainWindow::lockDyno2Start(bool lock) {
-  ui->dyno2Start->setValue(dyno2Motor->get());
-  ui->dyno2Start->setEnabled(!lock);;
-  if (lock)
-    connect(dyno2Motor, SIGNAL(changedUserPosition(double)),
-            ui->dyno2Start, SLOT(setValue(double)));
-  else
-    disconnect(dyno2Motor, SIGNAL(changedUserPosition(double)),
-               ui->dyno2Start, SLOT(setValue(double)));
+void MainWindow::getDyno2Start() {
+  ui->dyno2Start->setValue(ui->dyno2Current->value());
 }
 
 
@@ -1348,7 +1257,6 @@ void MainWindow::onScanRangeChanges(){
     return;
 
   ui->scanStep->blockSignals(true);
-  ui->scanStep->setRange(-qAbs(range), qAbs(range));
   ui->scanStep->setValue(range/ui->projections->value());
   ui->scanStep->blockSignals(false);
   ui->scanEnd->setValue(ui->scanStart->value()+range);
@@ -1382,12 +1290,14 @@ void MainWindow::onScanStepChanges(){
   ui->scanRange->setValue( copysign( ui->scanRange->value(), step));
   ui->scanRange->blockSignals(false);
 
-  int proj = nearbyint( ui->scanRange->value() / ( step==0.0 ? 1.0 : step) );
-  ui->projections->blockSignals(true);
-  ui->projections->setValue(proj);
-  ui->projections->blockSignals(false);
+  int proj = (int) nearbyint( ui->scanRange->value() / ( step==0.0 ? 1.0 : step) );
+  if ( ui->scanRange->value() != 0.0 ) {
+    ui->projections->blockSignals(true);
+    ui->projections->setValue(proj);
+    ui->projections->blockSignals(false);
+  }
   ui->scanStep->setStyleSheet( step * proj == ui->scanRange->value()  ?
-                                ""  :  "color: rgba(255, 0, 0, 128);");
+                               ""  :  "color: rgba(255, 0, 0, 128);");
 
 }
 
@@ -1440,7 +1350,9 @@ void MainWindow::onSelectiveScanChanges(){
 }
 
 void MainWindow::setScanTable() {
-  if (engineIsOn) {
+  if ( engineStatus == Running || engineStatus == Paused )
+    return;
+  if ( engineStatus == Filling ) {
     stopMe=true;
     QTimer::singleShot(0, this, SLOT(setScanTable()));
   } else {
@@ -1448,6 +1360,8 @@ void MainWindow::setScanTable() {
     engine(true);
     onSelectiveScanChanges();
     ui->scanView->setUpdatesEnabled(true);
+    check(ui->scanView, engineStatus == Stopped); // Stoppped if has finished populating
+    engineStatus = Stopped;
   }
 }
 
@@ -1522,7 +1436,7 @@ void MainWindow::onTransIntervalChanges() {
   if (interval == ui->transInterval->minimum())
     transQty = 0;
   else
-    transQty = ceil(ui->projections->value()/(float)interval) +
+    transQty = (int) ceil(ui->projections->value()/(float)interval) +
         ( ui->scanAdd->isChecked() ? 1 : 0 ) ;
 
   setEnv("TRANSN", transQty);
@@ -1970,13 +1884,11 @@ void MainWindow::setDynoUnits(){
 
 }
 
-void MainWindow::setDynoPrec() {
+void MainWindow::setDynoPrec(int prec){
 
-  const int prec = dynoMotor->getPrecision();
+  if ( ! prec )
+    prec = dynoMotor->getPrecision();
   setEnv("DYNOMOTORPREC", prec);
-
-  if ( sender() != dynoMotor)
-    return;
 
   ui->dynoCurrent->setDecimals(prec);
   ui->dynoRange->setDecimals(prec);
@@ -2067,6 +1979,7 @@ void MainWindow::onDyno2Changes() {
   onDyno2StartChanges();
   onDyno2EndChanges();
   onDyno2RangeChanges();
+  onDetectorCommandChanges();
 }
 
 void MainWindow::onDyno2PosChanges(){
@@ -2088,13 +2001,11 @@ void MainWindow::setDyno2Units(){
 
 }
 
-void MainWindow::setDyno2Prec() {
+void MainWindow::setDyno2Prec(int prec){
 
-  const int prec = dyno2Motor->getPrecision();
+  if ( ! prec )
+    prec = dyno2Motor->getPrecision();
   setEnv("DYNO2MOTORPREC", prec);
-
-  if ( sender() != dyno2Motor)
-    return;
 
   ui->dyno2Current->setDecimals(prec);
   ui->dyno2Range->setDecimals(prec);
@@ -2226,15 +2137,15 @@ void MainWindow::onDfFileChanges() {
 
 }
 
- void MainWindow::onDetectorCommandChanges(){
+void MainWindow::onDetectorCommandChanges(){
 
   bool scriptOK = prepareExec(aqExec, ui->detectorCommand, ui->detectorError);
   bool itemOK = ! ui->detectorCommand->toPlainText().isEmpty() && scriptOK;
   check(ui->detectorCommand, itemOK);
 
   if (preReq.contains(ui->tabDyno))
-    itemOK &= preReq[ui->tabDyno].first;
-  ui->acquire->setEnabled(itemOK);
+    readyForAq = itemOK  &&  preReq[ui->tabDyno].first;
+  ui->acquire->setEnabled(readyForAq);
 
 }
 
@@ -2329,27 +2240,46 @@ bool MainWindow::shutterMan(bool st, bool wait) {
 
 }
 
-void MainWindow::acquire(const QString & filename) {
+int MainWindow::acquire(const QString & filename) {
 
-  if ( ! ui->acquire->isEnabled() ) {
+  if ( ! readyForAq ) {
     appendMessage(ERROR, "Image cannot be acquired now.");
-    return;
+    return 1;
   }
   if ( filename.isEmpty() ) {
     appendMessage(ERROR, "Empty filename to store image.");
-    return;
+    return 1;
   }
 
-  const double dStart = ui->dynoStart->value(), d2Start = ui->dyno2Start->value();
+  ui->acquire->setText("Stop acquisition");
+  isAqcuiring = true;
+
+  const bool
+      dyTabEnabled = ui->tabDyno->isEnabled();
+  ui->tabDyno->setEnabled(false);
+  ui->filenames->setEnabled(false);
+  ui->detectorCommand->setEnabled(false);
+
+  const double
+      dStart = ui->dynoStart->value(),
+      d2Start = ui->dyno2Start->value();
+
+  if ( ui->dynoShot->isChecked() )
+    dynoMotor->goUserPosition(dStart, false);
+  if ( ui->dyno2Shot->isChecked() )
+    dyno2Motor->goUserPosition(d2Start, false);
+
+  if ( ui->dynoShot->isChecked() )
+    dynoMotor->wait_stop();
+  if ( ui->dyno2Shot->isChecked() )
+    dyno2Motor->wait_stop();
 
   if ( ui->dynoShot->isChecked() ) {
-    dynoMotor->wait_stop();
     double goal = ui->dynoEnd->value();
     appendMessage(CONTROL, "Start moving dyno-shot motor to " + QString::number(goal) + ".");
     dynoMotor->goUserPosition(goal, false);
   }
   if ( ui->dyno2Shot->isChecked() ) {
-    dyno2Motor->wait_stop();
     double goal = ui->dyno2End->value();
     appendMessage(CONTROL, "Start moving second dyno-shot motor to " + QString::number(goal) + ".");
     dyno2Motor->goUserPosition(goal, false);
@@ -2357,6 +2287,8 @@ void MainWindow::acquire(const QString & filename) {
 
   setEnv("FILE", filename);
   bool execStatus = doExec(aqExec, "image acquisition into \"" + filename + "\"");
+  if (execStatus)
+    appendMessage(ERROR, "Error acquiring \"" + filename + "\".");
 
   if ( ui->dynoShot->isChecked() ) {
     appendMessage(CONTROL, "Stopping dyno-shot motor.");
@@ -2365,29 +2297,37 @@ void MainWindow::acquire(const QString & filename) {
     dynoMotor->goUserPosition(dStart, false);
   }
   if ( ui->dyno2Shot->isChecked() ) {
-    appendMessage(CONTROL, "Stopping dyno-shot motor.");
+    appendMessage(CONTROL, "Stopping second dyno-shot motor.");
     dyno2Motor->stop(true);
     appendMessage(CONTROL, "Returning second dyno-shot motor to " + QString::number(d2Start) + ".");
     dyno2Motor->goUserPosition(d2Start, false);
   }
 
-  // preview
-  if ( ! execStatus && ui->livePreview->isChecked() )
-      ui->image->setStyleSheet("image: url(" + filename + ");");
+  if (dyTabEnabled)
+    ui->tabDyno->setEnabled(true);
+  ui->filenames->setEnabled(true);
+  ui->detectorCommand->setEnabled(true);
 
-  if ( ui->dynoShot->isChecked() )
-    dynoMotor->wait_stop();
-  if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->wait_stop();
+  isAqcuiring = false;
+  ui->acquire->setText("Acquire");
+
+  // preview.
+  if ( ! execStatus && ui->livePreview->isChecked() )
+    // TODO. Should be executed in a parelel thread
+    ui->image->setStyleSheet("image: url(" + filename + ");");
+
+  return execStatus;
 
 }
 
 
 void MainWindow::onAcquire() {
-
-  setEnv("AQTYPE", "SINGLESHOT");
-  acquire(".temp.tif");
-
+  if ( isAqcuiring ) {
+    emit requestToStopAcquisition();
+  } else {
+    setEnv("AQTYPE", "SINGLESHOT");
+    acquire(".temp.tif");
+  }
 }
 
 
@@ -2411,21 +2351,141 @@ void MainWindow::logMessage(const QString &msg) {
 }
 
 
+void MainWindow::onAssistant() {
+
+  if ( engineStatus == Stopped || engineStatus == Filling ) { // update initials
+
+    getThetaStart();
+    getBgStart();
+    getDyno2Start();
+    getDynoStart();
+    getLoopStart();
+    getSubLoopStart();
+
+  } else if ( engineStatus == Paused ) { // Break
+
+    setEngineStatus(Stopped);
+
+  }
+
+
+}
+
+
 void MainWindow::onStartStop() {
-  if (engineIsOn) {
+
+  if ( engineStatus == Running ) {
+
     stopMe = true;
-    emit requestToStopAcquisition();
     thetaMotor->stop();
     bgMotor->stop();
     loopMotor->stop();
     subLoopMotor->stop();
+    dynoMotor->stop();
+    dyno2Motor->stop();
+    emit requestToStopAcquisition();
+
+  } else if ( engineStatus == Filling ) {
+    stopMe = true;
   } else {
-    for (int icur=0 ; icur < scanList->rowCount() ; icur++)
-      if ( scanList->item(icur,0)->checkState() == Qt::Checked )
-        scanList->item(icur,3)->setText("");
     engine(false);
   }
+
 }
+
+void MainWindow::setEngineStatus(EngineStatus status) {
+
+ // if ( status == engineStatus )
+ //   return;
+
+  if (status == Paused  &&  engineStatus != Filling ) {
+
+    ui->progressBar->setFormat("Paused at %p%.");
+    ui->verticalLayoutt->addWidget(ui->progressBar);
+    ui->progressBar->show();
+    ui->scanView->show();
+
+    appendMessage(CONTROL, "Pausing engine.");
+
+    if ( ui->dynoShot->isChecked() )
+      dynoMotor->goUserPosition(motorsInitials[dynoMotor], false);
+    if ( ui->dyno2Shot->isChecked() )
+      dyno2Motor->goUserPosition(motorsInitials[dyno2Motor], false);
+    if ( ui->dynoShot->isChecked() )
+      dynoMotor->wait_stop();
+    if ( ui->dyno2Shot->isChecked() )
+      dyno2Motor->wait_stop();
+
+    ui->startStop->setText("Resume scan");
+    ui->assistant->show();
+    ui->assistant->setText("Break scan");
+    ui->assistant->setToolTip("Breaks the execution and return motors to initial positions.");
+
+  } else if (status == Running) {
+
+    ui->progressBar->setFormat("Running. %p% done.");
+    ui->verticalLayoutt->addWidget(ui->progressBar);
+    ui->progressBar->show();
+    ui->scanView->show();
+
+    if (engineStatus == Stopped)
+      appendMessage(CONTROL,  "Starting engine.");
+    else if (engineStatus == Paused)
+      appendMessage(CONTROL,  "Resuming engine.");
+
+    ui->startStop->setText("Pause scan");
+    ui->assistant->hide();
+
+    ui->tabGeneral->setEnabled(false);
+    ui->tabPrePost->setEnabled(false);
+    ui->tabDetector->setEnabled(false);
+    ui->tabDyno->setEnabled(false);
+    ui->tabFF->setEnabled(false);
+    ui->tabMulti->setEnabled(false);
+    ui->tabRemoteCT->setEnabled(false);
+    ui->tabScan->setEnabled(false);
+
+  } else if ( status == Filling ) {
+
+    ui->startStop->setText("Stop table update");
+    ui->startStop->setEnabled(true);
+    ui->progressBar->setFormat("Updating table.\n %p%");
+    ui->horizontalLayout->insertWidget(0,ui->progressBar);
+    ui->progressBar->show();
+    ui->scanView->hide();
+
+  } else { // Paused while filling or Stopped
+
+    ui->progressBar->hide();
+    ui->scanView->show();
+
+    if (engineStatus == Paused)
+      appendMessage(CONTROL,  "Resetting engine.");
+    else if (engineStatus == Running)
+      appendMessage(CONTROL,  "Stopping engine.");
+
+    if ( engineStatus != Filling ) {
+      foreach (QCaMotorGUI * mot, motorsInitials.keys() )
+        if (mot->isConnected())
+          mot->goUserPosition(motorsInitials[mot],false);
+      foreach (QCaMotorGUI * mot, motorsInitials.keys() )
+        if (mot->isConnected())
+          mot->wait_stop();
+    }
+
+    ui->startStop->setText("Start");
+    ui->assistant->show();
+    ui->assistant->setText("Set initials");
+    ui->assistant->setToolTip("Get starting positions of all stages from their current positions.");
+    for (int tabIdx=0 ; tabIdx < ui->control->count() ; tabIdx++ )
+      ui->control->widget(tabIdx)->setEnabled(true);
+
+  }
+
+  engineStatus=status;
+
+}
+
 
 
 
@@ -2435,13 +2495,22 @@ void MainWindow::appendScanListRow(Role rl, double pos, const QString & fn) {
   QList<QStandardItem *> items;
   QStandardItem * ti;
 
+  QString roleName;
+  switch (rl) {
+  case SAMPLE: roleName = "sample"; break;
+  case DF:     roleName = "dark field"; break;
+  case BG:     roleName = "background"; break;
+  case LOOP:   roleName = "  loop"; break;
+  case SLOOP:  roleName = "    sub-loop"; break;
+  }
+
   ti = new QStandardItem(true);
   ti->setCheckable(true);
   ti->setCheckState(Qt::Checked);
   items << ti;
 
   ti = new QStandardItem(true);
-  ti->setText(roleName(rl));
+  ti->setText(roleName);
   ti->setEditable(false);
   items << ti;
 
@@ -2510,26 +2579,41 @@ bool MainWindow::doIt(int count) {
 
 void MainWindow::engine (const bool dryRun) {
 
-  if ( ! dryRun )
-    appendMessage(CONTROL, "Starting engine.");
-
   stopMe = false;
-  engineIsOn = true;
+
+  if ( ! dryRun )
+    setEngineStatus(Running);
+  else
+    setEngineStatus(Filling);
+
+  motorsInitials.clear();
+  if ( thetaMotor->isConnected() )
+    motorsInitials[thetaMotor] = thetaMotor->getUserPosition();
+  if ( bgMotor->isConnected() )
+    motorsInitials[bgMotor] = bgMotor->getUserPosition();
+  if ( loopMotor->isConnected() )
+    motorsInitials[loopMotor] = loopMotor->getUserPosition();
+  if ( subLoopMotor->isConnected() )
+    motorsInitials[subLoopMotor] = subLoopMotor->getUserPosition();
+  if ( dynoMotor->isConnected() )
+    motorsInitials[dynoMotor] = dynoMotor->getUserPosition();
+  if ( dyno2Motor->isConnected() )
+    motorsInitials[dyno2Motor] = dyno2Motor->getUserPosition();
 
   const bool
       scanAdd = ui->scanAdd->isChecked(),
       doBg = transQty,
       doL = ui->multiShot->isChecked(),
       doSL = doL && ui->subLoop->isChecked(),
-      multiBg = doL && ui->multiBg->isChecked();
+      multiBg = doL && ! ui->multiBg->isChecked();
   const double
-      start=ui->scanStart->value(),
+      start=motorsInitials[thetaMotor],
       end=ui->scanEnd->value(),
-      transIn = ui->transIn->value(),
+      transIn = motorsInitials[bgMotor],
       transOut = ui->transOut->value(),
-      lStart = ui->loopStart->value(),
+      lStart = motorsInitials[loopMotor],
       lEnd = ui->loopEnd->value(),
-      slStart = ui->subLoopStart->value(),
+      slStart = motorsInitials[subLoopMotor],
       slEnd = ui->subLoopEnd->value();
   const int
       projs=ui->projections->value(),
@@ -2546,10 +2630,10 @@ void MainWindow::engine (const bool dryRun) {
     QStringList listHeader;
     listHeader  << "Scheduled" << "Role" << "Position" << "File name";
     scanList->setHorizontalHeaderLabels ( listHeader );
-  } else {
-    ui->progressBar->setRange(0,expCount);
-    ui->progressBar->reset();
   }
+
+  ui->progressBar->setRange(0,expCount);
+  ui->progressBar->reset();
 
 
   QString filename, aqErr, aqOut;;
@@ -2557,7 +2641,6 @@ void MainWindow::engine (const bool dryRun) {
       count = 0,
       dfCount = 0,
       smCount = 0;
-
 
 
   if ( ! dryRun ) {
@@ -2576,7 +2659,8 @@ void MainWindow::engine (const bool dryRun) {
 
       shutterMan(false,true);
       scanList->item(count,3)->setText(filename);
-      acquire(filename);
+      if ( ! acquire(filename) )
+        scanList->item(count,0)->setCheckState(Qt::Unchecked);
 
     }
 
@@ -2586,13 +2670,9 @@ void MainWindow::engine (const bool dryRun) {
     QCoreApplication::processEvents();
     count++;
     dfCount++;
-    if (!dryRun)
-      ui->progressBar->setValue(count);
+    ui->progressBar->setValue(count);
     if (stopMe) {
-      if (!dryRun)
-        appendMessage(CONTROL, "Stoppping engine.");
-      engineIsOn = false;
-      emit engineStoped();
+      setEngineStatus(Paused);
       return;
     }
 
@@ -2638,12 +2718,13 @@ void MainWindow::engine (const bool dryRun) {
     }
     setEnv("GTRANSPOS", transGoal);
 
+
     int loopN =  ( ! doL || (isBg && ! multiBg) )  ?  1  :  lN;
     int subLoopN = ( loopN <= 1 || ! doSL )  ?  1  :  slN;
 
     for ( int x = 0; x < loopN; x++) {
 
-      double loopPos = lStart + x * (lEnd-lStart) / (loopN-1);
+      double loopPos = lStart   +  ( (loopN==1)  ?  0  :  x * (lEnd-lStart) / (loopN-1) );
       if (!dryRun) {
         setEnv("LOOPCOUNT", x+1);
         setEnv("GLOOPPOS", loopPos);
@@ -2651,7 +2732,7 @@ void MainWindow::engine (const bool dryRun) {
 
       for ( int y = 0; y < subLoopN; y++) {
 
-        double subLoopPos = slStart + y * (slEnd - slStart) / (subLoopN-1);
+        double subLoopPos = slStart +  ( ( subLoopN == 1 )  ?  0  :  y * (slEnd - slStart) / (subLoopN-1) );
 
         if ( ! dryRun ) {
 
@@ -2665,22 +2746,22 @@ void MainWindow::engine (const bool dryRun) {
 
             if ( lastTrans != transGoal ) {
               appendMessage(CONTROL, "Moving translation motor to " + QString::number(transGoal) + ".");
-              //bgMotor->goUserPosition(transGoal, false);
+              bgMotor->goUserPosition(transGoal, false);
               lastTrans = transGoal;
             }
             if ( ! isBg && lastScan != cPos) {
               appendMessage(CONTROL, "Moving scan motor to " + QString::number(cPos) + ".");
-              //thetaMotor->goUserPosition(cPos, false);
+              thetaMotor->goUserPosition(cPos, false);
               lastScan=cPos;
             }
             if ( doL  &&  lastLoop != loopPos ) {
               appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
-              //loopMotor->goUserPosition(loopPos, false);
+              loopMotor->goUserPosition(loopPos, false);
               lastLoop = loopPos;
             }
             if ( doSL  &&  lastSubLoop != subLoopPos ) {
               appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
-              //subLoopMotor->goUserPosition(subLoopPos, false);
+              subLoopMotor->goUserPosition(subLoopPos, false);
               lastSubLoop = subLoopPos;
             }
 
@@ -2694,7 +2775,8 @@ void MainWindow::engine (const bool dryRun) {
                   setAqFileEnv(ui->sampleFile, "SAMPLEFILE");
             scanList->item(count,3)->setText(filename);
 
-            acquire(filename);
+            if ( ! acquire(filename) )
+              scanList->item(count,0)->setCheckState(Qt::Unchecked);
 
           }
 
@@ -2713,13 +2795,9 @@ void MainWindow::engine (const bool dryRun) {
 
         QCoreApplication::processEvents();
         count++;
-        if (!dryRun)
-          ui->progressBar->setValue(count);
+        ui->progressBar->setValue(count);
         if (stopMe) {
-          if (!dryRun)
-            appendMessage(CONTROL, "Stoppping engine.");
-          engineIsOn = false;
-          emit engineStoped();
+          setEngineStatus(Paused);
           return;
         }
 
@@ -2748,7 +2826,8 @@ void MainWindow::engine (const bool dryRun) {
       shutterMan(false,true);
 
       scanList->item(count,3)->setText(filename);
-      acquire(filename);
+      if ( ! acquire(filename) )
+        scanList->item(count,0)->setCheckState(Qt::Unchecked);
 
     }
 
@@ -2758,13 +2837,9 @@ void MainWindow::engine (const bool dryRun) {
     QCoreApplication::processEvents();
     count++;
     dfCount++;
-    if (!dryRun)
-      ui->progressBar->setValue(count);
+    ui->progressBar->setValue(count);
     if (stopMe) {
-      if (!dryRun)
-        appendMessage(CONTROL, "Stoppping engine.");
-      engineIsOn = false;
-      emit engineStoped();
+      setEngineStatus(Paused);
       return;
     }
 
@@ -2772,10 +2847,9 @@ void MainWindow::engine (const bool dryRun) {
 
   if ( ! dryRun ) {
     onPostExec();
-    appendMessage(CONTROL, "Scan is finished. Stoppping engine.");
+    appendMessage(CONTROL, "Scan is finished.");
   }
-  engineIsOn = false;
-  emit engineStoped();
+  setEngineStatus(Stopped);
 
 }
 

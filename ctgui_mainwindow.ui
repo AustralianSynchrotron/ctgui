@@ -24,7 +24,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>5</number>
+       <number>8</number>
       </property>
       <widget class="QWidget" name="tabGeneral">
        <property name="toolTip">
@@ -275,7 +275,7 @@
             </widget>
            </item>
            <item row="2" column="1">
-            <widget class="QSpinBox" name="projections">
+            <widget class="QMSpinBox" name="projections">
              <property name="toolTip">
               <string>Number of projection in scan $SCANN</string>
              </property>
@@ -288,7 +288,7 @@
             </widget>
            </item>
            <item row="3" column="1">
-            <widget class="QDoubleSpinBox" name="scanStep">
+            <widget class="QMDoubleSpinBox" name="scanStep">
              <property name="toolTip">
               <string>Step size of the scan $SCANSTEP</string>
              </property>
@@ -301,7 +301,7 @@
             </widget>
            </item>
            <item row="5" column="1">
-            <widget class="QDoubleSpinBox" name="scanEnd">
+            <widget class="QMDoubleSpinBox" name="scanEnd">
              <property name="toolTip">
               <string>End position of the scan $SCANEND</string>
              </property>
@@ -317,12 +317,9 @@
             </widget>
            </item>
            <item row="0" column="1">
-            <widget class="QDoubleSpinBox" name="currentPos">
+            <widget class="QMDoubleSpinBox" name="currentPos">
              <property name="toolTip">
               <string>Current position of the rotation motor $SCANPOS</string>
-             </property>
-             <property name="frame">
-              <bool>false</bool>
              </property>
              <property name="readOnly">
               <bool>true</bool>
@@ -340,7 +337,16 @@
            </item>
            <item row="4" column="0">
             <widget class="QWidget" name="widget_16" native="true">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <layout class="QHBoxLayout" name="horizontalLayout_9">
+              <property name="margin">
+               <number>0</number>
+              </property>
               <item>
                <widget class="QLabel" name="label_45">
                 <property name="sizePolicy">
@@ -350,20 +356,17 @@
                  </sizepolicy>
                 </property>
                 <property name="text">
-                 <string>Start (</string>
+                 <string>Start </string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QCheckBox" name="lockScanStart">
+               <widget class="QToolButton" name="getScanStart">
                 <property name="toolTip">
                  <string>Locks starting position to the current position of the rotation motor at the start moment</string>
                 </property>
                 <property name="text">
-                 <string>get from current)</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
+                 <string>get from current</string>
                 </property>
                </widget>
               </item>
@@ -371,10 +374,7 @@
             </widget>
            </item>
            <item row="4" column="1">
-            <widget class="QDoubleSpinBox" name="scanStart">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
+            <widget class="QMDoubleSpinBox" name="scanStart">
              <property name="toolTip">
               <string>Starting position of the scan $SCANSTART</string>
              </property>
@@ -387,7 +387,7 @@
             </widget>
            </item>
            <item row="1" column="1">
-            <widget class="QDoubleSpinBox" name="scanRange">
+            <widget class="QMDoubleSpinBox" name="scanRange">
              <property name="toolTip">
               <string>Total scan angle $SCANRANGE</string>
              </property>
@@ -406,29 +406,9 @@
          </widget>
         </item>
         <item>
-         <widget class="Line" name="line_3">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
          <widget class="QCheckBox" name="scanAdd">
           <property name="text">
            <string>Acquire additional image and background in the end point</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="returnToOrigin">
-          <property name="toolTip">
-           <string>If checked the rotation motor returns to starting position after scan is complete</string>
-          </property>
-          <property name="text">
-           <string>Return to origin after completion</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -584,7 +564,7 @@
             </widget>
            </item>
            <item row="4" column="1">
-            <widget class="QDoubleSpinBox" name="transDist">
+            <widget class="QMDoubleSpinBox" name="transDist">
              <property name="toolTip">
               <string>Distance to move the motor to take the sample out of the beam $BGDIST</string>
              </property>
@@ -597,7 +577,7 @@
             </widget>
            </item>
            <item row="6" column="1">
-            <widget class="QDoubleSpinBox" name="transOut">
+            <widget class="QMDoubleSpinBox" name="transOut">
              <property name="toolTip">
               <string>Out-beam position of the sample $BGOUT</string>
              </property>
@@ -611,7 +591,16 @@
            </item>
            <item row="5" column="0">
             <widget class="QWidget" name="widget_17" native="true">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <layout class="QHBoxLayout" name="horizontalLayout_10">
+              <property name="margin">
+               <number>0</number>
+              </property>
               <item>
                <widget class="QLabel" name="label_48">
                 <property name="sizePolicy">
@@ -621,20 +610,17 @@
                  </sizepolicy>
                 </property>
                 <property name="text">
-                 <string>In beam (</string>
+                 <string>In beam</string>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QCheckBox" name="lockTransIn">
+               <widget class="QToolButton" name="getTransIn">
                 <property name="toolTip">
                  <string>Locks the in-beam position to the current position of the translation motor at the scan start</string>
                 </property>
                 <property name="text">
-                 <string>get from current)</string>
-                </property>
-                <property name="checked">
-                 <bool>true</bool>
+                 <string>get from current</string>
                 </property>
                </widget>
               </item>
@@ -649,7 +635,7 @@
             </widget>
            </item>
            <item row="9" column="1">
-            <widget class="QSpinBox" name="dfBefore">
+            <widget class="QMSpinBox" name="dfBefore">
              <property name="toolTip">
               <string>Number of dark field acquisitions before scan start $DFBEFORE</string>
              </property>
@@ -693,10 +679,7 @@
             </widget>
            </item>
            <item row="5" column="1">
-            <widget class="QDoubleSpinBox" name="transIn">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
+            <widget class="QMDoubleSpinBox" name="transIn">
              <property name="toolTip">
               <string>In-beam position of the sample $BGIN</string>
              </property>
@@ -709,7 +692,7 @@
             </widget>
            </item>
            <item row="10" column="1">
-            <widget class="QSpinBox" name="dfAfter">
+            <widget class="QMSpinBox" name="dfAfter">
              <property name="toolTip">
               <string>Number of dark field acquisitions after scan is complete $DFAFTER</string>
              </property>
@@ -750,7 +733,7 @@
             </widget>
            </item>
            <item row="1" column="1">
-            <widget class="QSpinBox" name="transInterval">
+            <widget class="QMSpinBox" name="transInterval">
              <property name="toolTip">
               <string>Number of object acquisitions between two background acquisitions $BGINT</string>
              </property>
@@ -763,12 +746,9 @@
             </widget>
            </item>
            <item row="3" column="1">
-            <widget class="QDoubleSpinBox" name="transCurrent">
+            <widget class="QMDoubleSpinBox" name="transCurrent">
              <property name="toolTip">
               <string>Current position of the translation motor $BGPOS</string>
-             </property>
-             <property name="frame">
-              <bool>false</bool>
              </property>
              <property name="readOnly">
               <bool>true</bool>
@@ -864,6 +844,9 @@
              <property name="text">
               <string>Same background for all sub-shots.</string>
              </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
             </widget>
            </item>
           </layout>
@@ -892,12 +875,9 @@
             <widget class="QWidget" name="loopWg" native="true">
              <layout class="QGridLayout" name="loopLayout">
               <item row="0" column="1">
-               <widget class="QDoubleSpinBox" name="loopCurrent">
+               <widget class="QMDoubleSpinBox" name="loopCurrent">
                 <property name="toolTip">
                  <string>Current position of the looping motor $LOOPPOS</string>
-                </property>
-                <property name="frame">
-                 <bool>false</bool>
                 </property>
                 <property name="readOnly">
                  <bool>true</bool>
@@ -921,7 +901,7 @@
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QDoubleSpinBox" name="loopRange">
+               <widget class="QMDoubleSpinBox" name="loopRange">
                 <property name="toolTip">
                  <string>Travel range of the loop motor $LOOPRANGE</string>
                 </property>
@@ -941,7 +921,7 @@
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QSpinBox" name="loopNumber">
+               <widget class="QMSpinBox" name="loopNumber">
                 <property name="toolTip">
                  <string>Number of acquisitions in the loop $LOOPN</string>
                 </property>
@@ -961,7 +941,7 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QDoubleSpinBox" name="loopStep">
+               <widget class="QMDoubleSpinBox" name="loopStep">
                 <property name="toolTip">
                  <string>Motor travel between two acquisitions in the loop $LOOPSTEP</string>
                 </property>
@@ -974,10 +954,7 @@
                </widget>
               </item>
               <item row="4" column="1">
-               <widget class="QDoubleSpinBox" name="loopStart">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
+               <widget class="QMDoubleSpinBox" name="loopStart">
                 <property name="toolTip">
                  <string>Start position of the motor $LOOPSTART</string>
                 </property>
@@ -998,7 +975,16 @@
               </item>
               <item row="4" column="0">
                <widget class="QWidget" name="widget_19" native="true">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                 <layout class="QHBoxLayout" name="horizontalLayout_11">
+                 <property name="margin">
+                  <number>0</number>
+                 </property>
                  <item>
                   <widget class="QLabel" name="label_60">
                    <property name="sizePolicy">
@@ -1008,20 +994,17 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>Start (</string>
+                    <string>Start</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QCheckBox" name="lockLoopStart">
+                  <widget class="QToolButton" name="getLoopStart">
                    <property name="toolTip">
                     <string>Locks the start position to the current position of the translation motor at the scan start</string>
                    </property>
                    <property name="text">
-                    <string>get from current)</string>
-                   </property>
-                   <property name="checked">
-                    <bool>true</bool>
+                    <string>get from current</string>
                    </property>
                   </widget>
                  </item>
@@ -1029,7 +1012,7 @@
                </widget>
               </item>
               <item row="5" column="1">
-               <widget class="QDoubleSpinBox" name="loopEnd">
+               <widget class="QMDoubleSpinBox" name="loopEnd">
                 <property name="toolTip">
                  <string>End position of the motor $LOOPEND</string>
                 </property>
@@ -1068,12 +1051,9 @@
              </property>
              <layout class="QGridLayout" name="subLoopLayout">
               <item row="0" column="1">
-               <widget class="QDoubleSpinBox" name="subLoopCurrent">
+               <widget class="QMDoubleSpinBox" name="subLoopCurrent">
                 <property name="toolTip">
                  <string>Current position of the sub-looping motor $SUBLOOPPOS</string>
-                </property>
-                <property name="frame">
-                 <bool>false</bool>
                 </property>
                 <property name="readOnly">
                  <bool>true</bool>
@@ -1097,7 +1077,7 @@
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QDoubleSpinBox" name="subLoopRange">
+               <widget class="QMDoubleSpinBox" name="subLoopRange">
                 <property name="toolTip">
                  <string>Travel range of the sub-loop motor $SUBLOOPRANGE</string>
                 </property>
@@ -1117,7 +1097,7 @@
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QSpinBox" name="subLoopNumber">
+               <widget class="QMSpinBox" name="subLoopNumber">
                 <property name="toolTip">
                  <string>Number of acquisitions in the sub-loop $SUBLOOPN</string>
                 </property>
@@ -1137,7 +1117,7 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QDoubleSpinBox" name="subLoopStep">
+               <widget class="QMDoubleSpinBox" name="subLoopStep">
                 <property name="toolTip">
                  <string>Motor travel between two acquisitions in the sub-loop $SUBLOOPSTEP</string>
                 </property>
@@ -1150,10 +1130,7 @@
                </widget>
               </item>
               <item row="4" column="1">
-               <widget class="QDoubleSpinBox" name="subLoopStart">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
+               <widget class="QMDoubleSpinBox" name="subLoopStart">
                 <property name="toolTip">
                  <string>Start position of the motor $SUBLOOPSTART</string>
                 </property>
@@ -1173,7 +1150,7 @@
                </widget>
               </item>
               <item row="5" column="1">
-               <widget class="QDoubleSpinBox" name="subLoopEnd">
+               <widget class="QMDoubleSpinBox" name="subLoopEnd">
                 <property name="toolTip">
                  <string>End position of the motor $SUBLOOPEND</string>
                 </property>
@@ -1187,7 +1164,16 @@
               </item>
               <item row="4" column="0">
                <widget class="QWidget" name="widget0" native="true">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                 <layout class="QHBoxLayout" name="horizontalLayout_12">
+                 <property name="margin">
+                  <number>0</number>
+                 </property>
                  <item>
                   <widget class="QLabel" name="label_65">
                    <property name="sizePolicy">
@@ -1197,17 +1183,17 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>Start (</string>
+                    <string>Start </string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QCheckBox" name="lockSubLoopStart">
+                  <widget class="QToolButton" name="getSubLoopStart">
                    <property name="text">
-                    <string>get from current)</string>
+                    <string>get from current</string>
                    </property>
                    <property name="checked">
-                    <bool>true</bool>
+                    <bool>false</bool>
                    </property>
                   </widget>
                  </item>
@@ -1264,12 +1250,9 @@
             <widget class="QWidget" name="dyno1Wg" native="true">
              <layout class="QGridLayout" name="dyno1Layout">
               <item row="1" column="1">
-               <widget class="QDoubleSpinBox" name="dynoCurrent">
+               <widget class="QMDoubleSpinBox" name="dynoCurrent">
                 <property name="toolTip">
                  <string>Current position of the looping motor $LOOPPOS</string>
-                </property>
-                <property name="frame">
-                 <bool>false</bool>
                 </property>
                 <property name="readOnly">
                  <bool>true</bool>
@@ -1293,7 +1276,7 @@
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QDoubleSpinBox" name="dynoRange">
+               <widget class="QMDoubleSpinBox" name="dynoRange">
                 <property name="toolTip">
                  <string>Travel range of the loop motor $LOOPRANGE</string>
                 </property>
@@ -1306,10 +1289,7 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QDoubleSpinBox" name="dynoStart">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
+               <widget class="QMDoubleSpinBox" name="dynoStart">
                 <property name="toolTip">
                  <string>Start position of the motor $LOOPSTART</string>
                 </property>
@@ -1330,7 +1310,16 @@
               </item>
               <item row="3" column="0">
                <widget class="QWidget" name="widget_20" native="true">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                 <layout class="QHBoxLayout" name="horizontalLayout_14">
+                 <property name="margin">
+                  <number>0</number>
+                 </property>
                  <item>
                   <widget class="QLabel" name="label_75">
                    <property name="sizePolicy">
@@ -1340,20 +1329,20 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>Start (</string>
+                    <string>Start </string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QCheckBox" name="lockDynoStart">
+                  <widget class="QToolButton" name="getDynoStart">
                    <property name="toolTip">
                     <string>Locks the start position to the current position of the translation motor at the scan start</string>
                    </property>
                    <property name="text">
-                    <string>get from current)</string>
+                    <string>get from current</string>
                    </property>
                    <property name="checked">
-                    <bool>true</bool>
+                    <bool>false</bool>
                    </property>
                   </widget>
                  </item>
@@ -1361,7 +1350,7 @@
                </widget>
               </item>
               <item row="4" column="1">
-               <widget class="QDoubleSpinBox" name="dynoEnd">
+               <widget class="QMDoubleSpinBox" name="dynoEnd">
                 <property name="toolTip">
                  <string>End position of the motor $LOOPEND</string>
                 </property>
@@ -1404,12 +1393,9 @@
              </property>
              <layout class="QGridLayout" name="dyno2Layout">
               <item row="0" column="1">
-               <widget class="QDoubleSpinBox" name="dyno2Current">
+               <widget class="QMDoubleSpinBox" name="dyno2Current">
                 <property name="toolTip">
                  <string>Current position of the looping motor $LOOPPOS</string>
-                </property>
-                <property name="frame">
-                 <bool>false</bool>
                 </property>
                 <property name="readOnly">
                  <bool>true</bool>
@@ -1433,7 +1419,7 @@
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QDoubleSpinBox" name="dyno2Range">
+               <widget class="QMDoubleSpinBox" name="dyno2Range">
                 <property name="toolTip">
                  <string>Travel range of the loop motor $LOOPRANGE</string>
                 </property>
@@ -1446,10 +1432,7 @@
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QDoubleSpinBox" name="dyno2Start">
-                <property name="enabled">
-                 <bool>false</bool>
-                </property>
+               <widget class="QMDoubleSpinBox" name="dyno2Start">
                 <property name="toolTip">
                  <string>Start position of the motor $LOOPSTART</string>
                 </property>
@@ -1470,7 +1453,16 @@
               </item>
               <item row="2" column="0">
                <widget class="QWidget" name="widget_21" native="true">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
                 <layout class="QHBoxLayout" name="horizontalLayout_15">
+                 <property name="margin">
+                  <number>0</number>
+                 </property>
                  <item>
                   <widget class="QLabel" name="label_80">
                    <property name="sizePolicy">
@@ -1480,20 +1472,20 @@
                     </sizepolicy>
                    </property>
                    <property name="text">
-                    <string>Start (</string>
+                    <string>Start</string>
                    </property>
                   </widget>
                  </item>
                  <item>
-                  <widget class="QCheckBox" name="lockDyno2Start">
+                  <widget class="QToolButton" name="getDyno2Start">
                    <property name="toolTip">
                     <string>Locks the start position to the current position of the translation motor at the scan start</string>
                    </property>
                    <property name="text">
-                    <string>get from current)</string>
+                    <string>get from current</string>
                    </property>
                    <property name="checked">
-                    <bool>true</bool>
+                    <bool>false</bool>
                    </property>
                   </widget>
                  </item>
@@ -1501,7 +1493,7 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QDoubleSpinBox" name="dyno2End">
+               <widget class="QMDoubleSpinBox" name="dyno2End">
                 <property name="toolTip">
                  <string>End position of the motor $LOOPEND</string>
                 </property>
@@ -1561,7 +1553,7 @@
                   </widget>
                  </item>
                  <item row="3" column="1">
-                  <widget class="QDoubleSpinBox" name="dynoTrigDelay">
+                  <widget class="QMDoubleSpinBox" name="dynoTrigDelay">
                    <property name="enabled">
                     <bool>false</bool>
                    </property>
@@ -1660,7 +1652,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QWidget" name="widget1" native="true">
+         <widget class="QWidget" name="filenames" native="true">
           <layout class="QGridLayout" name="gridLayout">
            <item row="0" column="1">
             <widget class="QLineEdit" name="sampleFile">
@@ -1831,22 +1823,32 @@
      </widget>
     </item>
     <item>
-     <widget class="QPushButton" name="startStop">
-      <property name="enabled">
-       <bool>false</bool>
+     <widget class="QProgressBar" name="progressBar">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+        <horstretch>1</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
       </property>
+      <property name="toolTip">
+       <string>Experiment proggress</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="assistant">
+      <property name="text">
+       <string>Get starting positions of all stages from their current positions</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QPushButton" name="startStop">
       <property name="toolTip">
        <string>Start / Stop the experiment.</string>
       </property>
       <property name="text">
        <string>Start/Stop</string>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="QProgressBar" name="progressBar">
-      <property name="toolTip">
-       <string>Experiment proggress</string>
       </property>
      </widget>
     </item>
@@ -1858,7 +1860,7 @@
      <x>0</x>
      <y>0</y>
      <width>1338</width>
-     <height>26</height>
+     <height>30</height>
     </rect>
    </property>
   </widget>
@@ -1883,6 +1885,16 @@
    <class>CtGuiLineEdit</class>
    <extends>QLineEdit</extends>
    <header>additional_classes.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QMDoubleSpinBox</class>
+   <extends>QDoubleSpinBox</extends>
+   <header location="global">qcamotorgui-additional.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QMSpinBox</class>
+   <extends>QSpinBox</extends>
+   <header location="global">qcamotorgui-additional.h</header>
   </customwidget>
  </customwidgets>
  <resources>
