@@ -41,6 +41,11 @@ public:
 
 private:
 
+  static QHash<QString,QString> envDesc;
+
+  static const bool inited;
+  static bool init();
+
   Ui::MainWindow *ui;
   Ui::HelpDialog *hui;
 
@@ -53,10 +58,19 @@ private:
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
 
+<<<<<<< HEAD
   QEpicsPv * opnSts;
   QEpicsPv * clsSts;
   QEpicsPv * opnCmd;
   QEpicsPv * clsCmd;
+=======
+  QHash<QCaMotorGUI *, double> motorsInitials;
+
+  QEpicsPV * opnSts;
+  QEpicsPV * clsSts;
+  QEpicsPV * opnCmd;
+  QEpicsPV * clsCmd;
+>>>>>>> 7e08f8dbe2ff41e8be466e2b32bb04cc047c4d8f
   bool shutterStatus;
   bool shutterMan(bool st, bool wait=false);
 
@@ -80,17 +94,6 @@ private:
     SLOOP
   };
 
-  QString roleName(Role rl) const {
-    switch (rl) {
-    case SAMPLE: return "sample";
-    case DF: return "dark field";
-    case BG: return "background";
-    case LOOP: return "loop";
-    case SLOOP: return "sub-loop";
-    }
-    return QString();
-  }
-
   bool listHasFile(const QString & fn);
   QString setAqFileEnv(const QLineEdit * edt, const QString & var);
 
@@ -108,14 +111,23 @@ private:
     qDebug() << msg;
   }
 
-  void acquire(const QString & filename);
+  int acquire(const QString & filename);
 
   void engine(const bool dryRun);
 
   bool doIt(int count);
 
+  bool readyForAq;
+  bool isAqcuiring;
   bool stopMe;
-  bool engineIsOn;
+
+  enum EngineStatus {
+    Stopped, // The engine is not doing anything.
+    Running, // Scan is in proggress.
+    Paused,  // Scan / Filling is paused.
+    Filling  // The engine is filling the ui->scanView table.
+  };
+  EngineStatus engineStatus;
 
   int doExec(QFile * fileExec, const QString & action);
   bool prepareExec(QFile* fileExec, QPTEext * textW, QLabel * errorLabel);
@@ -158,17 +170,17 @@ private slots:
   void setLoopUnits();
   void setSubLoopUnits();
 
-  void setThetaPrec();
-  void setBgPrec();
-  void setLoopPrec();
-  void setSubLoopPrec();
+  void setThetaPrec(int prec=0);
+  void setBgPrec(int prec=0);
+  void setLoopPrec(int prec=0);
+  void setSubLoopPrec(int prec=0);
 
-  void lockThetaStart(bool lock);
-  void lockBgStart(bool lock);
-  void lockLoopStart(bool lock);
-  void lockSubLoopStart(bool lock);
-  void lockDynoStart(bool lock);
-  void lockDyno2Start(bool lock);
+  void getThetaStart();
+  void getBgStart();
+  void getLoopStart();
+  void getSubLoopStart();
+  void getDynoStart();
+  void getDyno2Start();
 
   void onBrowseExpPath();
   void onExpPathChanges();
@@ -232,7 +244,7 @@ private slots:
   void onDynoChanges();
   void onDynoPosChanges();
   void setDynoUnits();
-  void setDynoPrec();
+  void setDynoPrec(int prec=0);
   void onDynoMotorChanges();
   void onDynoRangeChanges();
   void onDynoStartChanges();
@@ -241,7 +253,7 @@ private slots:
   void onDyno2Changes();
   void onDyno2PosChanges();
   void setDyno2Units();
-  void setDyno2Prec();
+  void setDyno2Prec(int prec=0);
   void onDyno2MotorChanges();
   void onDyno2RangeChanges();
   void onDyno2StartChanges();
@@ -254,11 +266,12 @@ private slots:
 
   void onAcquire();
   void onStartStop();
+  void onAssistant();
+  void setEngineStatus(EngineStatus status);
 
 signals:
 
   void requestToStopAcquisition();
-  void engineStoped();
 
 };
 
