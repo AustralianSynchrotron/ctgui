@@ -58,19 +58,12 @@ private:
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
 
-<<<<<<< HEAD
+  QHash<QCaMotorGUI *, double> motorsInitials;
+
   QEpicsPv * opnSts;
   QEpicsPv * clsSts;
   QEpicsPv * opnCmd;
   QEpicsPv * clsCmd;
-=======
-  QHash<QCaMotorGUI *, double> motorsInitials;
-
-  QEpicsPV * opnSts;
-  QEpicsPV * clsSts;
-  QEpicsPV * opnCmd;
-  QEpicsPV * clsCmd;
->>>>>>> 7e08f8dbe2ff41e8be466e2b32bb04cc047c4d8f
   bool shutterStatus;
   bool shutterMan(bool st, bool wait=false);
 

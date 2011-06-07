@@ -116,12 +116,6 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->scanView->setModel(proxyModel);
   setScanTable();
 
-<<<<<<< HEAD
-  opnSts = new QEpicsPv(shutterPvBaseName + "_OPEN_STS", ui->tabFF) ;
-  clsSts = new QEpicsPv(shutterPvBaseName + "_CLOSE_STS", ui->tabFF) ;
-  opnCmd = new QEpicsPv(shutterPvBaseName + "_OPEN_CMD", ui->tabFF) ;
-  clsCmd = new QEpicsPv(shutterPvBaseName + "_CLOSE_CMD", ui->tabFF) ;
-=======
   motorsInitials[thetaMotor] = 0 ;
   motorsInitials[bgMotor] = 0 ;
   motorsInitials[loopMotor] = 0 ;
@@ -129,11 +123,10 @@ MainWindow::MainWindow(QWidget *parent) :
   motorsInitials[dynoMotor] = 0 ;
   motorsInitials[dyno2Motor] = 0 ;
 
-  opnSts = new QEpicsPV(shutterPvBaseName + "_OPEN_STS", ui->tabFF) ;
-  clsSts = new QEpicsPV(shutterPvBaseName + "_CLOSE_STS", ui->tabFF) ;
-  opnCmd = new QEpicsPV(shutterPvBaseName + "_OPEN_CMD", ui->tabFF) ;
-  clsCmd = new QEpicsPV(shutterPvBaseName + "_CLOSE_CMD", ui->tabFF) ;
->>>>>>> 7e08f8dbe2ff41e8be466e2b32bb04cc047c4d8f
+  opnSts = new QEpicsPv(shutterPvBaseName + "_OPEN_STS", ui->tabFF) ;
+  clsSts = new QEpicsPv(shutterPvBaseName + "_CLOSE_STS", ui->tabFF) ;
+  opnCmd = new QEpicsPv(shutterPvBaseName + "_OPEN_CMD", ui->tabFF) ;
+  clsCmd = new QEpicsPv(shutterPvBaseName + "_CLOSE_CMD", ui->tabFF) ;
 
   setEnv("FILE", ".temp.tif");
   setEnv("AQTYPE", "SINGLESHOT");
