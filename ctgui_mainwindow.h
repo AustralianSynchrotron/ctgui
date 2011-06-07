@@ -53,10 +53,10 @@ private:
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
 
-  QEpicsPV * opnSts;
-  QEpicsPV * clsSts;
-  QEpicsPV * opnCmd;
-  QEpicsPV * clsCmd;
+  QEpicsPv * opnSts;
+  QEpicsPv * clsSts;
+  QEpicsPv * opnCmd;
+  QEpicsPv * clsCmd;
   bool shutterStatus;
   bool shutterMan(bool st, bool wait=false);
 

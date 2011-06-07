@@ -113,10 +113,10 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->scanView->setModel(proxyModel);
   setScanTable();
 
-  opnSts = new QEpicsPV(shutterPvBaseName + "_OPEN_STS", ui->tabFF) ;
-  clsSts = new QEpicsPV(shutterPvBaseName + "_CLOSE_STS", ui->tabFF) ;
-  opnCmd = new QEpicsPV(shutterPvBaseName + "_OPEN_CMD", ui->tabFF) ;
-  clsCmd = new QEpicsPV(shutterPvBaseName + "_CLOSE_CMD", ui->tabFF) ;
+  opnSts = new QEpicsPv(shutterPvBaseName + "_OPEN_STS", ui->tabFF) ;
+  clsSts = new QEpicsPv(shutterPvBaseName + "_CLOSE_STS", ui->tabFF) ;
+  opnCmd = new QEpicsPv(shutterPvBaseName + "_OPEN_CMD", ui->tabFF) ;
+  clsCmd = new QEpicsPv(shutterPvBaseName + "_CLOSE_CMD", ui->tabFF) ;
 
   setEnv("FILE", ".temp.tif");
   setEnv("AQTYPE", "SINGLESHOT");
@@ -1624,7 +1624,7 @@ void MainWindow::onShutterMan(){
 }
 
 void MainWindow::onShutterChanges() {
-  QEpicsPV * ss = (QEpicsPV *) sender();
+  QEpicsPv * ss = (QEpicsPv *) sender();
   ui->shutterMan->setEnabled(true);
   if ( ss == clsSts )
     shutterStatus = ! clsSts->get().toBool();
