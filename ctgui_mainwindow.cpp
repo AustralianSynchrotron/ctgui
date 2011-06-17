@@ -1,3 +1,4 @@
+
 #include "ctgui_mainwindow.h"
 #include <QDebug>
 #include <QFileDialog>
@@ -2109,6 +2110,8 @@ void MainWindow::onSampleFileChanges() {
   ui->exampleImageName->setText( res );
   ui->exampleImageName->setStyleSheet( evalOK  ?  ""  :  "color: rgba(255, 0, 0, 128);");
 
+  setScanTable();
+
 }
 
 void MainWindow::onBgFileChanges() {
@@ -2122,6 +2125,8 @@ void MainWindow::onBgFileChanges() {
   ui->exampleImageName->setText( res );
   ui->exampleImageName->setStyleSheet( evalOK  ?  ""  :  "color: rgba(255, 0, 0, 128);");
 
+  setScanTable();
+
 }
 
 void MainWindow::onDfFileChanges() {
@@ -2134,6 +2139,8 @@ void MainWindow::onDfFileChanges() {
 
   ui->exampleImageName->setText( res );
   ui->exampleImageName->setStyleSheet( evalOK  ?  ""  :  "color: rgba(255, 0, 0, 128);");
+
+  setScanTable();
 
 }
 
@@ -2642,30 +2649,49 @@ void MainWindow::engine (const bool dryRun) {
       dfCount = 0,
       smCount = 0;
 
-
-  if ( ! dryRun ) {
+  if ( ! dryRun )
     onPreExec();
-    setEnv("AQTYPE", "DARKCURRENT");
-    setEnv("DFTYPE", "BEFORE");
-  }
+
+
+  // Set starting environment to fake values - just for a case.
+
+  setEnv("COUNT", 0);
+  setEnv("DFCOUNT", 0);
+  setEnv("DFBEFORECOUNT", 0);
+  setEnv("GSCANPOS", start);
+  setEnv("BGCOUNT", 0);
+  setEnv("PCOUNT", 0);
+  setEnv("GTRANSPOS", transIn);
+  setEnv("LOOPCOUNT", 0);
+  setEnv("GLOOPPOS", lStart);
+  setEnv("SUBLOOPCOUNT", 0);
+  setEnv("GSUBLOOPPOS", slStart);
+  setEnv("DFAFTERCOUNT", 0);
+
+
+
+  //
+  // Dark current images before the scan
+  //
+
+  setEnv("AQTYPE", "DARKCURRENT");
+  setEnv("DFTYPE", "BEFORE");
 
   for ( int j = 0 ; j < ui->dfBefore->value() ; ++j )  {
 
-    if ( ! dryRun  &&  doIt(count) ) {
+    setEnv("DFBEFORECOUNT", j+1);
+    setEnv("DFCOUNT", dfCount+1);
 
-      setEnv("DFBEFORECOUNT", j+1);
-      setEnv("DFCOUNT", dfCount+1);
+    if ( dryRun ) {
       filename = setAqFileEnv(ui->dfFile, "DFFILE");
-
+      appendScanListRow(DF, 0, filename );
+    } else if ( doIt(count) ) {
+      filename = scanList->item(count,3)->text() ;
+      setEnv("DFFILE", filename);
       shutterMan(false,true);
-      scanList->item(count,3)->setText(filename);
       if ( ! acquire(filename) )
         scanList->item(count,0)->setCheckState(Qt::Unchecked);
-
     }
-
-    if ( dryRun )
-      appendScanListRow(DF, 0, filename);
 
     QCoreApplication::processEvents();
     count++;
@@ -2677,6 +2703,12 @@ void MainWindow::engine (const bool dryRun) {
     }
 
   }
+
+
+
+  //
+  // Main scan
+  //
 
   int bgBeforeNext=0, bgCount=0;
   bool isBg, wasBg = false;
@@ -2694,27 +2726,21 @@ void MainWindow::engine (const bool dryRun) {
     isBg  =  doBg && ( ! bgBeforeNext  ||  smCount == tProjs );
 
     double cPos = start + smCount * (end - start) / projs;
-
-    if (!dryRun)
-      setEnv("GSCANPOS", cPos);
+    setEnv("GSCANPOS", cPos);
 
     double transGoal;
     if ( isBg ) {
       transGoal = transOut;
       bgBeforeNext = bgInterval;
       wasBg = true;
-      if (!dryRun) {
-        setEnv("AQTYPE", "BACKGROUND");
-        setEnv("BGCOUNT", bgCount+1);
-      }
+      setEnv("AQTYPE", "BACKGROUND");
+      setEnv("BGCOUNT", bgCount+1);
     } else {
       transGoal = transIn;
       bgBeforeNext--;
       wasBg = false;
-      if (!dryRun) {
-        setEnv("AQTYPE", "SAMPLE");
-        setEnv("PCOUNT", smCount+1);
-      }
+      setEnv("AQTYPE", "SAMPLE");
+      setEnv("PCOUNT", smCount+1);
     }
     setEnv("GTRANSPOS", transGoal);
 
@@ -2722,65 +2748,31 @@ void MainWindow::engine (const bool dryRun) {
     int loopN =  ( ! doL || (isBg && ! multiBg) )  ?  1  :  lN;
     int subLoopN = ( loopN <= 1 || ! doSL )  ?  1  :  slN;
 
+    // In loop
+
     for ( int x = 0; x < loopN; x++) {
 
+      setEnv("LOOPCOUNT", x+1);
+
       double loopPos = lStart   +  ( (loopN==1)  ?  0  :  x * (lEnd-lStart) / (loopN-1) );
-      if (!dryRun) {
-        setEnv("LOOPCOUNT", x+1);
-        setEnv("GLOOPPOS", loopPos);
-      }
+      setEnv("GLOOPPOS", loopPos);
+
+      // In sub-loop
 
       for ( int y = 0; y < subLoopN; y++) {
 
-        double subLoopPos = slStart +  ( ( subLoopN == 1 )  ?  0  :  y * (slEnd - slStart) / (subLoopN-1) );
+        setEnv("COUNT", count+1);
+        setEnv("SUBLOOPCOUNT", y+1);
 
-        if ( ! dryRun ) {
+        double subLoopPos = slStart +  ( ( subLoopN == 1 )  ?
+                                           0  :  y * (slEnd - slStart) / (subLoopN-1) );
+        setEnv("GSUBLOOPPOS", subLoopPos);
 
-          setEnv("SUBLOOPCOUNT", y+1);
-          setEnv("GSUBLOOPPOS", subLoopPos);
-          setEnv("COUNT", count+1);
+        if ( dryRun ) {
 
-          if (doIt(count)) {
-
-            shutterMan(true,true);
-
-            if ( lastTrans != transGoal ) {
-              appendMessage(CONTROL, "Moving translation motor to " + QString::number(transGoal) + ".");
-              bgMotor->goUserPosition(transGoal, false);
-              lastTrans = transGoal;
-            }
-            if ( ! isBg && lastScan != cPos) {
-              appendMessage(CONTROL, "Moving scan motor to " + QString::number(cPos) + ".");
-              thetaMotor->goUserPosition(cPos, false);
-              lastScan=cPos;
-            }
-            if ( doL  &&  lastLoop != loopPos ) {
-              appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
-              loopMotor->goUserPosition(loopPos, false);
-              lastLoop = loopPos;
-            }
-            if ( doSL  &&  lastSubLoop != subLoopPos ) {
-              appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
-              subLoopMotor->goUserPosition(subLoopPos, false);
-              lastSubLoop = subLoopPos;
-            }
-
-            bgMotor->wait_stop();
-            thetaMotor->wait_stop();
-            loopMotor->wait_stop();
-            subLoopMotor->wait_stop();
-
-            filename =  isBg  ?
-                  setAqFileEnv(ui->bgFile,     "BGFILE")  :
-                  setAqFileEnv(ui->sampleFile, "SAMPLEFILE");
-            scanList->item(count,3)->setText(filename);
-
-            if ( ! acquire(filename) )
-              scanList->item(count,0)->setCheckState(Qt::Unchecked);
-
-          }
-
-        } else {
+          filename =  isBg  ?
+                setAqFileEnv(ui->bgFile,     "BGFILE")  :
+                setAqFileEnv(ui->sampleFile, "SAMPLEFILE");
 
           if (y)
             appendScanListRow(SLOOP, subLoopPos, filename);
@@ -2790,6 +2782,42 @@ void MainWindow::engine (const bool dryRun) {
             appendScanListRow(BG, transOut, filename);
           else
             appendScanListRow(SAMPLE, cPos, filename);
+
+        } else if ( doIt(count) ) {
+
+          filename = scanList->item(count,3)->text();
+          setEnv( isBg ? "BGFILE" : "SAMPLEFILE" , filename);
+
+          shutterMan(true,true);
+
+          if ( lastTrans != transGoal ) {
+            appendMessage(CONTROL, "Moving translation motor to " + QString::number(transGoal) + ".");
+            bgMotor->goUserPosition(transGoal, false);
+            lastTrans = transGoal;
+          }
+          if ( ! isBg && lastScan != cPos) {
+            appendMessage(CONTROL, "Moving scan motor to " + QString::number(cPos) + ".");
+            thetaMotor->goUserPosition(cPos, false);
+            lastScan=cPos;
+          }
+          if ( doL  &&  lastLoop != loopPos ) {
+            appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
+            loopMotor->goUserPosition(loopPos, false);
+            lastLoop = loopPos;
+          }
+          if ( doSL  &&  lastSubLoop != subLoopPos ) {
+            appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
+            subLoopMotor->goUserPosition(subLoopPos, false);
+            lastSubLoop = subLoopPos;
+          }
+
+          bgMotor->wait_stop();
+          thetaMotor->wait_stop();
+          loopMotor->wait_stop();
+          subLoopMotor->wait_stop();
+
+          if ( ! acquire(filename) )
+            scanList->item(count,0)->setCheckState(Qt::Unchecked);
 
         }
 
@@ -2810,29 +2838,29 @@ void MainWindow::engine (const bool dryRun) {
 
   }
 
-  if ( ! dryRun ) {
-    setEnv("AQTYPE", "DARKCURRENT");
-    setEnv("DFTYPE", "AFTER");
-  }
+
+  //
+  // Dark current images after the scan
+  //
+
+  setEnv("AQTYPE", "DARKCURRENT");
+  setEnv("DFTYPE", "AFTER");
 
   for ( int j = 0 ; j < ui->dfAfter->value() ; ++j ) {
 
-    if ( ! dryRun  &&  doIt(count) ) {
+    setEnv("DFAFTERCOUNT", j+1);
+    setEnv("DFCOUNT", dfCount+1);
 
-      setEnv("DFAFTERCOUNT", j+1);
-      setEnv("DFCOUNT", dfCount+1);
+    if ( dryRun ) {
       filename = setAqFileEnv(ui->dfFile, "DFFILE");
-
+      appendScanListRow(DF, 0, filename );
+    } else if ( doIt(count) ) {
+      filename = scanList->item(count,3)->text() ;
+      setEnv("DFFILE", filename);
       shutterMan(false,true);
-
-      scanList->item(count,3)->setText(filename);
       if ( ! acquire(filename) )
         scanList->item(count,0)->setCheckState(Qt::Unchecked);
-
     }
-
-    if ( dryRun )
-      appendScanListRow(DF, 0, filename);
 
     QCoreApplication::processEvents();
     count++;

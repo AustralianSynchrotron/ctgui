@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="ctgui.qrc">
+    <normaloff>:/icons/icon.png</normaloff>:/icons/icon.png</iconset>
+  </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayoutt">
     <item>
@@ -1860,7 +1864,7 @@
      <x>0</x>
      <y>0</y>
      <width>1338</width>
-     <height>30</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>
