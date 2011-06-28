@@ -1,6 +1,7 @@
 <RCC>
-    <qresource prefix="/icons">
+    <qresource prefix="/">
         <file>warn.svg</file>
         <file>icon.png</file>
+        <file>xli.template</file>
     </qresource>
 </RCC>

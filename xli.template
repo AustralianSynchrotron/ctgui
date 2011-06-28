@@ -1,0 +1,58 @@
+[CXLIApp]
+m_sUser=${USERNAME}
+m_sPassword=${PASSWORD}
+
+[CtReconstWizard]
+m_OutputOptimization=1
+m_nJobStartIdx=0
+m_nJobStopIdx=${PROJECTIONS}
+m_bSaveSinoFiles=0
+m_bNoPartialSinos=0
+Remote cluster=1
+
+[PreProc]
+m_OutputOptimization=1
+m_nJobStartIdx=0
+m_nJobStopIdx=${PROJECTIONS}
+Projection Files=${PROJECTION_LIST}
+Dark current file=${DARK_LIST}
+Flat field file=${FLAT_LIST}
+Output file=
+Dark current subtraction=1
+Dark current subtraction from flat field=1
+Illumination correction=1
+Hot pixel replacement=0
+Positional drift correction=0
+Accumulate frames=0
+Divide by the number of frames=0
+Output sinograms=1
+Save sinograms=0
+Ring filter=0
+Data normalization=0
+DP phase extraction=0
+Beam Hardening Correction=0
+Ramp filter=0
+m_nfilesPerFlat=${TRANSINTERVAL}
+Wait For Files=1
+
+[CtReconst]
+m_OutputOptimization=1
+m_nJobStartIdx=${TOP_SLICE}
+m_nJobStopIdx=${BOTTOM_SLICE}
+CT mode=0
+X-origin (pixels)=${CENTER}
+Y-origin (pixels)=0
+Detector pixel height (um)=${PIX_HEIGHT}
+Local=0
+Subslice=${DO_ROR}
+No Partial Sinos=0
+Start angle (degrees)=0
+Angle step (degrees)=${SCAN_STEP}
+Detector pixel width (um)=${PIX_WIDTH}
+Filter=0
+Subslice left (pix)=${ROR_LEFT}
+Subslice right (pix)=${ROR_RIGHT}
+Subslice top (pix)=${ROR_REAR}
+Subslice bottom (pix)=${ROR_FRONT}
+
+Output slices basename=${SLICE_BASE}

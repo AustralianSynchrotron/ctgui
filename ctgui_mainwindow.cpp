@@ -6,6 +6,7 @@
 #include <QProcess>
 #include <QtCore>
 #include <QSettings>
+#include <QFile>
 
 
 
@@ -54,9 +55,10 @@ static int checkScript(const QString & script, QString & result) {
 
 
 QHash<QString,QString> MainWindow::envDesc;
+QHash<MainWindow::Role,QString> MainWindow::roleName;
 const bool MainWindow::inited = MainWindow::init();
 const QString MainWindow::shutterPvBaseName = "SR08ID01PSS01:HU01A_BL_SHUTTER";
-const QIcon MainWindow::badIcon = QIcon(":/icons/warn.svg");
+const QIcon MainWindow::badIcon = QIcon(":/warn.svg");
 const QIcon MainWindow::goodIcon = QIcon();
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -68,7 +70,6 @@ MainWindow::MainWindow(QWidget *parent) :
   proxyModel(new QSortFilterProxyModel(this)),
   transQty(0),
   readyForAq(false),
-  isAqcuiring(false),
   stopMe(true),
   engineStatus(Stopped)
 {
@@ -357,6 +358,9 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->subLoopEnd, SIGNAL(valueChanged(double)),
           SLOT(onSubLoopEndChanges()));
 
+  connect(ui->testMulti, SIGNAL(clicked()),
+          SLOT(onAcquireMulti()));
+
   connect(dynoMotor, SIGNAL(changedUserPosition(double)),
           ui->dynoCurrent, SLOT(setValue(double)));
   connect(dynoMotor, SIGNAL(changedUserPosition(double)),
@@ -416,6 +420,8 @@ MainWindow::MainWindow(QWidget *parent) :
           SLOT(onDyno2StartChanges()));
   connect(ui->dyno2End, SIGNAL(valueChanged(double)),
           SLOT(onDyno2EndChanges()));
+  connect(ui->testDyno, SIGNAL(clicked()),
+          SLOT(onAcquireDyno()));
 
 
   connect(ui->sampleFile, SIGNAL(textChanged(QString)),
@@ -426,8 +432,46 @@ MainWindow::MainWindow(QWidget *parent) :
           SLOT(onDfFileChanges()));
   connect(ui->detectorCommand, SIGNAL(textChanged()),
           SLOT(onDetectorCommandChanges()));
-  connect(ui->acquire, SIGNAL(clicked()),
-          SLOT(onAcquire()));
+  connect(ui->testDetector, SIGNAL(clicked()),
+          SLOT(onAcquireDetector()));
+
+  connect(ui->remoteCT, SIGNAL(toggled(bool)),
+          SLOT(onDoCT()));
+  connect(ui->imageHeight, SIGNAL(valueChanged(int)),
+          SLOT(onImageHeightChanges()));
+  connect(ui->imageWidth, SIGNAL(valueChanged(int)),
+          SLOT(onImageWidthChanges()));
+  connect(ui->lockPixelSize, SIGNAL(toggled(bool)),
+          SLOT(onLockPixelSize()));
+
+  connect(ui->topSlice, SIGNAL(valueChanged(int)),
+          SLOT(onTopSliceChanges()));
+  connect(ui->bottomSlice, SIGNAL(valueChanged(int)),
+          SLOT(onBottomSliceChanges()));
+  connect(ui->rorLeft, SIGNAL(valueChanged(int)),
+          SLOT(onRorLeftChanges()));
+  connect(ui->rorRight, SIGNAL(valueChanged(int)),
+          SLOT(onRorRightChanges()));
+  connect(ui->rorFront, SIGNAL(valueChanged(int)),
+          SLOT(onRorFrontChanges()));
+  connect(ui->rorRear, SIGNAL(valueChanged(int)),
+          SLOT(onRorRearChanges()));
+
+  connect(ui->resetRor, SIGNAL(clicked()),
+          SLOT(onResetRor()));
+  connect(ui->resetTopSlice, SIGNAL(clicked()),
+          SLOT(onResetTop()));
+  connect(ui->resetBottomSlice, SIGNAL(clicked()),
+          SLOT(onResetBottom()));
+  connect(ui->resetLeftRor, SIGNAL(clicked()),
+          SLOT(onResetLeft()));
+  connect(ui->resetRightRor, SIGNAL(clicked()),
+          SLOT(onResetRight()));
+  connect(ui->resetFrontRor, SIGNAL(clicked()),
+          SLOT(onResetFront()));
+  connect(ui->resetRearRor, SIGNAL(clicked()),
+          SLOT(onResetRear()));
+
 
 
   ui->control->setCurrentIndex(0);
@@ -472,30 +516,18 @@ MainWindow::MainWindow(QWidget *parent) :
   onShutterChanges();
 
   onShotModeChanges();
-  onLoopMotorChanges();
   onLoopPosChanges();
-  onLoopRangeChanges();
   onLoopNumberChanges();
-  onLoopStepChanges();
-  onLoopStartChanges();
-  onLoopEndChanges();
-
-  onSubLoopChanges();
-  onSubLoopMotorChanges();
   onSubLoopPosChanges();
-  onSubLoopRangeChanges();
   onSubLoopNumberChanges();
-  onSubLoopStepChanges();
-  onSubLoopStartChanges();
-  onSubLoopEndChanges();
 
   onDynoChanges();
-  onDyno2Changes();
 
-  onDetectorCommandChanges();
   onSampleFileChanges();
   onBgFileChanges();
   onDfFileChanges();
+
+  onDoCT();
 
   hui->table->sortByColumn(0, Qt::AscendingOrder);
 
@@ -520,6 +552,12 @@ MainWindow::~MainWindow()
 
 
 bool MainWindow::init() {
+
+  roleName[SAMPLE] = "sample";
+  roleName[DF] = "dark-current";
+  roleName[BG] = "background";
+  roleName[LOOP] = "loop";
+  roleName[SLOOP] = "sub-loop";
 
   envDesc["GTRANSPOS"] = "Directed position of the translation stage.";
   envDesc["FILE"] = "Name of the last aquired image.";
@@ -1262,6 +1300,8 @@ void MainWindow::onScanRangeChanges(){
   ui->scanStep->blockSignals(false);
   ui->scanEnd->setValue(ui->scanStart->value()+range);
 
+  onDoCT();
+
 }
 
 void MainWindow::onProjectionsChanges() {
@@ -1454,6 +1494,7 @@ void MainWindow::onTransIntervalChanges() {
   onTransMotorChanges();
   onBgFileChanges();
   onTransDistChanges();
+  onDoCT();
   setScanTable();
 
 }
@@ -1528,6 +1569,7 @@ void MainWindow::onDfChanges() {
   setEnv("DFAFTER", af);
   setEnv("DFTOTAL", total);
 
+  onDoCT();
   setScanTable();
 
 }
@@ -1561,6 +1603,7 @@ void MainWindow::onShotModeChanges() {
   onLoopStartChanges();
   onLoopEndChanges();
   onSubLoopChanges();
+  onDoCT();
   if( sender() != ui->singleShot  &&  sender() != ui->multiShot )
     return;
   setScanTable();
@@ -1863,7 +1906,6 @@ void MainWindow::onDynoChanges() {
   onDynoEndChanges();
   onDynoRangeChanges();
   onDyno2Changes();
-  onDetectorCommandChanges(); // to enable/disable acquisition button
 }
 
 void MainWindow::onDynoPosChanges(){
@@ -1980,7 +2022,6 @@ void MainWindow::onDyno2Changes() {
   onDyno2StartChanges();
   onDyno2EndChanges();
   onDyno2RangeChanges();
-  onDetectorCommandChanges();
 }
 
 void MainWindow::onDyno2PosChanges(){
@@ -2149,11 +2190,163 @@ void MainWindow::onDetectorCommandChanges(){
   bool scriptOK = prepareExec(aqExec, ui->detectorCommand, ui->detectorError);
   bool itemOK = ! ui->detectorCommand->toPlainText().isEmpty() && scriptOK;
   check(ui->detectorCommand, itemOK);
+  ui->testDetector->setEnabled(itemOK);
 
-  if (preReq.contains(ui->tabDyno))
-    readyForAq = itemOK  &&  preReq[ui->tabDyno].first;
-  ui->acquire->setEnabled(readyForAq);
+}
 
+
+
+
+
+void MainWindow::onDoCT() {
+
+  onImageHeightChanges();
+  onImageWidthChanges();
+  onTopSliceChanges();
+  onBottomSliceChanges();
+  onRorLeftChanges();
+  onRorRightChanges();
+  onRorFrontChanges();
+  onRorRearChanges();
+  onLockPixelSize();
+
+  bool doCT = ui->remoteCT->isChecked();
+
+  bool rangeOK = ! doCT  ||  ui->scanRange->value() == 180;
+  ui->rctReq_scanRange->setShown(!rangeOK);
+
+  bool flatOK = ! doCT ||  ( ui->transInterval->value()  &&
+                             ui->dfBefore->value() + ui->dfAfter->value() );
+  ui->rctReq_flatField->setShown(!flatOK);
+
+  bool multiOK = ! doCT || ui->singleShot->isChecked();
+  ui->rctReq_multiShot->setShown(!multiOK);
+
+  check(ui->remoteCT, ! doCT || (rangeOK && flatOK && multiOK) );
+
+}
+
+
+void MainWindow::onImageHeightChanges() {
+  int height = ui->imageHeight->value();
+  ui->topSlice->setMaximum(height);
+  ui->bottomSlice->setMaximum(height);
+  check(ui->imageHeight, ! ui->remoteCT->isChecked()  ||  height>3);
+}
+
+
+void MainWindow::onImageWidthChanges() {
+  int width = ui->imageWidth->value();
+  ui->rorFront->setMaximum(width);
+  ui->rorRear->setMaximum(width);
+  ui->rorLeft->setMaximum(width);
+  ui->rorRight->setMaximum(width);
+  ui->rotationCenter->setRange(-width/3, width/3); // theoretically should be width/2
+  check(ui->imageWidth, ! ui->remoteCT->isChecked()  ||  width>3);
+}
+
+
+void MainWindow::onLockPixelSize() {
+  bool lock = ui->lockPixelSize->isChecked();
+  if (lock) {
+    ui->pixelWidth->setValue(ui->pixelHeight->value());
+    connect(ui->pixelHeight, SIGNAL(valueChanged(double)),
+            ui->pixelWidth, SLOT(setValue(double)));
+    connect(ui->pixelWidth, SIGNAL(valueChanged(double)),
+            ui->pixelHeight, SLOT(setValue(double)));
+  } else {
+    disconnect(ui->pixelHeight, SIGNAL(valueChanged(double)),
+               ui->pixelWidth, SLOT(setValue(double)));
+    disconnect(ui->pixelWidth, SIGNAL(valueChanged(double)),
+               ui->pixelHeight, SLOT(setValue(double)));
+  }
+}
+
+
+void MainWindow::onTopSliceChanges() {
+  int top = ui->topSlice->value();
+  int bot = ui->bottomSlice->value();
+  if ( bot && top > bot )
+    ui->bottomSlice->setValue(top);
+}
+
+
+void MainWindow::onBottomSliceChanges() {
+  int top = ui->topSlice->value();
+  int bot = ui->bottomSlice->value();
+  if ( bot && top > bot )
+    ui->topSlice->setValue(bot);
+}
+
+
+void MainWindow::onRorLeftChanges() {
+  int left = ui->rorLeft->value();
+  int right = ui->rorRight->value();
+  if ( right && left > right )
+    ui->rorRight->setValue(left);
+}
+
+
+void MainWindow::onRorRightChanges() {
+  int left = ui->rorLeft->value();
+  int right = ui->rorRight->value();
+  if ( right && left > right )
+    ui->rorLeft->setValue(right);
+}
+
+
+void MainWindow::onRorFrontChanges() {
+  int front = ui->rorFront->value();
+  int rear = ui->rorRear->value();
+  if ( rear && front > rear )
+    ui->rorFront->setValue(rear);
+}
+
+
+void MainWindow::onRorRearChanges() {
+  int front = ui->rorFront->value();
+  int rear = ui->rorRear->value();
+  if ( rear && front > rear )
+    ui->rorRear->setValue(front);
+}
+
+void MainWindow::onResetTop() {
+  ui->topSlice->setValue(ui->topSlice->minimum());
+}
+
+
+void MainWindow::onResetBottom() {
+  ui->bottomSlice->setValue(ui->bottomSlice->minimum());
+}
+
+
+void MainWindow::onResetLeft() {
+  ui->rorLeft->setValue(ui->rorLeft->minimum());
+}
+
+
+void MainWindow::onResetRight() {
+  ui->rorRight->setValue(ui->rorRight->minimum());
+}
+
+
+void MainWindow::onResetFront() {
+  ui->rorFront->setValue(ui->rorFront->minimum());
+}
+
+
+void MainWindow::onResetRear() {
+  ui->rorRear->setValue(ui->rorRear->minimum());
+}
+
+
+void MainWindow::onResetRor() {
+  onResetTop();
+  onResetBottom();
+  onResetLeft();
+  onResetRight();
+  onResetFront();
+  onResetRear();
 }
 
 
@@ -2247,7 +2440,8 @@ bool MainWindow::shutterMan(bool st, bool wait) {
 
 }
 
-int MainWindow::acquire(const QString & filename) {
+
+int MainWindow::acquireDetector(const QString & filename) {
 
   if ( ! readyForAq ) {
     appendMessage(ERROR, "Image cannot be acquired now.");
@@ -2258,14 +2452,42 @@ int MainWindow::acquire(const QString & filename) {
     return 1;
   }
 
-  ui->acquire->setText("Stop acquisition");
-  isAqcuiring = true;
+  ui->detectorWidget->setEnabled(false);
 
-  const bool
-      dyTabEnabled = ui->tabDyno->isEnabled();
-  ui->tabDyno->setEnabled(false);
-  ui->filenames->setEnabled(false);
-  ui->detectorCommand->setEnabled(false);
+
+  setEnv("FILE", filename);
+  int execStatus = doExec(aqExec, "image acquisition into \"" + filename + "\"");
+  if (execStatus)
+    appendMessage(ERROR, "Error acquiring \"" + filename + "\".");
+
+
+  ui->detectorWidget->setEnabled(true);
+
+  // preview.
+  if ( ! execStatus && ui->livePreview->isChecked() )
+    // TODO. Should be executed in a parelel thread
+    ui->image->setStyleSheet("image: url(" + filename + ");");
+
+  return execStatus;
+
+}
+
+
+int MainWindow::acquireDyno(const QString & filename) {
+
+  if ( ! readyForAq ) {
+    appendMessage(ERROR, "Image cannot be acquired now.");
+    return 1;
+  }
+  if ( filename.isEmpty() ) {
+    appendMessage(ERROR, "Empty filename to store image.");
+    return 1;
+  }
+
+  stopMe = false;
+  ui->dynoWidget->setEnabled(false);
+
+  int execStatus = 0;
 
   const double
       dStart = ui->dynoStart->value(),
@@ -2281,6 +2503,11 @@ int MainWindow::acquire(const QString & filename) {
   if ( ui->dyno2Shot->isChecked() )
     dyno2Motor->wait_stop();
 
+  if (stopMe) {
+    ui->dynoWidget->setEnabled(true);
+    return execStatus;
+  }
+
   if ( ui->dynoShot->isChecked() ) {
     double goal = ui->dynoEnd->value();
     appendMessage(CONTROL, "Start moving dyno-shot motor to " + QString::number(goal) + ".");
@@ -2292,10 +2519,7 @@ int MainWindow::acquire(const QString & filename) {
     dyno2Motor->goUserPosition(goal, false);
   }
 
-  setEnv("FILE", filename);
-  bool execStatus = doExec(aqExec, "image acquisition into \"" + filename + "\"");
-  if (execStatus)
-    appendMessage(ERROR, "Error acquiring \"" + filename + "\".");
+  execStatus = acquireDetector(filename);
 
   if ( ui->dynoShot->isChecked() ) {
     appendMessage(CONTROL, "Stopping dyno-shot motor.");
@@ -2310,32 +2534,144 @@ int MainWindow::acquire(const QString & filename) {
     dyno2Motor->goUserPosition(d2Start, false);
   }
 
-  if (dyTabEnabled)
-    ui->tabDyno->setEnabled(true);
-  ui->filenames->setEnabled(true);
-  ui->detectorCommand->setEnabled(true);
-
-  isAqcuiring = false;
-  ui->acquire->setText("Acquire");
-
-  // preview.
-  if ( ! execStatus && ui->livePreview->isChecked() )
-    // TODO. Should be executed in a parelel thread
-    ui->image->setStyleSheet("image: url(" + filename + ");");
+  ui->dynoWidget->setEnabled(true);
 
   return execStatus;
 
 }
 
 
-void MainWindow::onAcquire() {
-  if ( isAqcuiring ) {
+int MainWindow::acquireMulti() {
+
+  if ( ! readyForAq ) {
+    appendMessage(ERROR, "Image cannot be acquired now.");
+    return 1;
+  }
+
+  stopMe = false;
+  ui->multiWidget->setEnabled(false);
+
+  const bool
+      doL = ui->multiShot->isChecked(),
+      doSL = doL && ui->subLoop->isChecked();
+
+  const int
+      loopN =  doL ? ui->loopNumber->value() : 1,
+      subLoopN = doSL ? ui->subLoopNumber->value() : 1;
+  const double
+      lStart = ui->loopStart->value(),
+      lEnd = ui->loopEnd->value(),
+      slStart = ui->subLoopStart->value(),
+      slEnd = ui->subLoopEnd->value();
+
+  double
+      lastLoop = loopMotor->get(),
+      lastSubLoop = subLoopMotor->get();
+
+  int execStatus=0;
+
+  for ( int x = 0; x < loopN; x++) {
+
+    double loopPos = lStart   +
+        ( (loopN==1)  ?  0  :  x * (lEnd-lStart) / (loopN-1) );
+    if ( doL  &&  lastLoop != loopPos ) {
+      appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
+      loopMotor->goUserPosition(loopPos, false);
+      lastLoop = loopPos;
+    }
+
+    for ( int y = 0; y < subLoopN; y++) {
+
+      double subLoopPos = slStart +
+          ( ( subLoopN == 1 )  ?  0  :  y * (slEnd - slStart) / (subLoopN-1) );
+      if ( doSL  &&  lastSubLoop != subLoopPos ) {
+        appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
+        subLoopMotor->goUserPosition(subLoopPos, false);
+        lastSubLoop = subLoopPos;
+      }
+
+      loopMotor->wait_stop();
+      subLoopMotor->wait_stop();
+
+      if (stopMe) {
+        loopMotor->goUserPosition(lStart, false);
+        subLoopMotor->goUserPosition(slStart, false);
+        ui->multiWidget->setEnabled(true);
+        return execStatus;
+      }
+
+
+      QString filename = ".temp." + QString::number(x) + "." + QString::number(y) + ".tif";
+      execStatus = acquireDyno(filename);
+
+      if (execStatus)
+        appendMessage(ERROR, "Failed to acquire image in the multi-shot run.");
+      if (execStatus || stopMe) {
+        loopMotor->goUserPosition(lStart, false);
+        subLoopMotor->goUserPosition(slStart, false);
+        ui->multiWidget->setEnabled(true);
+        return execStatus;
+      }
+
+    }
+
+  }
+
+  loopMotor->goUserPosition(lStart, false);
+  subLoopMotor->goUserPosition(slStart, false);
+  ui->multiWidget->setEnabled(true);
+  return execStatus;
+
+}
+
+
+
+
+void MainWindow::onAcquireDetector() {
+  if ( ! ui->detectorWidget->isEnabled() ) {
     emit requestToStopAcquisition();
   } else {
+    ui->testDetector->setText("Stop acquisition");
     setEnv("AQTYPE", "SINGLESHOT");
-    acquire(".temp.tif");
+    acquireDetector(".temp.tif");
+    ui->testDetector->setText("Test");
   }
 }
+
+void MainWindow::onAcquireDyno() {
+  if ( ! ui->dynoWidget->isEnabled() ) {
+    stopMe = true;
+    emit requestToStopAcquisition();
+    dynoMotor->stop();
+    dyno2Motor->stop();
+  } else {
+    ui->testDyno->setText("Stop acquisition");
+    setEnv("AQTYPE", "DYNOSHOT");
+    acquireDyno(".temp.tif");
+    ui->testDyno->setText("Test");
+  }
+}
+
+void MainWindow::onAcquireMulti() {
+  if ( ! ui->multiWidget->isEnabled() ) {
+    stopMe = true;
+    emit requestToStopAcquisition();
+    loopMotor->stop();
+    subLoopMotor->stop();
+    dynoMotor->stop();
+    dyno2Motor->stop();
+  } else {
+    ui->testMulti->setText("Stop acquisition");
+    setEnv("AQTYPE", "MULTISHOT");
+    acquireMulti();
+    ui->testMulti->setText("Test");
+  }
+}
+
+
+
+
+
 
 
 void MainWindow::appendMessage(MsgType tp, const QString &msg) {
@@ -2399,6 +2735,7 @@ void MainWindow::onStartStop() {
   }
 
 }
+
 
 void MainWindow::setEngineStatus(EngineStatus status) {
 
@@ -2502,22 +2839,16 @@ void MainWindow::appendScanListRow(Role rl, double pos, const QString & fn) {
   QList<QStandardItem *> items;
   QStandardItem * ti;
 
-  QString roleName;
-  switch (rl) {
-  case SAMPLE: roleName = "sample"; break;
-  case DF:     roleName = "dark field"; break;
-  case BG:     roleName = "background"; break;
-  case LOOP:   roleName = "  loop"; break;
-  case SLOOP:  roleName = "    sub-loop"; break;
-  }
-
   ti = new QStandardItem(true);
   ti->setCheckable(true);
   ti->setCheckState(Qt::Checked);
   items << ti;
 
   ti = new QStandardItem(true);
-  ti->setText(roleName);
+  QString roleText = roleName[rl];
+  if (rl == LOOP) roleText = "  " + roleText;
+  if (rl == SLOOP) roleText = "    " + roleText;
+  ti->setText(roleText);
   ti->setEditable(false);
   items << ti;
 
@@ -2576,6 +2907,69 @@ bool MainWindow::doIt(int count) {
     return true;
   return scanList->item(count,0)->checkState() == Qt::Checked;
 }
+
+void MainWindow::createXLIfile(const QString & filename) {
+
+  QFile templ(":/xli.template");
+  templ.open(QFile::ReadOnly);
+  QString text = templ.readAll();
+  templ.close();
+
+  text.replace("${USERNAME}", ui->vblUser->text() );
+  text.replace("${PASSWORD}", ui->vblPassword->text() );
+  text.replace("${PROJECTIONS}", QString::number(ui->projections->value()));
+
+  QString prList, dcList, bgList;
+  for( int idx=0 ; idx < scanList->rowCount() ; idx++ ) {
+    QString filename = scanList->item(idx,3)->text();
+    QString roleText = scanList->item(idx,1)->text();
+    if ( roleText == roleName[SAMPLE] )
+      prList += "," + filename;
+    else if ( roleText == roleName[BG] )
+      bgList += "," + filename;
+    else if ( roleText == roleName[DF] )
+      dcList += "," + filename;
+  }
+  text.replace("${PROJECTION_LIST}", prList);
+  text.replace("${DARK_LIST}", dcList);
+  text.replace("${FLAT_LIST}", bgList);
+
+  text.replace("${TRANSINTERVAL}", QString::number(ui->transInterval->value()));
+  text.replace("${CENTER}", QString::number(ui->rotationCenter->value()) );
+  text.replace("${PIX_HEIGHT}", QString::number(ui->pixelHeight->value()) );
+  text.replace("${PIX_WIDTH}", QString::number(ui->pixelWidth->value()) );
+  text.replace("${SCAN_STEP}", QString::number(ui->scanStep->value()));
+
+  text.replace("${TOP_SLICE}", QString::number(ui->topSlice->value()-1));
+  text.replace("${BOTTOM_SLICE}",
+               QString::number (
+                 ( ui->bottomSlice->value() == ui->bottomSlice->minimum() ?
+                     ui->imageHeight->value() : ui->bottomSlice->value() )
+                 - 1 ) );
+
+  text.replace("${DO_ROR}",
+               ui->rorLeft->value() != ui->rorLeft->minimum() ||
+               ui->rorRight->value() != ui->rorRight->minimum() ||
+               ui->rorFront->value() != ui->rorFront->minimum() ||
+               ui->rorRear->value() != ui->rorRear->minimum()
+               ? "1" : "0");
+  text.replace("${ROR_LEFT}", QString::number(ui->rorLeft->value()-1) );
+  text.replace("${ROR_RIGHT}", QString::number(ui->rorRight->value()-1) );
+  text.replace("${ROR_REAR}", QString::number(ui->rorRear->value()-1) );
+  text.replace("${ROR_FRONT}", QString::number(ui->rorFront->value()-1) );
+  text.replace("${SLICE_BASE}", "slice.tif");
+
+  QFile out(filename);
+  out.open(QFile::WriteOnly|QFile::Truncate);
+  out.write( text.toAscii() );
+  out.close();
+
+
+}
+
+
+
+
 
 
 
@@ -2649,8 +3043,10 @@ void MainWindow::engine (const bool dryRun) {
       dfCount = 0,
       smCount = 0;
 
-  if ( ! dryRun )
+  if ( ! dryRun ) {
     onPreExec();
+    createXLIfile("xli.config");
+  }
 
 
   // Set starting environment to fake values - just for a case.
@@ -2689,7 +3085,7 @@ void MainWindow::engine (const bool dryRun) {
       filename = scanList->item(count,3)->text() ;
       setEnv("DFFILE", filename);
       shutterMan(false,true);
-      if ( ! acquire(filename) )
+      if ( ! acquireDetector(filename) )
         scanList->item(count,0)->setCheckState(Qt::Unchecked);
     }
 
@@ -2748,7 +3144,9 @@ void MainWindow::engine (const bool dryRun) {
     int loopN =  ( ! doL || (isBg && ! multiBg) )  ?  1  :  lN;
     int subLoopN = ( loopN <= 1 || ! doSL )  ?  1  :  slN;
 
+    //
     // In loop
+    //
 
     for ( int x = 0; x < loopN; x++) {
 
@@ -2757,7 +3155,9 @@ void MainWindow::engine (const bool dryRun) {
       double loopPos = lStart   +  ( (loopN==1)  ?  0  :  x * (lEnd-lStart) / (loopN-1) );
       setEnv("GLOOPPOS", loopPos);
 
+      //
       // In sub-loop
+      //
 
       for ( int y = 0; y < subLoopN; y++) {
 
@@ -2816,7 +3216,7 @@ void MainWindow::engine (const bool dryRun) {
           loopMotor->wait_stop();
           subLoopMotor->wait_stop();
 
-          if ( ! acquire(filename) )
+          if ( ! acquireDyno(filename) )
             scanList->item(count,0)->setCheckState(Qt::Unchecked);
 
         }
@@ -2858,7 +3258,7 @@ void MainWindow::engine (const bool dryRun) {
       filename = scanList->item(count,3)->text() ;
       setEnv("DFFILE", filename);
       shutterMan(false,true);
-      if ( ! acquire(filename) )
+      if ( ! acquireDetector(filename) )
         scanList->item(count,0)->setCheckState(Qt::Unchecked);
     }
 

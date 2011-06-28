@@ -79,6 +79,8 @@ private:
   QStandardItemModel * scanList;
   QSortFilterProxyModel * proxyModel;
 
+  void createXLIfile(const QString & filename);
+
   enum Role {
     SAMPLE,
     DF,
@@ -86,6 +88,7 @@ private:
     LOOP,
     SLOOP
   };
+  static QHash<Role, QString> roleName;
 
   bool listHasFile(const QString & fn);
   QString setAqFileEnv(const QLineEdit * edt, const QString & var);
@@ -104,14 +107,16 @@ private:
     qDebug() << msg;
   }
 
-  int acquire(const QString & filename);
+  int acquireDetector(const QString & filename);
+  int acquireDyno(const QString & filename);
+  int acquireMulti();
 
   void engine(const bool dryRun);
 
   bool doIt(int count);
 
   bool readyForAq;
-  bool isAqcuiring;
+  //bool isAqcuiring;
   bool stopMe;
 
   enum EngineStatus {
@@ -257,10 +262,33 @@ private slots:
   void onBgFileChanges();
   void onDfFileChanges();
 
-  void onAcquire();
   void onStartStop();
   void onAssistant();
   void setEngineStatus(EngineStatus status);
+
+
+  void onDoCT();
+  void onImageHeightChanges();
+  void onImageWidthChanges();
+  void onLockPixelSize();
+  void onTopSliceChanges();
+  void onBottomSliceChanges();
+  void onRorLeftChanges();
+  void onRorRightChanges();
+  void onRorFrontChanges();
+  void onRorRearChanges();
+
+  void onResetTop();
+  void onResetBottom();
+  void onResetLeft();
+  void onResetRight();
+  void onResetFront();
+  void onResetRear();
+  void onResetRor();
+
+  void onAcquireDetector();
+  void onAcquireDyno();
+  void onAcquireMulti();
 
 signals:
 

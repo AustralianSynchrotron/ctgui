@@ -15,7 +15,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="ctgui.qrc">
-    <normaloff>:/icons/icon.png</normaloff>:/icons/icon.png</iconset>
+    <normaloff>:/icon.png</normaloff>:/icon.png</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayoutt">
@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>8</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="tabGeneral">
        <property name="toolTip">
@@ -802,229 +802,47 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_14">
         <item>
-         <widget class="QRadioButton" name="singleShot">
-          <property name="toolTip">
-           <string>Single shot mode</string>
-          </property>
-          <property name="text">
-           <string>Single shot</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-          <attribute name="buttonGroup">
-           <string>buttonGroup</string>
-          </attribute>
-         </widget>
-        </item>
-        <item>
-         <widget class="Line" name="line_11">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QWidget" name="widget_3" native="true">
-          <layout class="QHBoxLayout" name="horizontalLayout_2">
+         <widget class="QWidget" name="multiWidget" native="true">
+          <layout class="QVBoxLayout" name="verticalLayout_17">
            <item>
-            <widget class="QRadioButton" name="multiShot">
+            <widget class="QRadioButton" name="singleShot">
              <property name="toolTip">
-              <string>Multishot mode</string>
+              <string>Single shot mode</string>
              </property>
              <property name="text">
-              <string>Multi shot</string>
-             </property>
-             <attribute name="buttonGroup">
-              <string>buttonGroup</string>
-             </attribute>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="multiBg">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="text">
-              <string>Same background for all sub-shots.</string>
+              <string>Single shot</string>
              </property>
              <property name="checked">
               <bool>true</bool>
              </property>
             </widget>
            </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QWidget" name="multiWg" native="true">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_15">
            <item>
-            <widget class="QLabel" name="label_55">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="text">
-              <string>Loop</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QWidget" name="loopWg" native="true">
-             <layout class="QGridLayout" name="loopLayout">
-              <item row="0" column="1">
-               <widget class="QMDoubleSpinBox" name="loopCurrent">
+            <widget class="QWidget" name="widget_8" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <property name="margin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QRadioButton" name="multiShot">
                 <property name="toolTip">
-                 <string>Current position of the looping motor $LOOPPOS</string>
+                 <string>Multishot mode</string>
                 </property>
-                <property name="readOnly">
+                <property name="text">
+                 <string>Multi shot</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="multiBg">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <property name="text">
+                 <string>Same background for all sub-shots.</string>
+                </property>
+                <property name="checked">
                  <bool>true</bool>
-                </property>
-                <property name="buttonSymbols">
-                 <enum>QAbstractSpinBox::NoButtons</enum>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_56">
-                <property name="text">
-                 <string>Scan range</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QMDoubleSpinBox" name="loopRange">
-                <property name="toolTip">
-                 <string>Travel range of the loop motor $LOOPRANGE</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="label_57">
-                <property name="text">
-                 <string>Shots</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QMSpinBox" name="loopNumber">
-                <property name="toolTip">
-                 <string>Number of acquisitions in the loop $LOOPN</string>
-                </property>
-                <property name="minimum">
-                 <number>2</number>
-                </property>
-                <property name="maximum">
-                 <number>2147483647</number>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="label_58">
-                <property name="text">
-                 <string>Step</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QMDoubleSpinBox" name="loopStep">
-                <property name="toolTip">
-                 <string>Motor travel between two acquisitions in the loop $LOOPSTEP</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1">
-               <widget class="QMDoubleSpinBox" name="loopStart">
-                <property name="toolTip">
-                 <string>Start position of the motor $LOOPSTART</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="0">
-               <widget class="QLabel" name="label_59">
-                <property name="text">
-                 <string>End</string>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QWidget" name="widget_19" native="true">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_11">
-                 <property name="margin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QLabel" name="label_60">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>Start</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QToolButton" name="getLoopStart">
-                   <property name="toolTip">
-                    <string>Locks the start position to the current position of the translation motor at the scan start</string>
-                   </property>
-                   <property name="text">
-                    <string>get from current</string>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item row="5" column="1">
-               <widget class="QMDoubleSpinBox" name="loopEnd">
-                <property name="toolTip">
-                 <string>End position of the motor $LOOPEND</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
                 </property>
                </widget>
               </item>
@@ -1032,173 +850,358 @@
             </widget>
            </item>
            <item>
-            <widget class="Line" name="line_12">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="subLoop">
-             <property name="toolTip">
-              <string>Perform sublooping in the main loop (f.e. 2D scan)</string>
-             </property>
-             <property name="text">
-              <string>Sub-loop</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QWidget" name="subLoopWg" native="true">
+            <widget class="QWidget" name="multiWg" native="true">
              <property name="enabled">
               <bool>false</bool>
              </property>
-             <layout class="QGridLayout" name="subLoopLayout">
-              <item row="0" column="1">
-               <widget class="QMDoubleSpinBox" name="subLoopCurrent">
-                <property name="toolTip">
-                 <string>Current position of the sub-looping motor $SUBLOOPPOS</string>
-                </property>
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-                <property name="buttonSymbols">
-                 <enum>QAbstractSpinBox::NoButtons</enum>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
+             <layout class="QVBoxLayout" name="verticalLayout_15">
+              <item>
+               <widget class="Line" name="line_11">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
                 </property>
                </widget>
               </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_61">
-                <property name="text">
-                 <string>Scan range</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QMDoubleSpinBox" name="subLoopRange">
-                <property name="toolTip">
-                 <string>Travel range of the sub-loop motor $SUBLOOPRANGE</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="label_62">
-                <property name="text">
-                 <string>Shots</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QMSpinBox" name="subLoopNumber">
-                <property name="toolTip">
-                 <string>Number of acquisitions in the sub-loop $SUBLOOPN</string>
-                </property>
-                <property name="minimum">
-                 <number>2</number>
-                </property>
-                <property name="maximum">
-                 <number>2147483647</number>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="label_63">
-                <property name="text">
-                 <string>Step</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QMDoubleSpinBox" name="subLoopStep">
-                <property name="toolTip">
-                 <string>Motor travel between two acquisitions in the sub-loop $SUBLOOPSTEP</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="1">
-               <widget class="QMDoubleSpinBox" name="subLoopStart">
-                <property name="toolTip">
-                 <string>Start position of the motor $SUBLOOPSTART</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="0">
-               <widget class="QLabel" name="label_64">
-                <property name="text">
-                 <string>End</string>
-                </property>
-               </widget>
-              </item>
-              <item row="5" column="1">
-               <widget class="QMDoubleSpinBox" name="subLoopEnd">
-                <property name="toolTip">
-                 <string>End position of the motor $SUBLOOPEND</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QWidget" name="widget0" native="true">
+              <item>
+               <widget class="QLabel" name="label_55">
                 <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                   <horstretch>0</horstretch>
                   <verstretch>0</verstretch>
                  </sizepolicy>
                 </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_12">
-                 <property name="margin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QLabel" name="label_65">
+                <property name="text">
+                 <string>Loop</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QWidget" name="loopWg" native="true">
+                <layout class="QGridLayout" name="loopLayout">
+                 <item row="0" column="1">
+                  <widget class="QMDoubleSpinBox" name="loopCurrent">
+                   <property name="toolTip">
+                    <string>Current position of the looping motor $LOOPPOS</string>
+                   </property>
+                   <property name="readOnly">
+                    <bool>true</bool>
+                   </property>
+                   <property name="buttonSymbols">
+                    <enum>QAbstractSpinBox::NoButtons</enum>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="label_56">
+                   <property name="text">
+                    <string>Scan range</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QMDoubleSpinBox" name="loopRange">
+                   <property name="toolTip">
+                    <string>Travel range of the loop motor $LOOPRANGE</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="label_57">
+                   <property name="text">
+                    <string>Shots</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QMSpinBox" name="loopNumber">
+                   <property name="toolTip">
+                    <string>Number of acquisitions in the loop $LOOPN</string>
+                   </property>
+                   <property name="minimum">
+                    <number>2</number>
+                   </property>
+                   <property name="maximum">
+                    <number>2147483647</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="0">
+                  <widget class="QLabel" name="label_58">
+                   <property name="text">
+                    <string>Step</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="1">
+                  <widget class="QMDoubleSpinBox" name="loopStep">
+                   <property name="toolTip">
+                    <string>Motor travel between two acquisitions in the loop $LOOPSTEP</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="1">
+                  <widget class="QMDoubleSpinBox" name="loopStart">
+                   <property name="toolTip">
+                    <string>Start position of the motor $LOOPSTART</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="5" column="0">
+                  <widget class="QLabel" name="label_59">
+                   <property name="text">
+                    <string>End</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="0">
+                  <widget class="QWidget" name="widget_19" native="true">
                    <property name="sizePolicy">
                     <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
                      <horstretch>0</horstretch>
                      <verstretch>0</verstretch>
                     </sizepolicy>
                    </property>
-                   <property name="text">
-                    <string>Start </string>
+                   <layout class="QHBoxLayout" name="horizontalLayout_11">
+                    <property name="margin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QLabel" name="label_60">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="text">
+                       <string>Start</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="getLoopStart">
+                      <property name="toolTip">
+                       <string>Locks the start position to the current position of the translation motor at the scan start</string>
+                      </property>
+                      <property name="text">
+                       <string>get from current</string>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item row="5" column="1">
+                  <widget class="QMDoubleSpinBox" name="loopEnd">
+                   <property name="toolTip">
+                    <string>End position of the motor $LOOPEND</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
                    </property>
                   </widget>
                  </item>
-                 <item>
-                  <widget class="QToolButton" name="getSubLoopStart">
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="Line" name="line_12">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="subLoop">
+                <property name="toolTip">
+                 <string>Perform sublooping in the main loop (f.e. 2D scan)</string>
+                </property>
+                <property name="text">
+                 <string>Sub-loop</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QWidget" name="subLoopWg" native="true">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <layout class="QGridLayout" name="subLoopLayout">
+                 <item row="0" column="1">
+                  <widget class="QMDoubleSpinBox" name="subLoopCurrent">
+                   <property name="toolTip">
+                    <string>Current position of the sub-looping motor $SUBLOOPPOS</string>
+                   </property>
+                   <property name="readOnly">
+                    <bool>true</bool>
+                   </property>
+                   <property name="buttonSymbols">
+                    <enum>QAbstractSpinBox::NoButtons</enum>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="label_61">
                    <property name="text">
-                    <string>get from current</string>
+                    <string>Scan range</string>
                    </property>
-                   <property name="checked">
-                    <bool>false</bool>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QMDoubleSpinBox" name="subLoopRange">
+                   <property name="toolTip">
+                    <string>Travel range of the sub-loop motor $SUBLOOPRANGE</string>
                    </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QLabel" name="label_62">
+                   <property name="text">
+                    <string>Shots</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QMSpinBox" name="subLoopNumber">
+                   <property name="toolTip">
+                    <string>Number of acquisitions in the sub-loop $SUBLOOPN</string>
+                   </property>
+                   <property name="minimum">
+                    <number>2</number>
+                   </property>
+                   <property name="maximum">
+                    <number>2147483647</number>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="0">
+                  <widget class="QLabel" name="label_63">
+                   <property name="text">
+                    <string>Step</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="1">
+                  <widget class="QMDoubleSpinBox" name="subLoopStep">
+                   <property name="toolTip">
+                    <string>Motor travel between two acquisitions in the sub-loop $SUBLOOPSTEP</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="1">
+                  <widget class="QMDoubleSpinBox" name="subLoopStart">
+                   <property name="toolTip">
+                    <string>Start position of the motor $SUBLOOPSTART</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="5" column="0">
+                  <widget class="QLabel" name="label_64">
+                   <property name="text">
+                    <string>End</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="5" column="1">
+                  <widget class="QMDoubleSpinBox" name="subLoopEnd">
+                   <property name="toolTip">
+                    <string>End position of the motor $SUBLOOPEND</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="0">
+                  <widget class="QWidget" name="widget0" native="true">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <layout class="QHBoxLayout" name="horizontalLayout_12">
+                    <property name="margin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QLabel" name="label_65">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="text">
+                       <string>Start </string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="getSubLoopStart">
+                      <property name="text">
+                       <string>get from current</string>
+                      </property>
+                      <property name="checked">
+                       <bool>false</bool>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
                   </widget>
                  </item>
                 </layout>
@@ -1211,9 +1214,16 @@
          </widget>
         </item>
         <item>
-         <widget class="Line" name="line_6">
+         <widget class="Line" name="line_18">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="testMulti">
+          <property name="text">
+           <string>Test</string>
           </property>
          </widget>
         </item>
@@ -1238,337 +1248,148 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_5">
         <item>
-         <widget class="QCheckBox" name="dynoShot">
-          <property name="text">
-           <string>Parallel scanning shot</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QWidget" name="dynoWg" native="true">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_6">
+         <widget class="QWidget" name="dynoWidget" native="true">
+          <layout class="QVBoxLayout" name="verticalLayout_11">
            <item>
-            <widget class="QWidget" name="dyno1Wg" native="true">
-             <layout class="QGridLayout" name="dyno1Layout">
-              <item row="1" column="1">
-               <widget class="QMDoubleSpinBox" name="dynoCurrent">
-                <property name="toolTip">
-                 <string>Current position of the looping motor $LOOPPOS</string>
-                </property>
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-                <property name="buttonSymbols">
-                 <enum>QAbstractSpinBox::NoButtons</enum>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="label_71">
-                <property name="text">
-                 <string>Scan range</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QMDoubleSpinBox" name="dynoRange">
-                <property name="toolTip">
-                 <string>Travel range of the loop motor $LOOPRANGE</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QMDoubleSpinBox" name="dynoStart">
-                <property name="toolTip">
-                 <string>Start position of the motor $LOOPSTART</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="label_74">
-                <property name="text">
-                 <string>End</string>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QWidget" name="widget_20" native="true">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_14">
-                 <property name="margin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QLabel" name="label_75">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>Start </string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QToolButton" name="getDynoStart">
-                   <property name="toolTip">
-                    <string>Locks the start position to the current position of the translation motor at the scan start</string>
-                   </property>
-                   <property name="text">
-                    <string>get from current</string>
-                   </property>
-                   <property name="checked">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item row="4" column="1">
-               <widget class="QMDoubleSpinBox" name="dynoEnd">
-                <property name="toolTip">
-                 <string>End position of the motor $LOOPEND</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="0" column="0">
-               <widget class="QLabel" name="label_6">
-                <property name="text">
-                 <string>Driving motor</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
+            <widget class="QCheckBox" name="dynoShot">
+             <property name="text">
+              <string>Parallel scanning shot</string>
+             </property>
             </widget>
            </item>
            <item>
-            <widget class="Line" name="line_7">
+            <widget class="Line" name="line_16">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QCheckBox" name="dyno2Shot">
-             <property name="text">
-              <string>Use second motor</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QWidget" name="dyno2Wg" native="true">
+            <widget class="QWidget" name="dynoWg" native="true">
              <property name="enabled">
               <bool>false</bool>
              </property>
-             <layout class="QGridLayout" name="dyno2Layout">
-              <item row="0" column="1">
-               <widget class="QMDoubleSpinBox" name="dyno2Current">
-                <property name="toolTip">
-                 <string>Current position of the looping motor $LOOPPOS</string>
-                </property>
-                <property name="readOnly">
-                 <bool>true</bool>
-                </property>
-                <property name="buttonSymbols">
-                 <enum>QAbstractSpinBox::NoButtons</enum>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="0">
-               <widget class="QLabel" name="label_76">
-                <property name="text">
-                 <string>Scan range</string>
-                </property>
-               </widget>
-              </item>
-              <item row="1" column="1">
-               <widget class="QMDoubleSpinBox" name="dyno2Range">
-                <property name="toolTip">
-                 <string>Travel range of the loop motor $LOOPRANGE</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QMDoubleSpinBox" name="dyno2Start">
-                <property name="toolTip">
-                 <string>Start position of the motor $LOOPSTART</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-              <item row="3" column="0">
-               <widget class="QLabel" name="label_79">
-                <property name="text">
-                 <string>End</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QWidget" name="widget_21" native="true">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <layout class="QHBoxLayout" name="horizontalLayout_15">
-                 <property name="margin">
-                  <number>0</number>
-                 </property>
-                 <item>
-                  <widget class="QLabel" name="label_80">
-                   <property name="sizePolicy">
-                    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                     <horstretch>0</horstretch>
-                     <verstretch>0</verstretch>
-                    </sizepolicy>
-                   </property>
-                   <property name="text">
-                    <string>Start</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QToolButton" name="getDyno2Start">
-                   <property name="toolTip">
-                    <string>Locks the start position to the current position of the translation motor at the scan start</string>
-                   </property>
-                   <property name="text">
-                    <string>get from current</string>
-                   </property>
-                   <property name="checked">
-                    <bool>false</bool>
-                   </property>
-                  </widget>
-                 </item>
-                </layout>
-               </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QMDoubleSpinBox" name="dyno2End">
-                <property name="toolTip">
-                 <string>End position of the motor $LOOPEND</string>
-                </property>
-                <property name="minimum">
-                 <double>-2147483647.000000000000000</double>
-                </property>
-                <property name="maximum">
-                 <double>2147483647.000000000000000</double>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="Line" name="line_13">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QWidget" name="dynoStarStopWg" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout_6">
+             <layout class="QVBoxLayout" name="verticalLayout_6">
               <item>
-               <widget class="QWidget" name="widget_10" native="true">
-                <layout class="QGridLayout" name="gridLayout_3">
-                 <item row="0" column="0">
-                  <widget class="QLabel" name="label_5">
-                   <property name="text">
-                    <string>Start aqcuisition</string>
+               <widget class="QWidget" name="dyno1Wg" native="true">
+                <layout class="QGridLayout" name="dyno1Layout">
+                 <item row="1" column="1">
+                  <widget class="QMDoubleSpinBox" name="dynoCurrent">
+                   <property name="toolTip">
+                    <string>Current position of the looping motor $LOOPPOS</string>
                    </property>
-                  </widget>
-                 </item>
-                 <item row="1" column="0">
-                  <widget class="QRadioButton" name="dynoTrigOnMotion">
-                   <property name="text">
-                    <string>together with motion</string>
-                   </property>
-                   <property name="checked">
+                   <property name="readOnly">
                     <bool>true</bool>
+                   </property>
+                   <property name="buttonSymbols">
+                    <enum>QAbstractSpinBox::NoButtons</enum>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
                    </property>
                   </widget>
                  </item>
                  <item row="2" column="0">
-                  <widget class="QRadioButton" name="dynoTrigOnSpeed">
+                  <widget class="QLabel" name="label_71">
                    <property name="text">
-                    <string>at motor(s) nominal speed</string>
+                    <string>Scan range</string>
                    </property>
                   </widget>
                  </item>
-                 <item row="3" column="0">
-                  <widget class="QRadioButton" name="dynoTrigOnDelay">
-                   <property name="text">
-                    <string>time delay</string>
+                 <item row="2" column="1">
+                  <widget class="QMDoubleSpinBox" name="dynoRange">
+                   <property name="toolTip">
+                    <string>Travel range of the loop motor $LOOPRANGE</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
                    </property>
                   </widget>
                  </item>
                  <item row="3" column="1">
-                  <widget class="QMDoubleSpinBox" name="dynoTrigDelay">
-                   <property name="enabled">
-                    <bool>false</bool>
+                  <widget class="QMDoubleSpinBox" name="dynoStart">
+                   <property name="toolTip">
+                    <string>Start position of the motor $LOOPSTART</string>
                    </property>
-                   <property name="suffix">
-                    <string>s</string>
-                   </property>
-                   <property name="decimals">
-                    <number>3</number>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
                    </property>
                    <property name="maximum">
-                    <double>999999999.000000000000000</double>
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="4" column="0">
+                  <widget class="QLabel" name="label_74">
+                   <property name="text">
+                    <string>End</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="0">
+                  <widget class="QWidget" name="widget_20" native="true">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <layout class="QHBoxLayout" name="horizontalLayout_14">
+                    <property name="margin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QLabel" name="label_75">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="text">
+                       <string>Start </string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="getDynoStart">
+                      <property name="toolTip">
+                       <string>Locks the start position to the current position of the translation motor at the scan start</string>
+                      </property>
+                      <property name="text">
+                       <string>get from current</string>
+                      </property>
+                      <property name="checked">
+                       <bool>false</bool>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item row="4" column="1">
+                  <widget class="QMDoubleSpinBox" name="dynoEnd">
+                   <property name="toolTip">
+                    <string>End position of the motor $LOOPEND</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="0" column="0">
+                  <widget class="QLabel" name="label_6">
+                   <property name="text">
+                    <string>Driving motor</string>
                    </property>
                   </widget>
                  </item>
@@ -1576,44 +1397,239 @@
                </widget>
               </item>
               <item>
-               <widget class="Line" name="line_14">
+               <widget class="Line" name="line_7">
                 <property name="orientation">
-                 <enum>Qt::Vertical</enum>
+                 <enum>Qt::Horizontal</enum>
                 </property>
                </widget>
               </item>
               <item>
-               <widget class="QWidget" name="widget_12" native="true">
-                <layout class="QVBoxLayout" name="verticalLayout_8">
-                 <item>
-                  <widget class="QLabel" name="label_7">
-                   <property name="text">
-                    <string>Stop aqcuisition</string>
+               <widget class="QCheckBox" name="dyno2Shot">
+                <property name="text">
+                 <string>Use second motor</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QWidget" name="dyno2Wg" native="true">
+                <property name="enabled">
+                 <bool>false</bool>
+                </property>
+                <layout class="QGridLayout" name="dyno2Layout">
+                 <item row="0" column="1">
+                  <widget class="QMDoubleSpinBox" name="dyno2Current">
+                   <property name="toolTip">
+                    <string>Current position of the looping motor $LOOPPOS</string>
                    </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QRadioButton" name="dynoFinishOnMotion">
-                   <property name="text">
-                    <string>together with motion</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QRadioButton" name="dynoFinishOnSpeed">
-                   <property name="text">
-                    <string>at motor(s) deacceleration</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QRadioButton" name="dynoFinishOnExposed">
-                   <property name="text">
-                    <string>when exposed</string>
-                   </property>
-                   <property name="checked">
+                   <property name="readOnly">
                     <bool>true</bool>
                    </property>
+                   <property name="buttonSymbols">
+                    <enum>QAbstractSpinBox::NoButtons</enum>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="0">
+                  <widget class="QLabel" name="label_76">
+                   <property name="text">
+                    <string>Scan range</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="1" column="1">
+                  <widget class="QMDoubleSpinBox" name="dyno2Range">
+                   <property name="toolTip">
+                    <string>Travel range of the loop motor $LOOPRANGE</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="1">
+                  <widget class="QMDoubleSpinBox" name="dyno2Start">
+                   <property name="toolTip">
+                    <string>Start position of the motor $LOOPSTART</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="3" column="0">
+                  <widget class="QLabel" name="label_79">
+                   <property name="text">
+                    <string>End</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item row="2" column="0">
+                  <widget class="QWidget" name="widget_21" native="true">
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <layout class="QHBoxLayout" name="horizontalLayout_15">
+                    <property name="margin">
+                     <number>0</number>
+                    </property>
+                    <item>
+                     <widget class="QLabel" name="label_80">
+                      <property name="sizePolicy">
+                       <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                        <horstretch>0</horstretch>
+                        <verstretch>0</verstretch>
+                       </sizepolicy>
+                      </property>
+                      <property name="text">
+                       <string>Start</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="getDyno2Start">
+                      <property name="toolTip">
+                       <string>Locks the start position to the current position of the translation motor at the scan start</string>
+                      </property>
+                      <property name="text">
+                       <string>get from current</string>
+                      </property>
+                      <property name="checked">
+                       <bool>false</bool>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item row="3" column="1">
+                  <widget class="QMDoubleSpinBox" name="dyno2End">
+                   <property name="toolTip">
+                    <string>End position of the motor $LOOPEND</string>
+                   </property>
+                   <property name="minimum">
+                    <double>-2147483647.000000000000000</double>
+                   </property>
+                   <property name="maximum">
+                    <double>2147483647.000000000000000</double>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QWidget" name="dynoStarStopWg" native="true">
+                <layout class="QHBoxLayout" name="horizontalLayout_6">
+                 <item>
+                  <widget class="QWidget" name="widget_10" native="true">
+                   <layout class="QGridLayout" name="gridLayout_3">
+                    <item row="0" column="0">
+                     <widget class="QLabel" name="label_5">
+                      <property name="text">
+                       <string>Start aqcuisition</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="1" column="0">
+                     <widget class="QRadioButton" name="dynoTrigOnMotion">
+                      <property name="text">
+                       <string>together with motion</string>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="2" column="0">
+                     <widget class="QRadioButton" name="dynoTrigOnSpeed">
+                      <property name="text">
+                       <string>at motor(s) nominal speed</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="0">
+                     <widget class="QRadioButton" name="dynoTrigOnDelay">
+                      <property name="text">
+                       <string>time delay</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item row="3" column="1">
+                     <widget class="QMDoubleSpinBox" name="dynoTrigDelay">
+                      <property name="enabled">
+                       <bool>false</bool>
+                      </property>
+                      <property name="suffix">
+                       <string>s</string>
+                      </property>
+                      <property name="decimals">
+                       <number>3</number>
+                      </property>
+                      <property name="maximum">
+                       <double>999999999.000000000000000</double>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="Line" name="line_14">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QWidget" name="widget_12" native="true">
+                   <layout class="QVBoxLayout" name="verticalLayout_8">
+                    <item>
+                     <widget class="QLabel" name="label_7">
+                      <property name="text">
+                       <string>Stop aqcuisition</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QRadioButton" name="dynoFinishOnMotion">
+                      <property name="text">
+                       <string>together with motion</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QRadioButton" name="dynoFinishOnSpeed">
+                      <property name="text">
+                       <string>at motor(s) deacceleration</string>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QRadioButton" name="dynoFinishOnExposed">
+                      <property name="text">
+                       <string>when exposed</string>
+                      </property>
+                      <property name="checked">
+                       <bool>true</bool>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
                   </widget>
                  </item>
                 </layout>
@@ -1623,6 +1639,20 @@
             </widget>
            </item>
           </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="Line" name="line_6">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="testDyno">
+          <property name="text">
+           <string>Test</string>
+          </property>
          </widget>
         </item>
         <item>
@@ -1649,70 +1679,70 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_16">
         <item>
-         <widget class="QLabel" name="label_66">
-          <property name="text">
-           <string>File names</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QWidget" name="filenames" native="true">
-          <layout class="QGridLayout" name="gridLayout">
-           <item row="0" column="1">
-            <widget class="QLineEdit" name="sampleFile">
-             <property name="toolTip">
-              <string>Template for the sample's image filename. Resulting variable is accessible as $SAMPLEFILE</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_67">
+         <widget class="QWidget" name="detectorWidget" native="true">
+          <layout class="QVBoxLayout" name="verticalLayout_10">
+           <item>
+            <widget class="QLabel" name="label_66">
              <property name="text">
-              <string>Sample</string>
+              <string>File names</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_68">
+           <item>
+            <widget class="QWidget" name="filenames" native="true">
+             <layout class="QGridLayout" name="gridLayout">
+              <item row="0" column="1">
+               <widget class="QLineEdit" name="sampleFile">
+                <property name="toolTip">
+                 <string>Template for the sample's image filename. Resulting variable is accessible as $SAMPLEFILE</string>
+                </property>
+               </widget>
+              </item>
+              <item row="0" column="0">
+               <widget class="QLabel" name="label_67">
+                <property name="text">
+                 <string>Sample</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="0">
+               <widget class="QLabel" name="label_68">
+                <property name="text">
+                 <string>Background</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="0">
+               <widget class="QLabel" name="label_69">
+                <property name="text">
+                 <string>Dark field</string>
+                </property>
+               </widget>
+              </item>
+              <item row="1" column="1">
+               <widget class="QLineEdit" name="bgFile">
+                <property name="toolTip">
+                 <string>Template for the background image filename. Resulting variable is accessible as $BGFILE</string>
+                </property>
+               </widget>
+              </item>
+              <item row="2" column="1">
+               <widget class="QLineEdit" name="dfFile">
+                <property name="toolTip">
+                 <string>Template for the dark field image filename. Resulting variable is accessible as $DFFILE</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="exampleImageName">
              <property name="text">
-              <string>Background</string>
+              <string/>
              </property>
             </widget>
            </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_69">
-             <property name="text">
-              <string>Dark field</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QLineEdit" name="bgFile">
-             <property name="toolTip">
-              <string>Template for the background image filename. Resulting variable is accessible as $BGFILE</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1">
-            <widget class="QLineEdit" name="dfFile">
-             <property name="toolTip">
-              <string>Template for the dark field image filename. Resulting variable is accessible as $DFFILE</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="exampleImageName">
-          <property name="text">
-           <string/>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QWidget" name="widget2" native="true">
-          <layout class="QHBoxLayout" name="horizontalLayout_13">
            <item>
             <widget class="QLabel" name="label_70">
              <property name="text">
@@ -1724,12 +1754,19 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="acquire">
-             <property name="enabled">
-              <bool>false</bool>
+            <widget class="QPTEext" name="detectorCommand">
+             <property name="toolTip">
+              <string>Command(s) invoked to acquire an image.</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="detectorError">
+             <property name="styleSheet">
+              <string notr="true">color: rgba(255, 0, 0, 128);</string>
              </property>
              <property name="text">
-              <string>Acquire</string>
+              <string>Detector command errors</string>
              </property>
             </widget>
            </item>
@@ -1737,19 +1774,12 @@
          </widget>
         </item>
         <item>
-         <widget class="QPTEext" name="detectorCommand">
-          <property name="toolTip">
-           <string>Command(s) invoked to acquire an image.</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="detectorError">
-          <property name="styleSheet">
-           <string notr="true">color: rgba(255, 0, 0, 128);</string>
+         <widget class="QPushButton" name="testDetector">
+          <property name="enabled">
+           <bool>false</bool>
           </property>
           <property name="text">
-           <string>Detector command errors</string>
+           <string>Test</string>
           </property>
          </widget>
         </item>
@@ -1791,16 +1821,527 @@
        <layout class="QVBoxLayout" name="verticalLayout_18">
         <item>
          <widget class="QCheckBox" name="remoteCT">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
           <property name="toolTip">
            <string>Do the live reconstruction. Makse sence only for the absorption contrast.</string>
           </property>
           <property name="text">
-           <string>Perform remote reconsteruction</string>
+           <string>Perform remote reconstruction</string>
           </property>
          </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="rctReq_scanRange">
+          <property name="styleSheet">
+           <string notr="true">color: rgb(255, 0, 4);</string>
+          </property>
+          <property name="text">
+           <string>Scan range must be 180.</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="rctReq_flatField">
+          <property name="styleSheet">
+           <string notr="true">color: rgb(255, 0, 4);</string>
+          </property>
+          <property name="text">
+           <string>Bacground and dark-current images are required.</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="rctReq_multiShot">
+          <property name="styleSheet">
+           <string notr="true">color: rgb(255, 0, 4);</string>
+          </property>
+          <property name="text">
+           <string>No multi-shot scan is allowed.</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QWidget" name="widget_6" native="true">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_9">
+           <item>
+            <layout class="QGridLayout" name="gridLayout_4">
+             <item row="1" column="1">
+              <widget class="QLineEdit" name="vblPassword">
+               <property name="echoMode">
+                <enum>QLineEdit::Password</enum>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_9">
+               <property name="text">
+                <string>password</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QLineEdit" name="vblUser"/>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_8">
+               <property name="text">
+                <string>VBL user name</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="Line" name="line_3">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_8">
+             <item>
+              <widget class="QLabel" name="label_10">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Rotation center (pixels): </string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QMDoubleSpinBox" name="rotationCenter">
+               <property name="toolTip">
+                <string>Displacement of the rotation axis from the central column of the image.</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="Line" name="line_15">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QGridLayout" name="gridLayout_5">
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_11">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Height</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="3">
+              <widget class="QMDoubleSpinBox" name="pixelHeight">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="decimals">
+                <number>3</number>
+               </property>
+               <property name="minimum">
+                <double>0.001000000000000</double>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_12">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Width</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="3">
+              <widget class="QMDoubleSpinBox" name="pixelWidth">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="decimals">
+                <number>3</number>
+               </property>
+               <property name="minimum">
+                <double>0.001000000000000</double>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <widget class="QMSpinBox" name="imageHeight">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>2147483647</number>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="2">
+              <widget class="QMSpinBox" name="imageWidth">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimum">
+                <number>1</number>
+               </property>
+               <property name="maximum">
+                <number>2147483647</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_24">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Image</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <layout class="QHBoxLayout" name="horizontalLayout_17">
+               <item>
+                <widget class="QLabel" name="label_15">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Size (pixel)</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkBox">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>get on acquisition</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item row="0" column="3">
+              <layout class="QHBoxLayout" name="horizontalLayout_18">
+               <item>
+                <widget class="QLabel" name="label_23">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Resolution (micron)</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="lockPixelSize">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>lock</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <widget class="Line" name="line_17">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <layout class="QGridLayout" name="gridLayout_7">
+             <item row="0" column="0">
+              <widget class="QLabel" name="label_18">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Reconstructed region (pixels):</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="0">
+              <widget class="QLabel" name="label_19">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Left</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="0">
+              <widget class="QLabel" name="label_20">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Right</string>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="0">
+              <widget class="QLabel" name="label_21">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Front</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="0">
+              <widget class="QLabel" name="label_22">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Rear</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="1">
+              <widget class="QMSpinBox" name="rorLeft">
+               <property name="specialValueText">
+                <string>first</string>
+               </property>
+               <property name="maximum">
+                <number>2147483647</number>
+               </property>
+               <property name="value">
+                <number>0</number>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="1">
+              <widget class="QMSpinBox" name="rorRight">
+               <property name="specialValueText">
+                <string>last</string>
+               </property>
+               <property name="maximum">
+                <number>2147483647</number>
+               </property>
+               <property name="value">
+                <number>0</number>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="1">
+              <widget class="QMSpinBox" name="rorFront">
+               <property name="specialValueText">
+                <string>first</string>
+               </property>
+               <property name="maximum">
+                <number>2147483647</number>
+               </property>
+               <property name="value">
+                <number>0</number>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="1">
+              <widget class="QMSpinBox" name="rorRear">
+               <property name="specialValueText">
+                <string>last</string>
+               </property>
+               <property name="maximum">
+                <number>2147483647</number>
+               </property>
+               <property name="value">
+                <number>0</number>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="0">
+              <widget class="QLabel" name="label_16">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Top</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="1">
+              <widget class="QMSpinBox" name="topSlice">
+               <property name="specialValueText">
+                <string>first</string>
+               </property>
+               <property name="maximum">
+                <number>2147483647</number>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="0">
+              <widget class="QLabel" name="label_17">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="text">
+                <string>Bottom</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="1">
+              <widget class="QMSpinBox" name="bottomSlice">
+               <property name="specialValueText">
+                <string>last</string>
+               </property>
+               <property name="maximum">
+                <number>2147483647</number>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="2">
+              <widget class="QPushButton" name="resetRor">
+               <property name="text">
+                <string>reset to whole volume</string>
+               </property>
+              </widget>
+             </item>
+             <item row="1" column="2">
+              <widget class="QPushButton" name="resetTopSlice">
+               <property name="text">
+                <string>reset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="2" column="2">
+              <widget class="QPushButton" name="resetBottomSlice">
+               <property name="text">
+                <string>reset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="3" column="2">
+              <widget class="QPushButton" name="resetLeftRor">
+               <property name="text">
+                <string>reset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="4" column="2">
+              <widget class="QPushButton" name="resetRightRor">
+               <property name="text">
+                <string>reset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="5" column="2">
+              <widget class="QPushButton" name="resetFrontRor">
+               <property name="text">
+                <string>reset</string>
+               </property>
+              </widget>
+             </item>
+             <item row="6" column="2">
+              <widget class="QPushButton" name="resetRearRor">
+               <property name="text">
+                <string>reset</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <spacer name="verticalSpacer_5">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
         </item>
        </layout>
       </widget>
@@ -1912,8 +2453,8 @@
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>142</x>
-     <y>343</y>
+     <x>150</x>
+     <y>325</y>
     </hint>
     <hint type="destinationlabel">
      <x>1143</x>
@@ -1922,50 +2463,18 @@
    </hints>
   </connection>
   <connection>
-   <sender>dynoTrigOnDelay</sender>
+   <sender>remoteCT</sender>
    <signal>toggled(bool)</signal>
-   <receiver>dynoTrigDelay</receiver>
+   <receiver>widget_6</receiver>
    <slot>setEnabled(bool)</slot>
    <hints>
     <hint type="sourcelabel">
-     <x>327</x>
-     <y>518</y>
+     <x>26</x>
+     <y>87</y>
     </hint>
     <hint type="destinationlabel">
-     <x>392</x>
-     <y>520</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>dynoShot</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>dynoWg</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>125</x>
-     <y>79</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>183</x>
-     <y>97</y>
-    </hint>
-   </hints>
-  </connection>
-  <connection>
-   <sender>dyno2Shot</sender>
-   <signal>toggled(bool)</signal>
-   <receiver>dyno2Wg</receiver>
-   <slot>setEnabled(bool)</slot>
-   <hints>
-    <hint type="sourcelabel">
-     <x>96</x>
-     <y>277</y>
-    </hint>
-    <hint type="destinationlabel">
-     <x>122</x>
-     <y>301</y>
+     <x>28</x>
+     <y>171</y>
     </hint>
    </hints>
   </connection>
