@@ -111,12 +111,12 @@ private:
   int acquireDyno(const QString & filename);
   int acquireMulti();
 
+  void updateTestButtons();
+
   void engine(const bool dryRun);
 
   bool doIt(int count);
 
-  bool readyForAq;
-  //bool isAqcuiring;
   bool stopMe;
 
   enum EngineStatus {

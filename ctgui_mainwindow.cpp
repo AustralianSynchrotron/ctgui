@@ -69,7 +69,6 @@ MainWindow::MainWindow(QWidget *parent) :
   scanList(new QStandardItemModel(0,4,this)),
   proxyModel(new QSortFilterProxyModel(this)),
   transQty(0),
-  readyForAq(false),
   stopMe(true),
   engineStatus(Stopped)
 {
@@ -528,6 +527,8 @@ MainWindow::MainWindow(QWidget *parent) :
   onDfFileChanges();
 
   onDoCT();
+
+  updateTestButtons();
 
   hui->table->sortByColumn(0, Qt::AscendingOrder);
 
@@ -1604,6 +1605,7 @@ void MainWindow::onShotModeChanges() {
   onLoopEndChanges();
   onSubLoopChanges();
   onDoCT();
+  updateTestButtons();
   if( sender() != ui->singleShot  &&  sender() != ui->multiShot )
     return;
   setScanTable();
@@ -1906,6 +1908,8 @@ void MainWindow::onDynoChanges() {
   onDynoEndChanges();
   onDynoRangeChanges();
   onDyno2Changes();
+  ui->dynoWg->setEnabled(ui->dynoShot->isChecked());
+  updateTestButtons();
 }
 
 void MainWindow::onDynoPosChanges(){
@@ -2017,11 +2021,14 @@ void MainWindow::onDynoEndChanges() {
 
 
 
+
+
 void MainWindow::onDyno2Changes() {
   onDyno2MotorChanges();
   onDyno2StartChanges();
   onDyno2EndChanges();
   onDyno2RangeChanges();
+  ui->dyno2Wg->setEnabled(ui->dyno2Shot->isChecked());
 }
 
 void MainWindow::onDyno2PosChanges(){
@@ -2191,6 +2198,7 @@ void MainWindow::onDetectorCommandChanges(){
   bool itemOK = ! ui->detectorCommand->toPlainText().isEmpty() && scriptOK;
   check(ui->detectorCommand, itemOK);
   ui->testDetector->setEnabled(itemOK);
+  updateTestButtons();
 
 }
 
@@ -2352,6 +2360,15 @@ void MainWindow::onResetRor() {
 
 
 
+void MainWindow::updateTestButtons() {
+  bool st = ui->testDetector->isEnabled()
+      && ui->dynoShot->isChecked() && preReq[ui->tabDyno].first;
+  ui->testDyno->setEnabled(st);
+  st = ui->testDetector->isEnabled() && preReq[ui->tabDyno].first
+      && preReq[ui->tabMulti].first && ui->multiShot->isChecked();
+  ui->testMulti->setEnabled(st);
+}
+
 
 
 
@@ -2390,6 +2407,7 @@ void MainWindow::check(QWidget * obj, bool status) {
     preReq[tab] = qMakePair(tabOK, (const QWidget*)0);
     ui->control->setTabIcon(ui->control->indexOf(tab),
                             tabOK ? goodIcon : badIcon);
+    updateTestButtons();
   }
   if ( status )
     foreach ( ReqP tabel, preReq)
@@ -2443,7 +2461,7 @@ bool MainWindow::shutterMan(bool st, bool wait) {
 
 int MainWindow::acquireDetector(const QString & filename) {
 
-  if ( ! readyForAq ) {
+  if ( ! ui->testDetector->isEnabled() ) {
     appendMessage(ERROR, "Image cannot be acquired now.");
     return 1;
   }
@@ -2475,8 +2493,8 @@ int MainWindow::acquireDetector(const QString & filename) {
 
 int MainWindow::acquireDyno(const QString & filename) {
 
-  if ( ! readyForAq ) {
-    appendMessage(ERROR, "Image cannot be acquired now.");
+  if ( ! ui->testDyno->isEnabled() ) {
+    appendMessage(ERROR, "Image in the dynamicc shot mode cannot be acquired now.");
     return 1;
   }
   if ( filename.isEmpty() ) {
@@ -2543,8 +2561,8 @@ int MainWindow::acquireDyno(const QString & filename) {
 
 int MainWindow::acquireMulti() {
 
-  if ( ! readyForAq ) {
-    appendMessage(ERROR, "Image cannot be acquired now.");
+  if ( ! ui->testMulti->isEnabled() ) {
+    appendMessage(ERROR, "Images in the multi-shot mode cannot be acquired now.");
     return 1;
   }
 
