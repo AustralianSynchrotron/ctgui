@@ -18,8 +18,6 @@ static int evalExpr(const QString & templ, QString & result) {
   proc.start("/bin/sh -c \"eval echo -n " + templ + "\"");
   proc.waitForFinished();
 
-  QCoreApplication::processEvents();
-
   if ( proc.exitCode()  )  {
     result = proc.readAllStandardError();
     return proc.exitCode();
@@ -66,12 +64,14 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow),
   hui(new Ui::HelpDialog),
   hDialog(new QDialog(this, Qt::Tool)),
+  shutterStatus(0),
   scanList(new QStandardItemModel(0,4,this)),
   proxyModel(new QSortFilterProxyModel(this)),
   transQty(0),
   stopMe(true),
   engineStatus(Stopped)
 {
+
 
   aqExec = new QFile( QString(tmpnam(0)) + ".ctgui_aq", this) ;
   aqExec->open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
@@ -96,6 +96,13 @@ MainWindow::MainWindow(QWidget *parent) :
       << ui->bgFile
       << ui->dfFile;
   insertVariableIntoMe=0;
+
+  QCheckBox * showVariables = new QCheckBox("Show variables");
+  connect(showVariables, SIGNAL(toggled(bool)), hDialog, SLOT(setVisible(bool)));
+  showVariables->setCheckState(Qt::Unchecked);
+  ui->statusBar->addPermanentWidget(showVariables);
+
+
 
   thetaMotor = new QCaMotorGUI(ui->tabScan);
   ui->scanLayout->addWidget(thetaMotor->basicUI()->setup, 0, 0, 1, 1);
@@ -125,9 +132,13 @@ MainWindow::MainWindow(QWidget *parent) :
   motorsInitials[dyno2Motor] = 0 ;
 
   opnSts = new QEpicsPv(shutterPvBaseName + "_OPEN_STS", ui->tabFF) ;
+  opnSts->setObjectName("Shutter open status");
   clsSts = new QEpicsPv(shutterPvBaseName + "_CLOSE_STS", ui->tabFF) ;
+  clsSts->setObjectName("Shutter close status");
   opnCmd = new QEpicsPv(shutterPvBaseName + "_OPEN_CMD", ui->tabFF) ;
+  opnCmd->setObjectName("Shutter open command");
   clsCmd = new QEpicsPv(shutterPvBaseName + "_CLOSE_CMD", ui->tabFF) ;
+  clsCmd->setObjectName("Shutter close command");
 
   setEnv("FILE", ".temp.tif");
   setEnv("AQTYPE", "SINGLESHOT");
@@ -753,7 +764,6 @@ void MainWindow::saveConfiguration(QString fileName) {
 
 void MainWindow::loadConfiguration(QString fileName) {
 
-
   engineStatus=Paused; // to prevent scanView table updates;
 
   if ( fileName.isEmpty() )
@@ -793,7 +803,6 @@ void MainWindow::loadConfiguration(QString fileName) {
     ui->scanRange->setValue( config.value("range").toDouble() );
   if ( config.contains("steps")  )
     ui->projections->setValue( config.value("steps").toInt() );
-
   if ( config.contains("add")  )
     ui->scanAdd->setChecked( config.value("add").toBool() );
   config.endGroup();
@@ -816,10 +825,8 @@ void MainWindow::loadConfiguration(QString fileName) {
     ui->dfAfter->setValue( config.value("after").toInt() );
   config.endGroup();
 
-
+  ui->multiShot->setChecked(config.contains("loop"));
   if ( config.contains("loop") ) {
-
-    ui->multiShot->setChecked(true);
 
     config.beginGroup("loop");
 
@@ -832,14 +839,13 @@ void MainWindow::loadConfiguration(QString fileName) {
       loopMotor->setPv( config.value("motor").toString() );
     if ( config.contains("start")  )
       ui->loopStart->setValue( config.value("start").toDouble() ) ;
-    if ( config.contains("range")  )
-      ui->loopRange->setValue( config.value("range").toDouble() ) ;
     if ( config.contains("steps")  )
       ui->loopNumber->setValue( config.value("steps").toInt() );
+    if ( config.contains("range")  )
+      ui->loopRange->setValue( config.value("range").toDouble() ) ;
 
+    ui->subLoop->setChecked(config.contains("subloop"));
     if ( config.contains("subloop") ) {
-
-      ui->subLoop->setChecked(true);
 
       config.beginGroup("subloop");
       if ( config.contains("prec") &&
@@ -849,10 +855,10 @@ void MainWindow::loadConfiguration(QString fileName) {
         subLoopMotor->setPv( config.value("motor").toString() );
       if ( config.contains("start")  )
         ui->subLoopStart->setValue( config.value("start").toDouble() ) ;
-      if ( config.contains("range")  )
-        ui->subLoopRange->setValue( config.value("range").toDouble() );
       if ( config.contains("steps")  )
         ui->subLoopNumber->setValue( config.value("steps").toInt() );
+      if ( config.contains("range")  )
+        ui->subLoopRange->setValue( config.value("range").toDouble() );
 
       config.endGroup();
 
@@ -862,10 +868,8 @@ void MainWindow::loadConfiguration(QString fileName) {
 
   }
 
-
+  ui->dynoShot->setChecked(config.contains("dynoshot"));
   if ( config.contains("dynoshot") ) {
-
-    ui->dynoShot->setChecked(true);
 
     config.beginGroup("dynoshot");
 
@@ -879,9 +883,8 @@ void MainWindow::loadConfiguration(QString fileName) {
     if ( config.contains("range")  )
       ui->dynoRange->setValue( config.value("range").toDouble() ) ;
 
+    ui->dyno2Shot->setChecked(config.contains("dyno2shot"));
     if ( config.contains("dyno2shot") ) {
-
-      ui->dyno2Shot->setChecked(true);
 
       config.beginGroup("dyno2shot");
       if ( config.contains("prec") &&
@@ -920,7 +923,7 @@ void MainWindow::loadConfiguration(QString fileName) {
     ui->expPath->setText( QFileInfo(fileName).absolutePath());
 
   engineStatus=Stopped; // to reenable scanView table updates;
-  setScanTable();
+  QTimer::singleShot(0, this, SLOT(setScanTable()));
 
 
 }
@@ -964,9 +967,11 @@ void MainWindow::setEnv(const char * var, const char * val){
 
 
 void MainWindow::onFocusChange( QWidget * , QWidget * now ) {
+  /*
   hDialog->setVisible( widgetsNeededHelp.contains(now) ||
                       QApplication::activeWindow() == hDialog ||
                       engineStatus == Running || engineStatus == Paused );
+  */
   if ( widgetsNeededHelp.contains(now) )
     insertVariableIntoMe = now;
   else if ( QApplication::activeWindow() != hDialog )
@@ -1574,25 +1579,6 @@ void MainWindow::onDfChanges() {
   setScanTable();
 
 }
-
-void MainWindow::onShutterMan(){
-  ui->shutterMan->setEnabled(false);
-  QTimer::singleShot(2000, this, SLOT(onShutterChanges()));
-  shutterMan( ! shutterStatus );
-}
-
-void MainWindow::onShutterChanges() {
-  QEpicsPv * ss = (QEpicsPv *) sender();
-  ui->shutterMan->setEnabled(true);
-  if ( ss == clsSts )
-    shutterStatus = ! clsSts->get().toBool();
-  else if ( ss == opnSts )
-    shutterStatus = opnSts->get().toBool();
-  ui->shutterStatus->setText( QString("Shutter: ") +
-                             (shutterStatus ? "opened" : "closed"));
-  ui->shutterMan->setText( shutterStatus ? "Close" : "Open");
-}
-
 
 
 void MainWindow::onShotModeChanges() {
@@ -2361,10 +2347,10 @@ void MainWindow::onResetRor() {
 
 
 void MainWindow::updateTestButtons() {
-  bool st = ui->testDetector->isEnabled()
+  bool st = preReq[ui->detectorCommand].first
       && ui->dynoShot->isChecked() && preReq[ui->tabDyno].first;
   ui->testDyno->setEnabled(st);
-  st = ui->testDetector->isEnabled() && preReq[ui->tabDyno].first
+  st = preReq[ui->detectorCommand].first && preReq[ui->tabDyno].first
       && preReq[ui->tabMulti].first && ui->multiShot->isChecked();
   ui->testMulti->setEnabled(st);
 }
@@ -2419,25 +2405,56 @@ void MainWindow::check(QWidget * obj, bool status) {
 
 
 
+void MainWindow::onShutterMan(){
+  if ( ! shutterStatus ) // in prog
+    return;
+  QTimer::singleShot(2000, this, SLOT(onShutterChanges()));
+  shutterMan( shutterStatus < 0, true ); // invert current status
+}
 
-bool MainWindow::shutterMan(bool st, bool wait) {
+void MainWindow::onShutterChanges() {
 
-  if (shutterStatus == st)
+  if ( ! opnSts->isConnected() || ! clsSts->isConnected() ) {
+    shutterStatus = 0;
+    ui->shutterMan->setEnabled(false);
+    return;
+  }
+
+  if ( clsSts->get().toBool() == opnSts->get().toBool()  )  { // in between
+    shutterStatus = 0;
+    ui->shutterMan->setText("Wait");
+    ui->shutterStatus->setText("in progress");
+  } else if ( opnSts->get().toBool() ) {
+    shutterStatus = 1;
+    ui->shutterStatus->setText("opened");
+    ui->shutterMan->setText("Close");
+  } else {
+    shutterStatus = -1;
+    ui->shutterStatus->setText("closed");
+    ui->shutterMan->setText("Open");
+  }
+  ui->shutterMan->setEnabled(shutterStatus);
+
+
+}
+
+
+
+int MainWindow::shutterMan(bool st, bool wait) {
+
+  int rst = st ? 1 : -1 ;
+
+  if ( ! opnSts->isConnected() || ! clsSts->isConnected() ||
+       ! opnCmd->isConnected() || ! clsCmd->isConnected() ) {
+    appendMessage(ERROR, "Shutter is not connected.");
+    return shutterStatus;
+  }
+  if ( rst == shutterStatus )
     return shutterStatus;
 
-  if (st)
-    appendMessage(CONTROL, "Openning shutter.");
-  else
-    appendMessage(CONTROL, "Closing shutter.");
+  appendMessage(CONTROL, QString(st ? "Openning" : "Closing") + " shutter.");
 
-  qDebug() << "Shutter" << ( shutterStatus = st );
-
-  if (st) opnCmd->set(1);
-  else clsCmd->set(1);
-
-  if ( ! wait )
-    return shutterStatus;
-
+  const int delay = 5000;  // 5 sec total delay
   QEventLoop q;
   QTimer tT;
   tT.setSingleShot(true);
@@ -2449,10 +2466,40 @@ bool MainWindow::shutterMan(bool st, bool wait) {
   connect(clsSts, SIGNAL(connectionChanged(bool)), &q, SLOT(quit()));
 
 
-  const int delay = 5000;  // 5 sec total delay
+
+  if ( ! shutterStatus ) { // in prog
+
+    tT.start(delay);
+    while ( tT.isActive() && ! shutterStatus ) {
+      q.exec();
+      onShutterChanges();
+    }
+
+    if ( ! shutterStatus ) {
+      appendMessage(ERROR, "Shutter is in progress for too long. Check it.");
+      return shutterStatus;
+    }
+    if ( rst == shutterStatus )
+      return shutterStatus;
+    tT.stop();
+
+  }
+
+  ui->shutterMan->setEnabled(false);
+
+  // do manipulation
+  if (st) opnCmd->set(1);
+  else clsCmd->set(1);
+
+  if ( ! wait )
+    return shutterStatus;
+
   tT.start(delay);
-  while ( shutterStatus != st  &&  tT.isActive() )
+  while ( tT.isActive() && rst != shutterStatus ) {
     q.exec();
+    onShutterChanges();
+  }
+
 
   return shutterStatus;
 
@@ -2461,7 +2508,7 @@ bool MainWindow::shutterMan(bool st, bool wait) {
 
 int MainWindow::acquireDetector(const QString & filename) {
 
-  if ( ! ui->testDetector->isEnabled() ) {
+  if ( ! preReq[ui->detectorCommand].first ) {
     appendMessage(ERROR, "Image cannot be acquired now.");
     return 1;
   }
@@ -2493,7 +2540,7 @@ int MainWindow::acquireDetector(const QString & filename) {
 
 int MainWindow::acquireDyno(const QString & filename) {
 
-  if ( ! ui->testDyno->isEnabled() ) {
+  if ( ui->dynoShot->isChecked() && ! ui->testDyno->isEnabled() ) {
     appendMessage(ERROR, "Image in the dynamicc shot mode cannot be acquired now.");
     return 1;
   }
@@ -2898,7 +2945,7 @@ QString MainWindow::setAqFileEnv(const QLineEdit * edt, const QString & var) {
     indexOfDot = eres.size();
   QString res = eres;
   int count = 0;
-  while ( res.isEmpty() || QFile::exists(res) || listHasFile(res) ) {
+  while ( res.isEmpty() || /* QFile::exists(res) || */ listHasFile(res) ) {
     res = eres;
     res.insert(indexOfDot, "_(" + QString::number(++count) + ")");
   }
@@ -3063,7 +3110,8 @@ void MainWindow::engine (const bool dryRun) {
 
   if ( ! dryRun ) {
     onPreExec();
-    createXLIfile("xli.config");
+    if (ui->remoteCT->isChecked())
+      createXLIfile("xli.config");
   }
 
 
@@ -3091,6 +3139,10 @@ void MainWindow::engine (const bool dryRun) {
   setEnv("AQTYPE", "DARKCURRENT");
   setEnv("DFTYPE", "BEFORE");
 
+
+  if (!dryRun)
+    shutterMan(false,true);
+
   for ( int j = 0 ; j < ui->dfBefore->value() ; ++j )  {
 
     setEnv("DFBEFORECOUNT", j+1);
@@ -3102,7 +3154,6 @@ void MainWindow::engine (const bool dryRun) {
     } else if ( doIt(count) ) {
       filename = scanList->item(count,3)->text() ;
       setEnv("DFFILE", filename);
-      shutterMan(false,true);
       if ( ! acquireDetector(filename) )
         scanList->item(count,0)->setCheckState(Qt::Unchecked);
     }
@@ -3123,6 +3174,9 @@ void MainWindow::engine (const bool dryRun) {
   //
   // Main scan
   //
+
+  if (!dryRun)
+    shutterMan(true,true);
 
   int bgBeforeNext=0, bgCount=0;
   bool isBg, wasBg = false;
@@ -3206,8 +3260,6 @@ void MainWindow::engine (const bool dryRun) {
           filename = scanList->item(count,3)->text();
           setEnv( isBg ? "BGFILE" : "SAMPLEFILE" , filename);
 
-          shutterMan(true,true);
-
           if ( lastTrans != transGoal ) {
             appendMessage(CONTROL, "Moving translation motor to " + QString::number(transGoal) + ".");
             bgMotor->goUserPosition(transGoal, false);
@@ -3264,6 +3316,9 @@ void MainWindow::engine (const bool dryRun) {
   setEnv("AQTYPE", "DARKCURRENT");
   setEnv("DFTYPE", "AFTER");
 
+  if (!dryRun)
+    shutterMan(false,true);
+
   for ( int j = 0 ; j < ui->dfAfter->value() ; ++j ) {
 
     setEnv("DFAFTERCOUNT", j+1);
@@ -3275,7 +3330,6 @@ void MainWindow::engine (const bool dryRun) {
     } else if ( doIt(count) ) {
       filename = scanList->item(count,3)->text() ;
       setEnv("DFFILE", filename);
-      shutterMan(false,true);
       if ( ! acquireDetector(filename) )
         scanList->item(count,0)->setCheckState(Qt::Unchecked);
     }

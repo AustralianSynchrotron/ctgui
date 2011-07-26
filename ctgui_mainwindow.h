@@ -64,8 +64,8 @@ private:
   QEpicsPv * clsSts;
   QEpicsPv * opnCmd;
   QEpicsPv * clsCmd;
-  bool shutterStatus;
-  bool shutterMan(bool st, bool wait=false);
+  int shutterStatus; // tri-state: neg - closed, 0 - in progress, pos - opened.
+  int shutterMan(bool st, bool wait=false);
 
 
   static const QString shutterPvBaseName;
