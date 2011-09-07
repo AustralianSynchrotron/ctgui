@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>CTgui</string>
   </property>
   <property name="windowIcon">
    <iconset resource="ctgui.qrc">
@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>7</number>
       </property>
       <widget class="QWidget" name="tabGeneral">
        <property name="toolTip">
@@ -1809,6 +1809,9 @@
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
          <widget class="QCheckBox" name="livePreview">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="sizePolicy">
            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -1819,7 +1822,7 @@
            <string>Shows live preview. May have bad influence on the performance.</string>
           </property>
           <property name="text">
-           <string>Live preview</string>
+           <string>Live preview (disabled: coming later)</string>
           </property>
          </widget>
         </item>
@@ -1838,11 +1841,14 @@
        <layout class="QVBoxLayout" name="verticalLayout_18">
         <item>
          <widget class="QCheckBox" name="remoteCT">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
           <property name="toolTip">
            <string>Do the live reconstruction. Makse sence only for the absorption contrast.</string>
           </property>
           <property name="text">
-           <string>Perform remote reconstruction</string>
+           <string>Perform remote reconstruction (disbled: coming later)</string>
           </property>
          </widget>
         </item>
@@ -2422,7 +2428,7 @@
      <x>0</x>
      <y>0</y>
      <width>1338</width>
-     <height>25</height>
+     <height>30</height>
     </rect>
    </property>
   </widget>

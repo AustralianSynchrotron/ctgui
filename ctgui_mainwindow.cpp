@@ -543,6 +543,10 @@ MainWindow::MainWindow(QWidget *parent) :
 
   hui->table->sortByColumn(0, Qt::AscendingOrder);
 
+  ui->expPath->setText(QDir::homePath());
+  // WARNING: PORTING ISSUE
+  loadConfiguration("/etc/ctgui.defaults");
+
 
 }
 
@@ -699,8 +703,6 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   if (ui->multiShot->isChecked()) {
 
-    config.setValue("loop",true);
-
     config.beginGroup("loop");
     config.setValue("singleBackground", ! ui->multiBg->isChecked() );
     config.setValue("motor", loopMotor->getPv());
@@ -710,7 +712,6 @@ void MainWindow::saveConfiguration(QString fileName) {
     config.setValue("steps", ui->loopNumber->value());
 
     if (ui->subLoop->isChecked()) {
-      config.setValue("subloop",true);
       config.beginGroup("subloop");
       config.setValue("motor", subLoopMotor->getPv());
       config.setValue("prec", subLoopMotor->getPrecision());
@@ -726,8 +727,6 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   if (ui->dynoShot->isChecked()) {
 
-    config.setValue("dynoshot",true);
-
     config.beginGroup("dynoshot");
     config.setValue("motor", dynoMotor->getPv());
     config.setValue("prec", dynoMotor->getPrecision());
@@ -735,8 +734,6 @@ void MainWindow::saveConfiguration(QString fileName) {
     config.setValue("range", ui->dynoRange->value());
 
     if (ui->dyno2Shot->isChecked()) {
-
-      config.setValue("dyno2shot",true);
 
       config.beginGroup("dyno2shot");
       config.setValue("motor", dyno2Motor->getPv());
@@ -769,9 +766,16 @@ void MainWindow::loadConfiguration(QString fileName) {
   if ( fileName.isEmpty() )
     fileName = QFileDialog::getOpenFileName(0, "Load configuration", QDir::currentPath());
 
+  if ( ! QFile::exists(fileName) ) {
+    appendMessage(ERROR, "Configuration file \"" + fileName + "\" does not exist.");
+    return;
+  }
   QSettings config(fileName, QSettings::IniFormat);
 
   int prec=0;
+
+  QStringList groups = config.childGroups();
+
 
   config.beginGroup("general");
   if ( config.contains("title")  )
@@ -825,8 +829,8 @@ void MainWindow::loadConfiguration(QString fileName) {
     ui->dfAfter->setValue( config.value("after").toInt() );
   config.endGroup();
 
-  ui->multiShot->setChecked(config.contains("loop"));
-  if ( config.contains("loop") ) {
+  ui->multiShot->setChecked( groups.contains("loop"));
+  if ( groups.contains("loop") ) {
 
     config.beginGroup("loop");
 
@@ -844,8 +848,10 @@ void MainWindow::loadConfiguration(QString fileName) {
     if ( config.contains("range")  )
       ui->loopRange->setValue( config.value("range").toDouble() ) ;
 
-    ui->subLoop->setChecked(config.contains("subloop"));
-    if ( config.contains("subloop") ) {
+    if ( ! config.childGroups().contains("subloop") ) {
+      ui->subLoop->setChecked(false);
+    } else {
+      ui->subLoop->setChecked(true);
 
       config.beginGroup("subloop");
       if ( config.contains("prec") &&
@@ -868,8 +874,8 @@ void MainWindow::loadConfiguration(QString fileName) {
 
   }
 
-  ui->dynoShot->setChecked(config.contains("dynoshot"));
-  if ( config.contains("dynoshot") ) {
+  ui->dynoShot->setChecked(groups.contains("dynoshot"));
+  if ( groups.contains("dynoshot") ) {
 
     config.beginGroup("dynoshot");
 
@@ -883,8 +889,11 @@ void MainWindow::loadConfiguration(QString fileName) {
     if ( config.contains("range")  )
       ui->dynoRange->setValue( config.value("range").toDouble() ) ;
 
-    ui->dyno2Shot->setChecked(config.contains("dyno2shot"));
-    if ( config.contains("dyno2shot") ) {
+
+    if ( ! config.childGroups().contains("dyno2shot") ) {
+      ui->dyno2Shot->setChecked(false);
+    } else {
+      ui->dyno2Shot->setChecked(true);
 
       config.beginGroup("dyno2shot");
       if ( config.contains("prec") &&
@@ -919,7 +928,7 @@ void MainWindow::loadConfiguration(QString fileName) {
   config.endGroup();
 
 
-  if ( ui->expPath->text().isEmpty() )
+  if ( ui->expPath->text().isEmpty()  || fileName.isEmpty() )
     ui->expPath->setText( QFileInfo(fileName).absolutePath());
 
   engineStatus=Stopped; // to reenable scanView table updates;
@@ -2002,6 +2011,7 @@ void MainWindow::onDynoEndChanges() {
   ui->dynoRange->blockSignals(true);
   ui->dynoRange->setValue( newRange );
   ui->dynoRange->blockSignals(false);
+  onDynoRangeChanges();
 
 }
 
@@ -2125,6 +2135,7 @@ void MainWindow::onDyno2EndChanges() {
   ui->dyno2Range->blockSignals(true);
   ui->dyno2Range->setValue( newRange );
   ui->dyno2Range->blockSignals(false);
+  onDyno2RangeChanges();
 
 }
 
@@ -2488,8 +2499,13 @@ int MainWindow::shutterMan(bool st, bool wait) {
   ui->shutterMan->setEnabled(false);
 
   // do manipulation
-  if (st) opnCmd->set(1);
-  else clsCmd->set(1);
+  if (st) {
+    clsCmd->set(0);
+    opnCmd->set(1);
+  } else {
+    opnCmd->set(0);
+    clsCmd->set(1);
+  }
 
   if ( ! wait )
     return shutterStatus;
@@ -2538,10 +2554,42 @@ int MainWindow::acquireDetector(const QString & filename) {
 }
 
 
+void MainWindow::waitStopDynos() {
+  if ( ui->dynoShot->isChecked() )
+    dynoMotor->wait_stop();
+  if ( ui->dyno2Shot->isChecked() )
+    dyno2Motor->wait_stop();
+}
+
+void MainWindow::stopDynos() {
+  if ( ui->dynoShot->isChecked() )
+    dynoMotor->stop(false);
+  if ( ui->dyno2Shot->isChecked() )
+    dyno2Motor->stop(false);
+  waitStopDynos();
+}
+
+
+void MainWindow::startDynos(double dynoPos, double dyno2Pos) {
+
+  if ( ( ui->dynoShot->isChecked()  && dynoMotor->getUserGoal()  != dynoPos ) ||
+       ( ui->dyno2Shot->isChecked() && dyno2Motor->getUserGoal() != dyno2Pos ) )
+    stopDynos();
+  else
+    waitStopDynos();
+
+  if ( ui->dynoShot->isChecked() )
+    dynoMotor->goUserPosition(dynoPos, false);
+  if ( ui->dyno2Shot->isChecked() )
+    dyno2Motor->goUserPosition(dyno2Pos, false);
+
+
+}
+
 int MainWindow::acquireDyno(const QString & filename) {
 
-  if ( ui->dynoShot->isChecked() && ! ui->testDyno->isEnabled() ) {
-    appendMessage(ERROR, "Image in the dynamicc shot mode cannot be acquired now.");
+  if ( ui->dynoShot->isChecked() && ! preReq[ui->tabDyno].first ) {
+    appendMessage(ERROR, "Image in the dynamic shot mode cannot be acquired now.");
     return 1;
   }
   if ( filename.isEmpty() ) {
@@ -2549,7 +2597,6 @@ int MainWindow::acquireDyno(const QString & filename) {
     return 1;
   }
 
-  stopMe = false;
   ui->dynoWidget->setEnabled(false);
 
   int execStatus = 0;
@@ -2558,46 +2605,17 @@ int MainWindow::acquireDyno(const QString & filename) {
       dStart = ui->dynoStart->value(),
       d2Start = ui->dyno2Start->value();
 
-  if ( ui->dynoShot->isChecked() )
-    dynoMotor->goUserPosition(dStart, false);
-  if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->goUserPosition(d2Start, false);
-
-  if ( ui->dynoShot->isChecked() )
-    dynoMotor->wait_stop();
-  if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->wait_stop();
-
+  startDynos(dStart, d2Start);
+  waitStopDynos();
   if (stopMe) {
     ui->dynoWidget->setEnabled(true);
     return execStatus;
   }
 
-  if ( ui->dynoShot->isChecked() ) {
-    double goal = ui->dynoEnd->value();
-    appendMessage(CONTROL, "Start moving dyno-shot motor to " + QString::number(goal) + ".");
-    dynoMotor->goUserPosition(goal, false);
-  }
-  if ( ui->dyno2Shot->isChecked() ) {
-    double goal = ui->dyno2End->value();
-    appendMessage(CONTROL, "Start moving second dyno-shot motor to " + QString::number(goal) + ".");
-    dyno2Motor->goUserPosition(goal, false);
-  }
-
+  startDynos(ui->dynoEnd->value(), ui->dyno2End->value());
   execStatus = acquireDetector(filename);
 
-  if ( ui->dynoShot->isChecked() ) {
-    appendMessage(CONTROL, "Stopping dyno-shot motor.");
-    dynoMotor->stop(true);
-    appendMessage(CONTROL, "Returning dyno-shot motor to " + QString::number(dStart) + ".");
-    dynoMotor->goUserPosition(dStart, false);
-  }
-  if ( ui->dyno2Shot->isChecked() ) {
-    appendMessage(CONTROL, "Stopping second dyno-shot motor.");
-    dyno2Motor->stop(true);
-    appendMessage(CONTROL, "Returning second dyno-shot motor to " + QString::number(d2Start) + ".");
-    dyno2Motor->goUserPosition(d2Start, false);
-  }
+  startDynos(dStart, d2Start);
 
   ui->dynoWidget->setEnabled(true);
 
@@ -2613,7 +2631,6 @@ int MainWindow::acquireMulti() {
     return 1;
   }
 
-  stopMe = false;
   ui->multiWidget->setEnabled(false);
 
   const bool
@@ -2710,6 +2727,7 @@ void MainWindow::onAcquireDyno() {
     dynoMotor->stop();
     dyno2Motor->stop();
   } else {
+    stopMe = false;
     ui->testDyno->setText("Stop acquisition");
     setEnv("AQTYPE", "DYNOSHOT");
     acquireDyno(".temp.tif");
@@ -2726,6 +2744,7 @@ void MainWindow::onAcquireMulti() {
     dynoMotor->stop();
     dyno2Motor->stop();
   } else {
+    stopMe = false;
     ui->testMulti->setText("Stop acquisition");
     setEnv("AQTYPE", "MULTISHOT");
     acquireMulti();
@@ -2820,10 +2839,6 @@ void MainWindow::setEngineStatus(EngineStatus status) {
       dynoMotor->goUserPosition(motorsInitials[dynoMotor], false);
     if ( ui->dyno2Shot->isChecked() )
       dyno2Motor->goUserPosition(motorsInitials[dyno2Motor], false);
-    if ( ui->dynoShot->isChecked() )
-      dynoMotor->wait_stop();
-    if ( ui->dyno2Shot->isChecked() )
-      dyno2Motor->wait_stop();
 
     ui->startStop->setText("Resume scan");
     ui->assistant->show();
@@ -2877,9 +2892,6 @@ void MainWindow::setEngineStatus(EngineStatus status) {
       foreach (QCaMotorGUI * mot, motorsInitials.keys() )
         if (mot->isConnected())
           mot->goUserPosition(motorsInitials[mot],false);
-      foreach (QCaMotorGUI * mot, motorsInitials.keys() )
-        if (mot->isConnected())
-          mot->wait_stop();
     }
 
     ui->startStop->setText("Start");
@@ -3073,13 +3085,13 @@ void MainWindow::engine (const bool dryRun) {
       doSL = doL && ui->subLoop->isChecked(),
       multiBg = doL && ! ui->multiBg->isChecked();
   const double
-      start=motorsInitials[thetaMotor],
+      start=ui->scanStart->value(),
       end=ui->scanEnd->value(),
-      transIn = motorsInitials[bgMotor],
+      transIn = ui->transIn->value(),
       transOut = ui->transOut->value(),
-      lStart = motorsInitials[loopMotor],
+      lStart = ui->loopStart->value(),
       lEnd = ui->loopEnd->value(),
-      slStart = motorsInitials[subLoopMotor],
+      slStart = ui->subLoopStart->value(),
       slEnd = ui->subLoopEnd->value();
   const int
       projs=ui->projections->value(),
@@ -3140,7 +3152,7 @@ void MainWindow::engine (const bool dryRun) {
   setEnv("DFTYPE", "BEFORE");
 
 
-  if (!dryRun)
+  if ( ! dryRun && ui->dfBefore->value() )
     shutterMan(false,true);
 
   for ( int j = 0 ; j < ui->dfBefore->value() ; ++j )  {
@@ -3211,7 +3223,6 @@ void MainWindow::engine (const bool dryRun) {
       setEnv("PCOUNT", smCount+1);
     }
     setEnv("GTRANSPOS", transGoal);
-
 
     int loopN =  ( ! doL || (isBg && ! multiBg) )  ?  1  :  lN;
     int subLoopN = ( loopN <= 1 || ! doSL )  ?  1  :  slN;

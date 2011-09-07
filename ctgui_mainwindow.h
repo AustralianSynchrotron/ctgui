@@ -155,6 +155,10 @@ private:
   QList<QWidget*> widgetsNeededHelp;
   QWidget * insertVariableIntoMe;
 
+  void stopDynos();
+  void waitStopDynos();
+  void startDynos(double dynoPos, double dyno2Pos=0);
+
 private slots:
 
   void saveConfiguration(QString fileName = QString());
