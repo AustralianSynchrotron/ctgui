@@ -105,17 +105,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
   thetaMotor = new QCaMotorGUI(ui->tabScan);
-  ui->scanLayout->addWidget(thetaMotor->basicUI()->setup, 0, 0, 1, 1);
+  ui->scanLayout->addWidget(thetaMotor->setupButton(), 0, 0, 1, 1);
   bgMotor = new QCaMotorGUI(ui->tabFF);
-  ui->ffLayout->addWidget(bgMotor->basicUI()->setup, 3, 0, 1, 1);
+  ui->ffLayout->addWidget(bgMotor->setupButton(), 3, 0, 1, 1);
   loopMotor = new QCaMotorGUI(ui->tabMulti);
-  ui->loopLayout->addWidget(loopMotor->basicUI()->setup, 0, 0, 1, 1);
+  ui->loopLayout->addWidget(loopMotor->setupButton(), 0, 0, 1, 1);
   subLoopMotor = new QCaMotorGUI(ui->tabMulti);
-  ui->subLoopLayout->addWidget(subLoopMotor->basicUI()->setup, 0, 0, 1, 1);
+  ui->subLoopLayout->addWidget(subLoopMotor->setupButton(), 0, 0, 1, 1);
   dynoMotor = new QCaMotorGUI(ui->tabDyno);
-  ui->dyno1Layout->addWidget(dynoMotor->basicUI()->setup, 1, 0, 1, 1);
+  ui->dyno1Layout->addWidget(dynoMotor->setupButton(), 1, 0, 1, 1);
   dyno2Motor = new QCaMotorGUI(ui->tabDyno);
-  ui->dyno2Layout->addWidget(dyno2Motor->basicUI()->setup, 0, 0, 1, 1);
+  ui->dyno2Layout->addWidget(dyno2Motor->setupButton(), 0, 0, 1, 1);
 
   ui->dynoStarStopWg->setVisible(false); // until we have Qt-areaDetector and can trig the detector.
 
@@ -683,8 +683,8 @@ void MainWindow::saveConfiguration(QString fileName) {
   config.endGroup();
 
   config.beginGroup("scan");
-  config.setValue("motor", thetaMotor->getPv());
-  config.setValue("prec", thetaMotor->getPrecision());
+  config.setValue("motor", thetaMotor->motor()->getPv());
+  config.setValue("prec", thetaMotor->motor()->getPrecision());
   config.setValue("start", ui->scanStart->value());
   config.setValue("range", ui->scanRange->value());
   config.setValue("steps", ui->projections->value());
@@ -693,8 +693,8 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   config.beginGroup("flatfield");
   config.setValue("interval", ui->transInterval->value());
-  config.setValue("motor", bgMotor->getPv());
-  config.setValue("prec", bgMotor->getPrecision());
+  config.setValue("motor", bgMotor->motor()->getPv());
+  config.setValue("prec", bgMotor->motor()->getPrecision());
   config.setValue("inbeam", ui->transIn->value());
   config.setValue("distance", ui->transDist->value());
   config.setValue("before", ui->dfBefore->value());
@@ -705,16 +705,16 @@ void MainWindow::saveConfiguration(QString fileName) {
 
     config.beginGroup("loop");
     config.setValue("singleBackground", ! ui->multiBg->isChecked() );
-    config.setValue("motor", loopMotor->getPv());
-    config.setValue("prec", loopMotor->getPrecision());
+    config.setValue("motor", loopMotor->motor()->getPv());
+    config.setValue("prec", loopMotor->motor()->getPrecision());
     config.setValue("start", ui->loopStart->value());
     config.setValue("range", ui->loopRange->value());
     config.setValue("steps", ui->loopNumber->value());
 
     if (ui->subLoop->isChecked()) {
       config.beginGroup("subloop");
-      config.setValue("motor", subLoopMotor->getPv());
-      config.setValue("prec", subLoopMotor->getPrecision());
+      config.setValue("motor", subLoopMotor->motor()->getPv());
+      config.setValue("prec", subLoopMotor->motor()->getPrecision());
       config.setValue("start", ui->subLoopStart->value());
       config.setValue("range", ui->subLoopRange->value());
       config.setValue("steps", ui->subLoopNumber->value());
@@ -728,16 +728,16 @@ void MainWindow::saveConfiguration(QString fileName) {
   if (ui->dynoShot->isChecked()) {
 
     config.beginGroup("dynoshot");
-    config.setValue("motor", dynoMotor->getPv());
-    config.setValue("prec", dynoMotor->getPrecision());
+    config.setValue("motor", dynoMotor->motor()->getPv());
+    config.setValue("prec", dynoMotor->motor()->getPrecision());
     config.setValue("start", ui->dynoStart->value());
     config.setValue("range", ui->dynoRange->value());
 
     if (ui->dyno2Shot->isChecked()) {
 
       config.beginGroup("dyno2shot");
-      config.setValue("motor", dyno2Motor->getPv());
-      config.setValue("prec", dyno2Motor->getPrecision());
+      config.setValue("motor", dyno2Motor->motor()->getPv());
+      config.setValue("prec", dyno2Motor->motor()->getPrecision());
       config.setValue("start", ui->dyno2Start->value());
       config.setValue("range", ui->dyno2Range->value());
       config.endGroup();
@@ -800,7 +800,7 @@ void MainWindow::loadConfiguration(QString fileName) {
        ( prec = config.value("prec").toInt() ) )
     setThetaPrec(prec);
   if ( config.contains("motor")  )
-    thetaMotor->setPv( config.value("motor").toString() );
+    thetaMotor->motor()->setPv( config.value("motor").toString() );
   if ( config.contains("start")  )
     ui->scanStart->setValue( config.value("start").toDouble() );
   if ( config.contains("range")  )
@@ -818,7 +818,7 @@ void MainWindow::loadConfiguration(QString fileName) {
        ( prec = config.value("prec").toInt() ) )
     setBgPrec(prec);
   if ( config.contains("motor")  )
-    bgMotor->setPv( config.value("motor").toString() );
+    bgMotor->motor()->setPv( config.value("motor").toString() );
   if ( config.contains("inbeam")  )
     ui->transIn->setValue( config.value("inbeam").toDouble() );
   if ( config.contains("distance")  )
@@ -840,7 +840,7 @@ void MainWindow::loadConfiguration(QString fileName) {
          ( prec = config.value("prec").toInt() ) )
       setLoopPrec(prec);
     if ( config.contains("motor")  )
-      loopMotor->setPv( config.value("motor").toString() );
+      loopMotor->motor()->setPv( config.value("motor").toString() );
     if ( config.contains("start")  )
       ui->loopStart->setValue( config.value("start").toDouble() ) ;
     if ( config.contains("steps")  )
@@ -858,7 +858,7 @@ void MainWindow::loadConfiguration(QString fileName) {
            ( prec = config.value("prec").toInt() ) )
         setSubLoopPrec(prec);
       if ( config.contains("motor")  )
-        subLoopMotor->setPv( config.value("motor").toString() );
+        subLoopMotor->motor()->setPv( config.value("motor").toString() );
       if ( config.contains("start")  )
         ui->subLoopStart->setValue( config.value("start").toDouble() ) ;
       if ( config.contains("steps")  )
@@ -883,7 +883,7 @@ void MainWindow::loadConfiguration(QString fileName) {
          ( prec = config.value("prec").toInt() ) )
       setDynoPrec(prec);
     if ( config.contains("motor")  )
-      dynoMotor->setPv( config.value("motor").toString() );
+      dynoMotor->motor()->setPv( config.value("motor").toString() );
     if ( config.contains("start")  )
       ui->dynoStart->setValue( config.value("start").toDouble() ) ;
     if ( config.contains("range")  )
@@ -900,7 +900,7 @@ void MainWindow::loadConfiguration(QString fileName) {
            ( prec = config.value("prec").toInt() ) )
         setDyno2Prec(prec);
       if ( config.contains("motor")  )
-        dyno2Motor->setPv( config.value("motor").toString() );
+        dyno2Motor->motor()->setPv( config.value("motor").toString() );
       if ( config.contains("start")  )
         ui->dyno2Start->setValue( config.value("start").toDouble() ) ;
       if ( config.contains("range")  )
@@ -1075,7 +1075,7 @@ bool MainWindow::prepareExec(QFile* fileExec, QPTEext * textW, QLabel * errorLab
 
 void MainWindow::setThetaUnits() {
 
-  const QString units = thetaMotor->getUnits();
+  const QString units = thetaMotor->motor()->getUnits();
   setEnv("SCANMOTORUNITS", units);
 
   if ( sender() != thetaMotor)
@@ -1091,7 +1091,7 @@ void MainWindow::setThetaUnits() {
 
 void MainWindow::setBgUnits() {
 
-  const QString units = bgMotor->getUnits();
+  const QString units = bgMotor->motor()->getUnits();
   setEnv("TRANSMOTORUNITS", units);
 
   if ( sender() != bgMotor)
@@ -1106,7 +1106,7 @@ void MainWindow::setBgUnits() {
 
 void MainWindow::setLoopUnits() {
 
-  const QString units = loopMotor->getUnits();
+  const QString units = loopMotor->motor()->getUnits();
   setEnv("LOOPMOTORUNITS", units);
 
   if ( sender() != loopMotor)
@@ -1122,7 +1122,7 @@ void MainWindow::setLoopUnits() {
 
 void MainWindow::setSubLoopUnits() {
 
-  const QString units = subLoopMotor->getUnits();
+  const QString units = subLoopMotor->motor()->getUnits();
   setEnv("SUBLOOPMOTORUNITS", units);
 
   if ( sender() != subLoopMotor)
@@ -1139,7 +1139,7 @@ void MainWindow::setSubLoopUnits() {
 void MainWindow::setThetaPrec(int prec){
 
   if ( ! prec )
-    prec = thetaMotor->getPrecision();
+    prec = thetaMotor->motor()->getPrecision();
   setEnv("SCANMOTORPREC", prec);
 
   ui->currentPos->setDecimals(prec);
@@ -1153,7 +1153,7 @@ void MainWindow::setThetaPrec(int prec){
 void MainWindow::setBgPrec(int prec){
 
   if ( ! prec )
-    prec = bgMotor->getPrecision();
+    prec = bgMotor->motor()->getPrecision();
   setEnv("TRANSMOTORPREC", prec);
 
   ui->transCurrent->setDecimals(prec);
@@ -1166,7 +1166,7 @@ void MainWindow::setBgPrec(int prec){
 void MainWindow::setLoopPrec(int prec){
 
   if ( ! prec )
-    prec = loopMotor->getPrecision();
+    prec = loopMotor->motor()->getPrecision();
   setEnv("LOOPMOTORPREC", prec);
 
   ui->loopCurrent->setDecimals(prec);
@@ -1180,7 +1180,7 @@ void MainWindow::setLoopPrec(int prec){
 void MainWindow::setSubLoopPrec(int prec){
 
   if ( ! prec )
-    prec = subLoopMotor->getPrecision();
+    prec = subLoopMotor->motor()->getPrecision();
   setEnv("SUBLOOPMOTORPREC", prec);
 
   ui->subLoopCurrent->setDecimals(prec);
@@ -1282,11 +1282,11 @@ void MainWindow::onPreExec(){
 
 void MainWindow::onThetaMotorChanges() {
 
-  bool itemOK = thetaMotor->isConnected();
-  check(thetaMotor->basicUI()->setup, itemOK);
+  bool itemOK = thetaMotor->motor()->isConnected();
+  check(thetaMotor->setupButton(), itemOK);
 
-  setEnv("SCANMOTORPV", thetaMotor->getPv());
-  setEnv("SCANMOTORDESC", thetaMotor->getDescription());
+  setEnv("SCANMOTORPV", thetaMotor->motor()->getPv());
+  setEnv("SCANMOTORDESC", thetaMotor->motor()->getDescription());
 
   if ( sender() != thetaMotor )
     return;
@@ -1297,7 +1297,7 @@ void MainWindow::onThetaMotorChanges() {
 }
 
 void MainWindow::onScanPosChanges(){
-  setEnv("SCANPOS", thetaMotor->get());
+  setEnv("SCANPOS", thetaMotor->motor()->get());
 }
 
 void MainWindow::onScanRangeChanges(){
@@ -1362,9 +1362,9 @@ void MainWindow::onScanStartChanges(){
   const double start = ui->scanStart->value();
   setEnv("SCANSTART", start);
 
-  bool itemOK = ! thetaMotor->isConnected() || (
-        start >= thetaMotor->getUserLoLimit()  &&
-        start <= thetaMotor->getUserHiLimit() );
+  bool itemOK = ! thetaMotor->motor()->isConnected() || (
+        start >= thetaMotor->motor()->getUserLoLimit()  &&
+        start <= thetaMotor->motor()->getUserHiLimit() );
   check(ui->scanStart, itemOK);
 
   if( sender() != ui->scanStart)
@@ -1380,9 +1380,9 @@ void MainWindow::onScanEndChanges(){
   const double end = ui->scanEnd->value();
   setEnv("SCANEND", end);
 
-  bool itemOK = ! thetaMotor->isConnected() || (
-        end >= thetaMotor->getUserLoLimit()  &&
-        end <= thetaMotor->getUserHiLimit() );
+  bool itemOK = ! thetaMotor->motor()->isConnected() || (
+        end >= thetaMotor->motor()->getUserLoLimit()  &&
+        end <= thetaMotor->motor()->getUserHiLimit() );
   check(ui->scanEnd, itemOK);
 
   if( sender() != ui->scanEnd )
@@ -1465,11 +1465,11 @@ void MainWindow::onCheckInvert() {
 void MainWindow::onTransMotorChanges() {
 
   bool itemOK =
-      bgMotor->isConnected() == (bool) transQty ;
-  check(bgMotor->basicUI()->setup, itemOK);
+      bgMotor->motor()->isConnected() == (bool) transQty ;
+  check(bgMotor->setupButton(), itemOK);
 
-  setEnv("TRANSMOTORPV", bgMotor->getPv());
-  setEnv("TRANSMOTORDESC", bgMotor->getDescription());
+  setEnv("TRANSMOTORPV", bgMotor->motor()->getPv());
+  setEnv("TRANSMOTORDESC", bgMotor->motor()->getDescription());
 
   if( sender() != bgMotor )
     return;
@@ -1481,7 +1481,7 @@ void MainWindow::onTransMotorChanges() {
 }
 
 void MainWindow::onTransPosChanges() {
-  setEnv("TRANSPOS", bgMotor->get());
+  setEnv("TRANSPOS", bgMotor->motor()->get());
 }
 
 void MainWindow::onTransIntervalChanges() {
@@ -1498,7 +1498,7 @@ void MainWindow::onTransIntervalChanges() {
   setEnv("TRANSN", transQty);
 
   bool itemOK =
-      bgMotor->isConnected() == (bool) transQty;
+      bgMotor->motor()->isConnected() == (bool) transQty;
   check(ui->transInterval , itemOK);
 
   ui->bgFile->setEnabled(transQty);
@@ -1533,9 +1533,9 @@ void MainWindow::onTransInChanges() {
   const double pos = ui->transIn->value();
   setEnv("TRANSIN", pos);
 
-  bool itemOK = ! bgMotor->isConnected() || (
-        pos >= bgMotor->getUserLoLimit()  &&
-        pos <= bgMotor->getUserHiLimit() );
+  bool itemOK = ! bgMotor->motor()->isConnected() || (
+        pos >= bgMotor->motor()->getUserLoLimit()  &&
+        pos <= bgMotor->motor()->getUserHiLimit() );
   check(ui->transIn, itemOK);
 
   if( sender() != ui->transIn )
@@ -1551,9 +1551,9 @@ void MainWindow::onTransOutChanges() {
   const double pos = ui->transOut->value();
   setEnv("TRANSOUT", pos);
 
-  bool itemOK = ! bgMotor->isConnected() || (
-        pos >= bgMotor->getUserLoLimit()  &&
-        pos <= bgMotor->getUserHiLimit() );
+  bool itemOK = ! bgMotor->motor()->isConnected() || (
+        pos >= bgMotor->motor()->getUserLoLimit()  &&
+        pos <= bgMotor->motor()->getUserHiLimit() );
   check(ui->transOut, itemOK);
 
   if( sender() != ui->transOut )
@@ -1607,17 +1607,17 @@ void MainWindow::onShotModeChanges() {
 }
 
 void MainWindow::onLoopPosChanges() {
-  setEnv("LOOPPOS", loopMotor->get());
+  setEnv("LOOPPOS", loopMotor->motor()->get());
 }
 
 void MainWindow::onLoopMotorChanges() {
 
   bool itemOK =
-      ui->singleShot->isChecked() || loopMotor->isConnected();
-  check(loopMotor->basicUI()->setup, itemOK);
+      ui->singleShot->isChecked() || loopMotor->motor()->isConnected();
+  check(loopMotor->setupButton(), itemOK);
 
-  setEnv("LOOPMOTORPV", loopMotor->getPv());
-  setEnv("LOOPMOTORDESC", loopMotor->getDescription());
+  setEnv("LOOPMOTORPV", loopMotor->motor()->getPv());
+  setEnv("LOOPMOTORDESC", loopMotor->motor()->getDescription());
 
   if( sender() != loopMotor)
     return;
@@ -1700,9 +1700,9 @@ void MainWindow::onLoopStartChanges() {
   setEnv("LOOPSTART", pos);
 
   bool itemOK =
-      ui->singleShot->isChecked() || ! loopMotor->isConnected() ||
-      ( pos >= loopMotor->getUserLoLimit()  &&
-       pos <= loopMotor->getUserHiLimit() );
+      ui->singleShot->isChecked() || ! loopMotor->motor()->isConnected() ||
+      ( pos >= loopMotor->motor()->getUserLoLimit()  &&
+       pos <= loopMotor->motor()->getUserHiLimit() );
   check(ui->loopStart, itemOK);
 
   if( sender() != ui->loopStart )
@@ -1722,9 +1722,9 @@ void MainWindow::onLoopEndChanges() {
   setEnv("LOOPEND", pos);
 
   bool itemOK =
-      ui->singleShot->isChecked() || ! loopMotor->isConnected() ||
-      ( pos >= loopMotor->getUserLoLimit()  &&
-       pos <= loopMotor->getUserHiLimit() );
+      ui->singleShot->isChecked() || ! loopMotor->motor()->isConnected() ||
+      ( pos >= loopMotor->motor()->getUserLoLimit()  &&
+       pos <= loopMotor->motor()->getUserHiLimit() );
   check(ui->loopEnd, itemOK);
 
   if( sender() != ui->loopEnd)
@@ -1758,17 +1758,17 @@ void MainWindow::onSubLoopChanges() {
 }
 
 void MainWindow::onSubLoopPosChanges(){
-  setEnv("SUBLOOPPOS", subLoopMotor->get() );
+  setEnv("SUBLOOPPOS", subLoopMotor->motor()->get() );
 }
 
 void MainWindow::onSubLoopMotorChanges() {
 
   bool itemOK = ! ui->subLoop->isChecked() ||
-      ui->singleShot->isChecked() || subLoopMotor->isConnected();
-  check(subLoopMotor->basicUI()->setup, itemOK);
+      ui->singleShot->isChecked() || subLoopMotor->motor()->isConnected();
+  check(subLoopMotor->setupButton(), itemOK);
 
-  setEnv("SUBLOOPMOTORPV", subLoopMotor->getPv());
-  setEnv("SUBLOOPMOTORDESC", subLoopMotor->getDescription());
+  setEnv("SUBLOOPMOTORPV", subLoopMotor->motor()->getPv());
+  setEnv("SUBLOOPMOTORDESC", subLoopMotor->motor()->getDescription());
 
   if( sender() != subLoopMotor)
     return;
@@ -1851,9 +1851,9 @@ void MainWindow::onSubLoopStartChanges() {
   setEnv("SUBLOOPSTART", pos);
 
   bool itemOK = ! ui->subLoop->isChecked() ||
-      ui->singleShot->isChecked() || ! subLoopMotor->isConnected() ||
-      ( pos >= subLoopMotor->getUserLoLimit()  &&
-       pos <= subLoopMotor->getUserHiLimit() );
+      ui->singleShot->isChecked() || ! subLoopMotor->motor()->isConnected() ||
+      ( pos >= subLoopMotor->motor()->getUserLoLimit()  &&
+       pos <= subLoopMotor->motor()->getUserHiLimit() );
   check(ui->subLoopStart, itemOK);
 
   if( sender() != ui->subLoopStart )
@@ -1873,9 +1873,9 @@ void MainWindow::onSubLoopEndChanges() {
   setEnv("SUBLOOPEND", pos);
 
   bool itemOK = ! ui->subLoop->isChecked() ||
-      ui->singleShot->isChecked() || ! subLoopMotor->isConnected() ||
-      ( pos >= subLoopMotor->getUserLoLimit()  &&
-       pos <= subLoopMotor->getUserHiLimit() );
+      ui->singleShot->isChecked() || ! subLoopMotor->motor()->isConnected() ||
+      ( pos >= subLoopMotor->motor()->getUserLoLimit()  &&
+       pos <= subLoopMotor->motor()->getUserHiLimit() );
   check(ui->subLoopEnd, itemOK);
 
   if( sender() != ui->subLoopEnd)
@@ -1908,12 +1908,12 @@ void MainWindow::onDynoChanges() {
 }
 
 void MainWindow::onDynoPosChanges(){
-  setEnv("DYNOPOS", dynoMotor->get());
+  setEnv("DYNOPOS", dynoMotor->motor()->get());
 }
 
 void MainWindow::setDynoUnits(){
 
-  const QString units = dynoMotor->getUnits();
+  const QString units = dynoMotor->motor()->getUnits();
   setEnv("DYNOMOTORUNITS", units);
 
   if ( sender() != dynoMotor)
@@ -1929,7 +1929,7 @@ void MainWindow::setDynoUnits(){
 void MainWindow::setDynoPrec(int prec){
 
   if ( ! prec )
-    prec = dynoMotor->getPrecision();
+    prec = dynoMotor->motor()->getPrecision();
   setEnv("DYNOMOTORPREC", prec);
 
   ui->dynoCurrent->setDecimals(prec);
@@ -1942,11 +1942,11 @@ void MainWindow::setDynoPrec(int prec){
 void MainWindow::onDynoMotorChanges(){
 
   bool itemOK =
-      ! ui->dynoShot->isChecked() || dynoMotor->isConnected();
-  check(dynoMotor->basicUI()->setup, itemOK);
+      ! ui->dynoShot->isChecked() || dynoMotor->motor()->isConnected();
+  check(dynoMotor->setupButton(), itemOK);
 
-  setEnv("DYNOMOTORPV", dynoMotor->getPv());
-  setEnv("DYNOMOTORDESC", dynoMotor->getDescription());
+  setEnv("DYNOMOTORPV", dynoMotor->motor()->getPv());
+  setEnv("DYNOMOTORDESC", dynoMotor->motor()->getDescription());
 
   if( sender() != dynoMotor)
     return;
@@ -1978,9 +1978,9 @@ void MainWindow::onDynoStartChanges() {
   setEnv("DYNOSTART", pos);
 
   bool itemOK =
-      ! ui->dynoShot->isChecked() || ! dynoMotor->isConnected() ||
-      ( pos >= dynoMotor->getUserLoLimit()  &&
-       pos <= dynoMotor->getUserHiLimit() );
+      ! ui->dynoShot->isChecked() || ! dynoMotor->motor()->isConnected() ||
+      ( pos >= dynoMotor->motor()->getUserLoLimit()  &&
+       pos <= dynoMotor->motor()->getUserHiLimit() );
   check(ui->dynoStart, itemOK);
 
   if( sender() != ui->dynoStart )
@@ -1998,9 +1998,9 @@ void MainWindow::onDynoEndChanges() {
   setEnv("DYNOEND", pos);
 
   bool itemOK =
-      ! ui->dynoShot->isChecked() || ! dynoMotor->isConnected() ||
-      ( pos >= dynoMotor->getUserLoLimit()  &&
-       pos <= dynoMotor->getUserHiLimit() );
+      ! ui->dynoShot->isChecked() || ! dynoMotor->motor()->isConnected() ||
+      ( pos >= dynoMotor->motor()->getUserLoLimit()  &&
+       pos <= dynoMotor->motor()->getUserHiLimit() );
   check(ui->dynoEnd, itemOK);
 
   if( sender() != ui->dynoEnd)
@@ -2028,12 +2028,12 @@ void MainWindow::onDyno2Changes() {
 }
 
 void MainWindow::onDyno2PosChanges(){
-  setEnv("DYNO2POS", dyno2Motor->get());
+  setEnv("DYNO2POS", dyno2Motor->motor()->get());
 }
 
 void MainWindow::setDyno2Units(){
 
-  const QString units = dyno2Motor->getUnits();
+  const QString units = dyno2Motor->motor()->getUnits();
   setEnv("DYNO2MOTORUNITS", units);
 
   if ( sender() != dyno2Motor)
@@ -2049,7 +2049,7 @@ void MainWindow::setDyno2Units(){
 void MainWindow::setDyno2Prec(int prec){
 
   if ( ! prec )
-    prec = dyno2Motor->getPrecision();
+    prec = dyno2Motor->motor()->getPrecision();
   setEnv("DYNO2MOTORPREC", prec);
 
   ui->dyno2Current->setDecimals(prec);
@@ -2063,11 +2063,11 @@ void MainWindow::onDyno2MotorChanges(){
 
   bool itemOK =
       ! ui->dyno2Shot->isChecked() ||
-      ! ui->dynoShot->isChecked() || dyno2Motor->isConnected();
-  check(dyno2Motor->basicUI()->setup, itemOK);
+      ! ui->dynoShot->isChecked() || dyno2Motor->motor()->isConnected();
+  check(dyno2Motor->setupButton(), itemOK);
 
-  setEnv("DYNO2MOTORPV", dyno2Motor->getPv());
-  setEnv("DYNO2MOTORDESC", dyno2Motor->getDescription());
+  setEnv("DYNO2MOTORPV", dyno2Motor->motor()->getPv());
+  setEnv("DYNO2MOTORDESC", dyno2Motor->motor()->getDescription());
 
   if( sender() != dyno2Motor)
     return;
@@ -2101,9 +2101,9 @@ void MainWindow::onDyno2StartChanges() {
 
   bool itemOK =
       ! ui->dyno2Shot->isChecked() ||
-      ! ui->dynoShot->isChecked() || ! dyno2Motor->isConnected() ||
-      ( pos >= dyno2Motor->getUserLoLimit()  &&
-       pos <= dyno2Motor->getUserHiLimit() );
+      ! ui->dynoShot->isChecked() || ! dyno2Motor->motor()->isConnected() ||
+      ( pos >= dyno2Motor->motor()->getUserLoLimit()  &&
+       pos <= dyno2Motor->motor()->getUserHiLimit() );
   check(ui->dyno2Start, itemOK);
 
   if( sender() != ui->dyno2Start )
@@ -2122,9 +2122,9 @@ void MainWindow::onDyno2EndChanges() {
 
   bool itemOK =
       ! ui->dyno2Shot->isChecked() ||
-      ! ui->dynoShot->isChecked() || ! dyno2Motor->isConnected() ||
-      ( pos >= dyno2Motor->getUserLoLimit()  &&
-       pos <= dyno2Motor->getUserHiLimit() );
+      ! ui->dynoShot->isChecked() || ! dyno2Motor->motor()->isConnected() ||
+      ( pos >= dyno2Motor->motor()->getUserLoLimit()  &&
+       pos <= dyno2Motor->motor()->getUserHiLimit() );
   check(ui->dyno2End, itemOK);
 
   if( sender() != ui->dyno2End)
@@ -2556,32 +2556,32 @@ int MainWindow::acquireDetector(const QString & filename) {
 
 void MainWindow::waitStopDynos() {
   if ( ui->dynoShot->isChecked() )
-    dynoMotor->wait_stop();
+    dynoMotor->motor()->wait_stop();
   if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->wait_stop();
+    dyno2Motor->motor()->wait_stop();
 }
 
 void MainWindow::stopDynos() {
   if ( ui->dynoShot->isChecked() )
-    dynoMotor->stop(false);
+    dynoMotor->motor()->stop(false);
   if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->stop(false);
+    dyno2Motor->motor()->stop(false);
   waitStopDynos();
 }
 
 
 void MainWindow::startDynos(double dynoPos, double dyno2Pos) {
 
-  if ( ( ui->dynoShot->isChecked()  && dynoMotor->getUserGoal()  != dynoPos ) ||
-       ( ui->dyno2Shot->isChecked() && dyno2Motor->getUserGoal() != dyno2Pos ) )
+  if ( ( ui->dynoShot->isChecked()  && dynoMotor->motor()->getUserGoal()  != dynoPos ) ||
+       ( ui->dyno2Shot->isChecked() && dyno2Motor->motor()->getUserGoal() != dyno2Pos ) )
     stopDynos();
   else
     waitStopDynos();
 
   if ( ui->dynoShot->isChecked() )
-    dynoMotor->goUserPosition(dynoPos, false);
+    dynoMotor->motor()->goUserPosition(dynoPos, false);
   if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->goUserPosition(dyno2Pos, false);
+    dyno2Motor->motor()->goUserPosition(dyno2Pos, false);
 
 
 }
@@ -2647,8 +2647,8 @@ int MainWindow::acquireMulti() {
       slEnd = ui->subLoopEnd->value();
 
   double
-      lastLoop = loopMotor->get(),
-      lastSubLoop = subLoopMotor->get();
+      lastLoop = loopMotor->motor()->get(),
+      lastSubLoop = subLoopMotor->motor()->get();
 
   int execStatus=0;
 
@@ -2658,7 +2658,7 @@ int MainWindow::acquireMulti() {
         ( (loopN==1)  ?  0  :  x * (lEnd-lStart) / (loopN-1) );
     if ( doL  &&  lastLoop != loopPos ) {
       appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
-      loopMotor->goUserPosition(loopPos, false);
+      loopMotor->motor()->goUserPosition(loopPos, false);
       lastLoop = loopPos;
     }
 
@@ -2668,16 +2668,16 @@ int MainWindow::acquireMulti() {
           ( ( subLoopN == 1 )  ?  0  :  y * (slEnd - slStart) / (subLoopN-1) );
       if ( doSL  &&  lastSubLoop != subLoopPos ) {
         appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
-        subLoopMotor->goUserPosition(subLoopPos, false);
+        subLoopMotor->motor()->goUserPosition(subLoopPos, false);
         lastSubLoop = subLoopPos;
       }
 
-      loopMotor->wait_stop();
-      subLoopMotor->wait_stop();
+      loopMotor->motor()->wait_stop();
+      subLoopMotor->motor()->wait_stop();
 
       if (stopMe) {
-        loopMotor->goUserPosition(lStart, false);
-        subLoopMotor->goUserPosition(slStart, false);
+        loopMotor->motor()->goUserPosition(lStart, false);
+        subLoopMotor->motor()->goUserPosition(slStart, false);
         ui->multiWidget->setEnabled(true);
         return execStatus;
       }
@@ -2689,8 +2689,8 @@ int MainWindow::acquireMulti() {
       if (execStatus)
         appendMessage(ERROR, "Failed to acquire image in the multi-shot run.");
       if (execStatus || stopMe) {
-        loopMotor->goUserPosition(lStart, false);
-        subLoopMotor->goUserPosition(slStart, false);
+        loopMotor->motor()->goUserPosition(lStart, false);
+        subLoopMotor->motor()->goUserPosition(slStart, false);
         ui->multiWidget->setEnabled(true);
         return execStatus;
       }
@@ -2699,8 +2699,8 @@ int MainWindow::acquireMulti() {
 
   }
 
-  loopMotor->goUserPosition(lStart, false);
-  subLoopMotor->goUserPosition(slStart, false);
+  loopMotor->motor()->goUserPosition(lStart, false);
+  subLoopMotor->motor()->goUserPosition(slStart, false);
   ui->multiWidget->setEnabled(true);
   return execStatus;
 
@@ -2724,8 +2724,8 @@ void MainWindow::onAcquireDyno() {
   if ( ! ui->dynoWidget->isEnabled() ) {
     stopMe = true;
     emit requestToStopAcquisition();
-    dynoMotor->stop();
-    dyno2Motor->stop();
+    dynoMotor->motor()->stop();
+    dyno2Motor->motor()->stop();
   } else {
     stopMe = false;
     ui->testDyno->setText("Stop acquisition");
@@ -2739,10 +2739,10 @@ void MainWindow::onAcquireMulti() {
   if ( ! ui->multiWidget->isEnabled() ) {
     stopMe = true;
     emit requestToStopAcquisition();
-    loopMotor->stop();
-    subLoopMotor->stop();
-    dynoMotor->stop();
-    dyno2Motor->stop();
+    loopMotor->motor()->stop();
+    subLoopMotor->motor()->stop();
+    dynoMotor->motor()->stop();
+    dyno2Motor->motor()->stop();
   } else {
     stopMe = false;
     ui->testMulti->setText("Stop acquisition");
@@ -2804,12 +2804,12 @@ void MainWindow::onStartStop() {
   if ( engineStatus == Running ) {
 
     stopMe = true;
-    thetaMotor->stop();
-    bgMotor->stop();
-    loopMotor->stop();
-    subLoopMotor->stop();
-    dynoMotor->stop();
-    dyno2Motor->stop();
+    thetaMotor->motor()->stop();
+    bgMotor->motor()->stop();
+    loopMotor->motor()->stop();
+    subLoopMotor->motor()->stop();
+    dynoMotor->motor()->stop();
+    dyno2Motor->motor()->stop();
     emit requestToStopAcquisition();
 
   } else if ( engineStatus == Filling ) {
@@ -2836,9 +2836,9 @@ void MainWindow::setEngineStatus(EngineStatus status) {
     appendMessage(CONTROL, "Pausing engine.");
 
     if ( ui->dynoShot->isChecked() )
-      dynoMotor->goUserPosition(motorsInitials[dynoMotor], false);
+      dynoMotor->motor()->goUserPosition(motorsInitials[dynoMotor], false);
     if ( ui->dyno2Shot->isChecked() )
-      dyno2Motor->goUserPosition(motorsInitials[dyno2Motor], false);
+      dyno2Motor->motor()->goUserPosition(motorsInitials[dyno2Motor], false);
 
     ui->startStop->setText("Resume scan");
     ui->assistant->show();
@@ -2890,8 +2890,8 @@ void MainWindow::setEngineStatus(EngineStatus status) {
 
     if ( engineStatus != Filling ) {
       foreach (QCaMotorGUI * mot, motorsInitials.keys() )
-        if (mot->isConnected())
-          mot->goUserPosition(motorsInitials[mot],false);
+        if (mot->motor()->isConnected())
+          mot->motor()->goUserPosition(motorsInitials[mot],false);
     }
 
     ui->startStop->setText("Start");
@@ -3065,18 +3065,18 @@ void MainWindow::engine (const bool dryRun) {
     setEngineStatus(Filling);
 
   motorsInitials.clear();
-  if ( thetaMotor->isConnected() )
-    motorsInitials[thetaMotor] = thetaMotor->getUserPosition();
-  if ( bgMotor->isConnected() )
-    motorsInitials[bgMotor] = bgMotor->getUserPosition();
-  if ( loopMotor->isConnected() )
-    motorsInitials[loopMotor] = loopMotor->getUserPosition();
-  if ( subLoopMotor->isConnected() )
-    motorsInitials[subLoopMotor] = subLoopMotor->getUserPosition();
-  if ( dynoMotor->isConnected() )
-    motorsInitials[dynoMotor] = dynoMotor->getUserPosition();
-  if ( dyno2Motor->isConnected() )
-    motorsInitials[dyno2Motor] = dyno2Motor->getUserPosition();
+  if ( thetaMotor->motor()->isConnected() )
+    motorsInitials[thetaMotor] = thetaMotor->motor()->getUserPosition();
+  if ( bgMotor->motor()->isConnected() )
+    motorsInitials[bgMotor] = bgMotor->motor()->getUserPosition();
+  if ( loopMotor->motor()->isConnected() )
+    motorsInitials[loopMotor] = loopMotor->motor()->getUserPosition();
+  if ( subLoopMotor->motor()->isConnected() )
+    motorsInitials[subLoopMotor] = subLoopMotor->motor()->getUserPosition();
+  if ( dynoMotor->motor()->isConnected() )
+    motorsInitials[dynoMotor] = dynoMotor->motor()->getUserPosition();
+  if ( dyno2Motor->motor()->isConnected() )
+    motorsInitials[dyno2Motor] = dyno2Motor->motor()->getUserPosition();
 
   const bool
       scanAdd = ui->scanAdd->isChecked(),
@@ -3193,10 +3193,10 @@ void MainWindow::engine (const bool dryRun) {
   int bgBeforeNext=0, bgCount=0;
   bool isBg, wasBg = false;
   double
-      lastScan = thetaMotor->get(),
-      lastTrans = bgMotor->get(),
-      lastLoop = loopMotor->get(),
-      lastSubLoop = subLoopMotor->get();
+      lastScan = thetaMotor->motor()->get(),
+      lastTrans = bgMotor->motor()->get(),
+      lastLoop = loopMotor->motor()->get(),
+      lastSubLoop = subLoopMotor->motor()->get();
 
   // here ( doBg && scanAdd && ! wasBg ) needed to take last background
   // if ui->scanAdd->isChecked()
@@ -3273,29 +3273,29 @@ void MainWindow::engine (const bool dryRun) {
 
           if ( lastTrans != transGoal ) {
             appendMessage(CONTROL, "Moving translation motor to " + QString::number(transGoal) + ".");
-            bgMotor->goUserPosition(transGoal, false);
+            bgMotor->motor()->goUserPosition(transGoal, false);
             lastTrans = transGoal;
           }
           if ( ! isBg && lastScan != cPos) {
             appendMessage(CONTROL, "Moving scan motor to " + QString::number(cPos) + ".");
-            thetaMotor->goUserPosition(cPos, false);
+            thetaMotor->motor()->goUserPosition(cPos, false);
             lastScan=cPos;
           }
           if ( doL  &&  lastLoop != loopPos ) {
             appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
-            loopMotor->goUserPosition(loopPos, false);
+            loopMotor->motor()->goUserPosition(loopPos, false);
             lastLoop = loopPos;
           }
           if ( doSL  &&  lastSubLoop != subLoopPos ) {
             appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
-            subLoopMotor->goUserPosition(subLoopPos, false);
+            subLoopMotor->motor()->goUserPosition(subLoopPos, false);
             lastSubLoop = subLoopPos;
           }
 
-          bgMotor->wait_stop();
-          thetaMotor->wait_stop();
-          loopMotor->wait_stop();
-          subLoopMotor->wait_stop();
+          bgMotor->motor()->wait_stop();
+          thetaMotor->motor()->wait_stop();
+          loopMotor->motor()->wait_stop();
+          subLoopMotor->motor()->wait_stop();
 
           if ( ! acquireDyno(filename) )
             scanList->item(count,0)->setCheckState(Qt::Unchecked);
