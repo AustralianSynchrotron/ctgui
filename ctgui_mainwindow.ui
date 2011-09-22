@@ -2428,7 +2428,7 @@
      <x>0</x>
      <y>0</y>
      <width>1338</width>
-     <height>30</height>
+     <height>26</height>
     </rect>
    </property>
   </widget>
@@ -2457,12 +2457,16 @@
   <customwidget>
    <class>QMDoubleSpinBox</class>
    <extends>QDoubleSpinBox</extends>
-   <header location="global">qcamotorgui-additional.h</header>
+   <header location="global">qtpvwidgets.h</header>
+   <slots>
+    <signal>valueEdited(double)</signal>
+    <signal>escaped()</signal>
+   </slots>
   </customwidget>
   <customwidget>
    <class>QMSpinBox</class>
    <extends>QSpinBox</extends>
-   <header location="global">qcamotorgui-additional.h</header>
+   <header location="global">qtpvwidgets.h</header>
   </customwidget>
  </customwidgets>
  <resources>
