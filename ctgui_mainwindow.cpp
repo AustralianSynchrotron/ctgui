@@ -195,23 +195,23 @@ MainWindow::MainWindow(QWidget *parent) :
           SLOT(onPostExec()));
 
 
-  connect(thetaMotor, SIGNAL(changedUserPosition(double)),
+  connect(thetaMotor->motor(), SIGNAL(changedUserPosition(double)),
           ui->currentPos, SLOT(setValue(double)));
-  connect(thetaMotor, SIGNAL(changedUserPosition(double)),
+      connect(thetaMotor->motor(), SIGNAL(changedUserPosition(double)),
           SLOT(onScanPosChanges()));
-  connect(thetaMotor, SIGNAL(changedUnits(QString)),
+  connect(thetaMotor->motor(), SIGNAL(changedUnits(QString)),
           SLOT(setThetaUnits()));
-  connect(thetaMotor, SIGNAL(changedPrecision(int)),
+  connect(thetaMotor->motor(), SIGNAL(changedPrecision(int)),
           SLOT  (setThetaPrec()));
-  connect(thetaMotor, SIGNAL(changedConnected(bool)),
+  connect(thetaMotor->motor(), SIGNAL(changedConnected(bool)),
           SLOT(onThetaMotorChanges()));
-  connect(thetaMotor, SIGNAL(changedPv()),
+  connect(thetaMotor->motor(), SIGNAL(changedPv()),
           SLOT(onThetaMotorChanges()));
-  connect(thetaMotor, SIGNAL(changedDescription(QString)),
+  connect(thetaMotor->motor(), SIGNAL(changedDescription(QString)),
           SLOT(onThetaMotorChanges()));
-  connect(thetaMotor, SIGNAL(changedUserLoLimit(double)),
+  connect(thetaMotor->motor(), SIGNAL(changedUserLoLimit(double)),
           SLOT(onThetaMotorChanges()));
-  connect(thetaMotor, SIGNAL(changedUserHiLimit(double)),
+  connect(thetaMotor->motor(), SIGNAL(changedUserHiLimit(double)),
           SLOT(onThetaMotorChanges()));
 
   connect(ui->getScanStart, SIGNAL(clicked()),
@@ -246,23 +246,23 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->checkInvert, SIGNAL(clicked()),
           SLOT(onCheckInvert()));
 
-  connect(bgMotor, SIGNAL(changedUserPosition(double)),
+  connect(bgMotor->motor(), SIGNAL(changedUserPosition(double)),
           ui->transCurrent, SLOT(setValue(double)));
-  connect(bgMotor, SIGNAL(changedUserPosition(double)),
+  connect(bgMotor->motor(), SIGNAL(changedUserPosition(double)),
           SLOT(onTransPosChanges()));
-  connect(bgMotor, SIGNAL(changedUnits(QString)),
+  connect(bgMotor->motor(), SIGNAL(changedUnits(QString)),
           SLOT(setBgUnits()));
-  connect(bgMotor, SIGNAL(changedPrecision(int)),
+  connect(bgMotor->motor(), SIGNAL(changedPrecision(int)),
           SLOT(setBgPrec()));
-  connect(bgMotor, SIGNAL(changedConnected(bool)),
+  connect(bgMotor->motor(), SIGNAL(changedConnected(bool)),
           SLOT(onTransMotorChanges()));
-  connect(bgMotor, SIGNAL(changedPv()),
+  connect(bgMotor->motor(), SIGNAL(changedPv()),
           SLOT(onTransMotorChanges()));
-  connect(bgMotor, SIGNAL(changedDescription(QString)),
+  connect(bgMotor->motor(), SIGNAL(changedDescription(QString)),
           SLOT(onTransMotorChanges()));
-  connect(bgMotor, SIGNAL(changedUserLoLimit(double)),
+  connect(bgMotor->motor(), SIGNAL(changedUserLoLimit(double)),
           SLOT(onTransMotorChanges()));
-  connect(bgMotor, SIGNAL(changedUserHiLimit(double)),
+  connect(bgMotor->motor(), SIGNAL(changedUserHiLimit(double)),
           SLOT(onTransMotorChanges()));
 
   connect(ui->getTransIn, SIGNAL(clicked()),
@@ -302,23 +302,23 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->multiBg, SIGNAL(toggled(bool)),
           SLOT(setScanTable()));
 
-  connect(loopMotor, SIGNAL(changedUserPosition(double)),
+  connect(loopMotor->motor(), SIGNAL(changedUserPosition(double)),
           ui->loopCurrent, SLOT(setValue(double)));
-  connect(loopMotor, SIGNAL(changedUserPosition(double)),
+  connect(loopMotor->motor(), SIGNAL(changedUserPosition(double)),
           SLOT(onLoopPosChanges()));
-  connect(loopMotor, SIGNAL(changedUnits(QString)),
+  connect(loopMotor->motor(), SIGNAL(changedUnits(QString)),
           SLOT(setLoopUnits()));
-  connect(loopMotor, SIGNAL(changedPrecision(int)),
+  connect(loopMotor->motor(), SIGNAL(changedPrecision(int)),
           SLOT(setLoopPrec()));
-  connect(loopMotor, SIGNAL(changedConnected(bool)),
+  connect(loopMotor->motor(), SIGNAL(changedConnected(bool)),
           SLOT(onLoopMotorChanges()));
-  connect(loopMotor, SIGNAL(changedPv()),
+  connect(loopMotor->motor(), SIGNAL(changedPv()),
           SLOT(onLoopMotorChanges()));
-  connect(loopMotor, SIGNAL(changedDescription(QString)),
+  connect(loopMotor->motor(), SIGNAL(changedDescription(QString)),
           SLOT(onLoopMotorChanges()));
-  connect(loopMotor, SIGNAL(changedUserLoLimit(double)),
+  connect(loopMotor->motor(), SIGNAL(changedUserLoLimit(double)),
           SLOT(onLoopMotorChanges()));
-  connect(loopMotor, SIGNAL(changedUserHiLimit(double)),
+  connect(loopMotor->motor(), SIGNAL(changedUserHiLimit(double)),
           SLOT(onLoopMotorChanges()));
 
   connect(ui->getLoopStart, SIGNAL(clicked()),
@@ -336,23 +336,23 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(ui->subLoop, SIGNAL(toggled(bool)),
           SLOT(onSubLoopChanges()));
-  connect(subLoopMotor, SIGNAL(changedUserPosition(double)),
+  connect(subLoopMotor->motor(), SIGNAL(changedUserPosition(double)),
           ui->subLoopCurrent, SLOT(setValue(double)));
-  connect(subLoopMotor, SIGNAL(changedUserPosition(double)),
+  connect(subLoopMotor->motor(), SIGNAL(changedUserPosition(double)),
           SLOT(onSubLoopPosChanges()));
-  connect(subLoopMotor, SIGNAL(changedUnits(QString)),
+  connect(subLoopMotor->motor(), SIGNAL(changedUnits(QString)),
           SLOT(setSubLoopUnits()));
-  connect(subLoopMotor, SIGNAL(changedPrecision(int)),
+  connect(subLoopMotor->motor(), SIGNAL(changedPrecision(int)),
           SLOT(setSubLoopPrec()));
-  connect(subLoopMotor, SIGNAL(changedConnected(bool)),
+  connect(subLoopMotor->motor(), SIGNAL(changedConnected(bool)),
           SLOT(onSubLoopMotorChanges()));
-  connect(subLoopMotor, SIGNAL(changedPv()),
+  connect(subLoopMotor->motor(), SIGNAL(changedPv()),
           SLOT(onSubLoopMotorChanges()));
-  connect(subLoopMotor, SIGNAL(changedDescription(QString)),
+  connect(subLoopMotor->motor(), SIGNAL(changedDescription(QString)),
           SLOT(onSubLoopMotorChanges()));
-  connect(subLoopMotor, SIGNAL(changedUserLoLimit(double)),
+  connect(subLoopMotor->motor(), SIGNAL(changedUserLoLimit(double)),
           SLOT(onSubLoopMotorChanges()));
-  connect(subLoopMotor, SIGNAL(changedUserHiLimit(double)),
+  connect(subLoopMotor->motor(), SIGNAL(changedUserHiLimit(double)),
           SLOT(onSubLoopMotorChanges()));
 
   connect(ui->getSubLoopStart, SIGNAL(clicked()),
@@ -371,23 +371,23 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->testMulti, SIGNAL(clicked()),
           SLOT(onAcquireMulti()));
 
-  connect(dynoMotor, SIGNAL(changedUserPosition(double)),
+  connect(dynoMotor->motor(), SIGNAL(changedUserPosition(double)),
           ui->dynoCurrent, SLOT(setValue(double)));
-  connect(dynoMotor, SIGNAL(changedUserPosition(double)),
+  connect(dynoMotor->motor(), SIGNAL(changedUserPosition(double)),
           SLOT(onDynoPosChanges()));
-  connect(dynoMotor, SIGNAL(changedUnits(QString)),
+  connect(dynoMotor->motor(), SIGNAL(changedUnits(QString)),
           SLOT(setDynoUnits()));
-  connect(dynoMotor, SIGNAL(changedPrecision(int)),
+  connect(dynoMotor->motor(), SIGNAL(changedPrecision(int)),
           SLOT  (setDynoPrec()));
-  connect(dynoMotor, SIGNAL(changedConnected(bool)),
+  connect(dynoMotor->motor(), SIGNAL(changedConnected(bool)),
           SLOT(onDynoMotorChanges()));
-  connect(dynoMotor, SIGNAL(changedPv()),
+  connect(dynoMotor->motor(), SIGNAL(changedPv()),
           SLOT(onDynoMotorChanges()));
-  connect(dynoMotor, SIGNAL(changedDescription(QString)),
+  connect(dynoMotor->motor(), SIGNAL(changedDescription(QString)),
           SLOT(onDynoMotorChanges()));
-  connect(dynoMotor, SIGNAL(changedUserLoLimit(double)),
+  connect(dynoMotor->motor(), SIGNAL(changedUserLoLimit(double)),
           SLOT(onDynoMotorChanges()));
-  connect(dynoMotor, SIGNAL(changedUserHiLimit(double)),
+  connect(dynoMotor->motor(), SIGNAL(changedUserHiLimit(double)),
           SLOT(onDynoMotorChanges()));
 
   connect(ui->dynoShot, SIGNAL(toggled(bool)),
@@ -403,23 +403,23 @@ MainWindow::MainWindow(QWidget *parent) :
 
   connect(ui->dyno2Shot, SIGNAL(toggled(bool)),
           SLOT(onDyno2Changes()));
-  connect(dyno2Motor, SIGNAL(changedUserPosition(double)),
+  connect(dyno2Motor->motor(), SIGNAL(changedUserPosition(double)),
           ui->dyno2Current, SLOT(setValue(double)));
-  connect(dyno2Motor, SIGNAL(changedUserPosition(double)),
+  connect(dyno2Motor->motor(), SIGNAL(changedUserPosition(double)),
           SLOT(onDyno2PosChanges()));
-  connect(dyno2Motor, SIGNAL(changedUnits(QString)),
+  connect(dyno2Motor->motor(), SIGNAL(changedUnits(QString)),
           SLOT(setDyno2Units()));
-  connect(dyno2Motor, SIGNAL(changedPrecision(int)),
+  connect(dyno2Motor->motor(), SIGNAL(changedPrecision(int)),
           SLOT  (setDyno2Prec()));
-  connect(dyno2Motor, SIGNAL(changedConnected(bool)),
+  connect(dyno2Motor->motor(), SIGNAL(changedConnected(bool)),
           SLOT(onDyno2MotorChanges()));
-  connect(dyno2Motor, SIGNAL(changedPv()),
+  connect(dyno2Motor->motor(), SIGNAL(changedPv()),
           SLOT(onDyno2MotorChanges()));
-  connect(dyno2Motor, SIGNAL(changedDescription(QString)),
+  connect(dyno2Motor->motor(), SIGNAL(changedDescription(QString)),
           SLOT(onDyno2MotorChanges()));
-  connect(dyno2Motor, SIGNAL(changedUserLoLimit(double)),
+  connect(dyno2Motor->motor(), SIGNAL(changedUserLoLimit(double)),
           SLOT(onDyno2MotorChanges()));
-  connect(dyno2Motor, SIGNAL(changedUserHiLimit(double)),
+  connect(dyno2Motor->motor(), SIGNAL(changedUserHiLimit(double)),
           SLOT(onDyno2MotorChanges()));
 
   connect(ui->getDyno2Start, SIGNAL(clicked()),
