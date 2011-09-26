@@ -104,17 +104,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
 
-  thetaMotor = new QCaMotorGUI(ui->tabScan);
+  thetaMotor = new QCaMotorGUI;
   ui->scanLayout->addWidget(thetaMotor->setupButton(), 0, 0, 1, 1);
-  bgMotor = new QCaMotorGUI(ui->tabFF);
+  bgMotor = new QCaMotorGUI;
   ui->ffLayout->addWidget(bgMotor->setupButton(), 3, 0, 1, 1);
-  loopMotor = new QCaMotorGUI(ui->tabMulti);
+  loopMotor = new QCaMotorGUI;
   ui->loopLayout->addWidget(loopMotor->setupButton(), 0, 0, 1, 1);
-  subLoopMotor = new QCaMotorGUI(ui->tabMulti);
+  subLoopMotor = new QCaMotorGUI;
   ui->subLoopLayout->addWidget(subLoopMotor->setupButton(), 0, 0, 1, 1);
-  dynoMotor = new QCaMotorGUI(ui->tabDyno);
+  dynoMotor = new QCaMotorGUI;
   ui->dyno1Layout->addWidget(dynoMotor->setupButton(), 1, 0, 1, 1);
-  dyno2Motor = new QCaMotorGUI(ui->tabDyno);
+  dyno2Motor = new QCaMotorGUI;
   ui->dyno2Layout->addWidget(dyno2Motor->setupButton(), 0, 0, 1, 1);
 
   ui->dynoStarStopWg->setVisible(false); // until we have Qt-areaDetector and can trig the detector.
