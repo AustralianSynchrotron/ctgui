@@ -2583,6 +2583,8 @@ void MainWindow::startDynos(double dynoPos, double dyno2Pos) {
   if ( ui->dyno2Shot->isChecked() )
     dyno2Motor->motor()->goUserPosition(dyno2Pos, false);
 
+  qtWait(200);
+
 
 }
 
@@ -3291,6 +3293,8 @@ void MainWindow::engine (const bool dryRun) {
             subLoopMotor->motor()->goUserPosition(subLoopPos, false);
             lastSubLoop = subLoopPos;
           }
+
+          qtWait(100);
 
           bgMotor->motor()->wait_stop();
           thetaMotor->motor()->wait_stop();
