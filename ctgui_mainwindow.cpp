@@ -2563,9 +2563,9 @@ void MainWindow::waitStopDynos() {
 
 void MainWindow::stopDynos() {
   if ( ui->dynoShot->isChecked() )
-    dynoMotor->motor()->stop(false);
+    dynoMotor->motor()->stop();
   if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->motor()->stop(false);
+    dyno2Motor->motor()->stop();
   waitStopDynos();
 }
 
@@ -2579,11 +2579,11 @@ void MainWindow::startDynos(double dynoPos, double dyno2Pos) {
     waitStopDynos();
 
   if ( ui->dynoShot->isChecked() )
-    dynoMotor->motor()->goUserPosition(dynoPos, false);
+    dynoMotor->motor()->goUserPosition(dynoPos, QCaMotor::STARTED);
   if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->motor()->goUserPosition(dyno2Pos, false);
+    dyno2Motor->motor()->goUserPosition(dyno2Pos, QCaMotor::STARTED);
 
-  qtWait(200);
+  //// qtWait(200);
 
 
 }
@@ -2660,7 +2660,7 @@ int MainWindow::acquireMulti() {
         ( (loopN==1)  ?  0  :  x * (lEnd-lStart) / (loopN-1) );
     if ( doL  &&  lastLoop != loopPos ) {
       appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
-      loopMotor->motor()->goUserPosition(loopPos, false);
+      loopMotor->motor()->goUserPosition(loopPos, QCaMotor::STARTED);
       lastLoop = loopPos;
     }
 
@@ -2670,7 +2670,7 @@ int MainWindow::acquireMulti() {
           ( ( subLoopN == 1 )  ?  0  :  y * (slEnd - slStart) / (subLoopN-1) );
       if ( doSL  &&  lastSubLoop != subLoopPos ) {
         appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
-        subLoopMotor->motor()->goUserPosition(subLoopPos, false);
+        subLoopMotor->motor()->goUserPosition(subLoopPos, QCaMotor::STARTED);
         lastSubLoop = subLoopPos;
       }
 
@@ -2678,8 +2678,8 @@ int MainWindow::acquireMulti() {
       subLoopMotor->motor()->wait_stop();
 
       if (stopMe) {
-        loopMotor->motor()->goUserPosition(lStart, false);
-        subLoopMotor->motor()->goUserPosition(slStart, false);
+        loopMotor->motor()->goUserPosition(lStart);
+        subLoopMotor->motor()->goUserPosition(slStart);
         ui->multiWidget->setEnabled(true);
         return execStatus;
       }
@@ -2691,8 +2691,8 @@ int MainWindow::acquireMulti() {
       if (execStatus)
         appendMessage(ERROR, "Failed to acquire image in the multi-shot run.");
       if (execStatus || stopMe) {
-        loopMotor->motor()->goUserPosition(lStart, false);
-        subLoopMotor->motor()->goUserPosition(slStart, false);
+        loopMotor->motor()->goUserPosition(lStart);
+        subLoopMotor->motor()->goUserPosition(slStart);
         ui->multiWidget->setEnabled(true);
         return execStatus;
       }
@@ -2701,8 +2701,8 @@ int MainWindow::acquireMulti() {
 
   }
 
-  loopMotor->motor()->goUserPosition(lStart, false);
-  subLoopMotor->motor()->goUserPosition(slStart, false);
+  loopMotor->motor()->goUserPosition(lStart);
+  subLoopMotor->motor()->goUserPosition(slStart);
   ui->multiWidget->setEnabled(true);
   return execStatus;
 
@@ -2838,9 +2838,9 @@ void MainWindow::setEngineStatus(EngineStatus status) {
     appendMessage(CONTROL, "Pausing engine.");
 
     if ( ui->dynoShot->isChecked() )
-      dynoMotor->motor()->goUserPosition(motorsInitials[dynoMotor], false);
+      dynoMotor->motor()->goUserPosition(motorsInitials[dynoMotor], QCaMotor::STARTED);
     if ( ui->dyno2Shot->isChecked() )
-      dyno2Motor->motor()->goUserPosition(motorsInitials[dyno2Motor], false);
+      dyno2Motor->motor()->goUserPosition(motorsInitials[dyno2Motor], QCaMotor::STARTED);
 
     ui->startStop->setText("Resume scan");
     ui->assistant->show();
@@ -2893,7 +2893,7 @@ void MainWindow::setEngineStatus(EngineStatus status) {
     if ( engineStatus != Filling ) {
       foreach (QCaMotorGUI * mot, motorsInitials.keys() )
         if (mot->motor()->isConnected())
-          mot->motor()->goUserPosition(motorsInitials[mot],false);
+          mot->motor()->goUserPosition(motorsInitials[mot]);
     }
 
     ui->startStop->setText("Start");
@@ -3275,26 +3275,26 @@ void MainWindow::engine (const bool dryRun) {
 
           if ( lastTrans != transGoal ) {
             appendMessage(CONTROL, "Moving translation motor to " + QString::number(transGoal) + ".");
-            bgMotor->motor()->goUserPosition(transGoal, false);
+            bgMotor->motor()->goUserPosition(transGoal, QCaMotor::STARTED);
             lastTrans = transGoal;
           }
           if ( ! isBg && lastScan != cPos) {
             appendMessage(CONTROL, "Moving scan motor to " + QString::number(cPos) + ".");
-            thetaMotor->motor()->goUserPosition(cPos, false);
+            thetaMotor->motor()->goUserPosition(cPos, QCaMotor::STARTED);
             lastScan=cPos;
           }
           if ( doL  &&  lastLoop != loopPos ) {
             appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
-            loopMotor->motor()->goUserPosition(loopPos, false);
+            loopMotor->motor()->goUserPosition(loopPos, QCaMotor::STARTED);
             lastLoop = loopPos;
           }
           if ( doSL  &&  lastSubLoop != subLoopPos ) {
             appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
-            subLoopMotor->motor()->goUserPosition(subLoopPos, false);
+            subLoopMotor->motor()->goUserPosition(subLoopPos, QCaMotor::STARTED);
             lastSubLoop = subLoopPos;
           }
 
-          qtWait(100);
+          //// qtWait(100);
 
           bgMotor->motor()->wait_stop();
           thetaMotor->motor()->wait_stop();
