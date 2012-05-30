@@ -55,7 +55,6 @@ static int checkScript(const QString & script, QString & result) {
 QHash<QString,QString> MainWindow::envDesc;
 QHash<MainWindow::Role,QString> MainWindow::roleName;
 const bool MainWindow::inited = MainWindow::init();
-const QString MainWindow::shutterPvBaseName = "SR08ID01PSS01:HU01A_BL_SHUTTER";
 const QIcon MainWindow::badIcon = QIcon(":/warn.svg");
 const QIcon MainWindow::goodIcon = QIcon();
 
@@ -64,7 +63,6 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow),
   hui(new Ui::HelpDialog),
   hDialog(new QDialog(this, Qt::Tool)),
-  shutterStatus(0),
   scanList(new QStandardItemModel(0,4,this)),
   proxyModel(new QSortFilterProxyModel(this)),
   transQty(0),
@@ -131,14 +129,7 @@ MainWindow::MainWindow(QWidget *parent) :
   motorsInitials[dynoMotor] = 0 ;
   motorsInitials[dyno2Motor] = 0 ;
 
-  opnSts = new QEpicsPv(shutterPvBaseName + "_OPEN_STS", ui->tabFF) ;
-  opnSts->setObjectName("Shutter open status");
-  clsSts = new QEpicsPv(shutterPvBaseName + "_CLOSE_STS", ui->tabFF) ;
-  clsSts->setObjectName("Shutter close status");
-  opnCmd = new QEpicsPv(shutterPvBaseName + "_OPEN_CMD", ui->tabFF) ;
-  opnCmd->setObjectName("Shutter open command");
-  clsCmd = new QEpicsPv(shutterPvBaseName + "_CLOSE_CMD", ui->tabFF) ;
-  clsCmd->setObjectName("Shutter close command");
+  sh1A = new Shutter1A(ui->tabFF);
 
   setEnv("FILE", ".temp.tif");
   setEnv("AQTYPE", "SINGLESHOT");
@@ -280,21 +271,12 @@ MainWindow::MainWindow(QWidget *parent) :
           SLOT(onDfChanges()));
   connect(ui->dfAfter, SIGNAL(valueChanged(int)),
           SLOT(onDfChanges()));
-  connect(opnSts, SIGNAL(connectionChanged(bool)),
+  connect(sh1A, SIGNAL(connectionChanged(bool)),
           SLOT(onDfChanges()));
-  connect(clsSts, SIGNAL(connectionChanged(bool)),
-          SLOT(onDfChanges()));
-  connect(opnCmd, SIGNAL(connectionChanged(bool)),
-          SLOT(onDfChanges()));
-  connect(clsSts, SIGNAL(connectionChanged(bool)),
-          SLOT(onDfChanges()));
-  connect(opnSts, SIGNAL(valueChanged(QVariant)),
-          SLOT(onShutterChanges()));
-  connect(clsSts, SIGNAL(valueChanged(QVariant)),
+  connect(sh1A, SIGNAL(stateChanged(Shutter1A::State)),
           SLOT(onShutterChanges()));
   connect(ui->shutterMan, SIGNAL(clicked()),
-          SLOT(onShutterMan()));
-
+          sh1A, SLOT(toggle()));
   connect(ui->singleShot, SIGNAL(toggled(bool)),
           SLOT(onShotModeChanges()));
   connect(ui->multiShot, SIGNAL(toggled(bool)),
@@ -1572,10 +1554,7 @@ void MainWindow::onDfChanges() {
   ui->dfFile->setEnabled(total);
   onDfFileChanges();
 
-  bool itemOK =
-      ! total ||
-      ( opnSts->isConnected() && clsSts->isConnected() &&
-       opnCmd->isConnected() && clsCmd->isConnected() );
+  bool itemOK = ! total ||  sh1A->isConnected();
   check(ui->dfBefore, itemOK);
   check(ui->dfAfter, itemOK);
   check(ui->shutterMan, itemOK);
@@ -2416,41 +2395,36 @@ void MainWindow::check(QWidget * obj, bool status) {
 
 
 
-void MainWindow::onShutterMan(){
-  if ( ! shutterStatus ) // in prog
-    return;
-  QTimer::singleShot(2000, this, SLOT(onShutterChanges()));
-  shutterMan( shutterStatus < 0, true ); // invert current status
-}
 
 void MainWindow::onShutterChanges() {
 
-  if ( ! opnSts->isConnected() || ! clsSts->isConnected() ) {
-    shutterStatus = 0;
+  if ( ! sh1A->isConnected() ) {
     ui->shutterMan->setEnabled(false);
     return;
   }
 
-  if ( clsSts->get().toBool() == opnSts->get().toBool()  )  { // in between
-    shutterStatus = 0;
+  switch (sh1A->state()) {
+  case Shutter1A::BETWEEN :
     ui->shutterMan->setText("Wait");
     ui->shutterStatus->setText("in progress");
-  } else if ( opnSts->get().toBool() ) {
-    shutterStatus = 1;
+    ui->shutterMan->setEnabled(false);
+    break;
+  case Shutter1A::OPENED :
     ui->shutterStatus->setText("opened");
     ui->shutterMan->setText("Close");
-  } else {
-    shutterStatus = -1;
+    ui->shutterMan->setEnabled(true);
+    break;
+  case Shutter1A::CLOSED :
     ui->shutterStatus->setText("closed");
     ui->shutterMan->setText("Open");
+    ui->shutterMan->setEnabled(true);
+    break;
   }
-  ui->shutterMan->setEnabled(shutterStatus);
-
 
 }
 
 
-
+/*
 int MainWindow::shutterMan(bool st, bool wait) {
 
   int rst = st ? 1 : -1 ;
@@ -2492,7 +2466,7 @@ int MainWindow::shutterMan(bool st, bool wait) {
     }
     if ( rst == shutterStatus )
       return shutterStatus;
-    tT.stop();
+    tT.stop();onShutterMan()
 
   }
 
@@ -2516,10 +2490,11 @@ int MainWindow::shutterMan(bool st, bool wait) {
     onShutterChanges();
   }
 
-
+onShutterMan()
   return shutterStatus;
 
 }
+*/
 
 
 int MainWindow::acquireDetector(const QString & filename) {
@@ -3155,7 +3130,7 @@ void MainWindow::engine (const bool dryRun) {
 
 
   if ( ! dryRun && ui->dfBefore->value() )
-    shutterMan(false,true);
+    sh1A->close(true);
 
   for ( int j = 0 ; j < ui->dfBefore->value() ; ++j )  {
 
@@ -3190,7 +3165,7 @@ void MainWindow::engine (const bool dryRun) {
   //
 
   if (!dryRun)
-    shutterMan(true,true);
+    sh1A->open(true);
 
   int bgBeforeNext=0, bgCount=0;
   bool isBg, wasBg = false;
@@ -3332,7 +3307,7 @@ void MainWindow::engine (const bool dryRun) {
   setEnv("DFTYPE", "AFTER");
 
   if (!dryRun)
-    shutterMan(false,true);
+    sh1A->close(true);
 
   for ( int j = 0 ; j < ui->dfAfter->value() ; ++j ) {
 

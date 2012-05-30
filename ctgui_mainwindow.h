@@ -9,6 +9,7 @@
 #include <QStandardItem>
 #include <QFile>
 
+#include <imbl/shutter1A.h>
 #include "ui_ctgui_mainwindow.h"
 #include "ui_ctgui_variables.h"
 
@@ -51,6 +52,8 @@ private:
 
   QDialog *hDialog;
 
+
+  Shutter1A * sh1A;
   QCaMotorGUI * thetaMotor;
   QCaMotorGUI * bgMotor;
   QCaMotorGUI * loopMotor;
@@ -60,15 +63,8 @@ private:
 
   QHash<QCaMotorGUI *, double> motorsInitials;
 
-  QEpicsPv * opnSts;
-  QEpicsPv * clsSts;
-  QEpicsPv * opnCmd;
-  QEpicsPv * clsCmd;
-  int shutterStatus; // tri-state: neg - closed, 0 - in progress, pos - opened.
-  int shutterMan(bool st, bool wait=false);
+  //int shutterMan(bool st, bool wait=false);
 
-
-  static const QString shutterPvBaseName;
 
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <const QObject*,  ReqP > preReq;
@@ -223,7 +219,7 @@ private slots:
   void onTransOutChanges();
   void onDfChanges();
   void onShutterChanges();
-  void onShutterMan();
+  //void onShutterMan();
 
   void onShotModeChanges();
   void onLoopMotorChanges();
