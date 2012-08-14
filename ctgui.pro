@@ -26,7 +26,7 @@ QMAKE_LFLAGS += -Wl,-rpath,$$IMBLRPATH
 
 
 
-LIBS += -lqcamotorgui \
+LIBS += -lqcamotor -lqcamotorgui \
             -L$$IMBLRPATH \
             -lshutter1A
 
