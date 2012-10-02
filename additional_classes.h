@@ -3,89 +3,105 @@
 #include <QLineEdit>
 #include <QToolButton>
 #include <QStyle>
+#include <QProcess>
 
-#ifndef QPTEEXT_H
-#define QPTEEXT_H
+#ifndef CTGUIADDITIONALCLASSES
+#define CTGUIADDITIONALCLASSES
 
 
 
 class QPTEext : public QPlainTextEdit {
-
   Q_OBJECT;
-
 public:
-
   QPTEext(QWidget * parent=0) : QPlainTextEdit(parent) {};
-
 signals:
-
   void editingFinished();
   void focusIned();
   void focusOuted();
-
 protected:
-
-  bool event(QEvent *event) {
-    if (event->type() == QEvent::FocusOut)
-      emit editingFinished();
-    return QPlainTextEdit::event(event);
-  }
-
-  void focusInEvent ( QFocusEvent * e ) {
-    QPlainTextEdit::focusInEvent(e);
-    emit focusIned();
-  }
-
-  void focusOutEvent ( QFocusEvent * e ) {
-    QPlainTextEdit::focusOutEvent(e);
-    emit focusOuted();
-  }
-
-
+  bool event(QEvent *event);
+  void focusInEvent ( QFocusEvent * e );
+  void focusOutEvent ( QFocusEvent * e );
 };
 
 
-class CtGuiLineEdit : public QLineEdit
-{
-    Q_OBJECT;
-
+class CtGuiLineEdit : public QLineEdit {
+  Q_OBJECT;
 private:
   QToolButton *clearButton;
-
 public:
-  CtGuiLineEdit(QWidget *parent)
-    : QLineEdit(parent)
-  {
-    clearButton = new QToolButton(this);
-    clearButton->setToolTip("Clear text");
-    clearButton->setArrowType(Qt::LeftArrow);
-    clearButton->setCursor(Qt::ArrowCursor);
-    clearButton->setStyleSheet("QToolButton { border: none; padding: 0px; }");
-    clearButton->hide();
-    connect(clearButton, SIGNAL(clicked()), this, SLOT(clear()));
-    connect(this, SIGNAL(textChanged(const QString&)), this, SLOT(updateCloseButton(const QString&)));
-    int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
-    setStyleSheet(QString("QLineEdit { padding-right: %1px; } ").arg(clearButton->sizeHint().width() + frameWidth + 1));
-    QSize msz = minimumSizeHint();
-    setMinimumSize(qMax(msz.width(), clearButton->sizeHint().height() + frameWidth * 2 + 2),
-                   qMax(msz.height(), clearButton->sizeHint().height() + frameWidth * 2 + 2));
-  }
-
+  CtGuiLineEdit(QWidget *parent);
 protected:
-  void resizeEvent(QResizeEvent *) {
-    QSize sz = clearButton->sizeHint();
-    int frameWidth = style()->pixelMetric(QStyle::PM_DefaultFrameWidth);
-    clearButton->move(rect().right() - frameWidth - sz.width(),
-                      (rect().bottom() + 1 - sz.height())/2);
-  }
-
+  void resizeEvent(QResizeEvent *);
 private slots:
   void updateCloseButton(const QString& text) {
     clearButton->setVisible(!text.isEmpty());
   }
+};
+
+
+
+
+
+namespace Ui {
+class Script;
+}
+
+class Script : public QWidget {
+  Q_OBJECT;
+
+private:
+  Ui::Script *ui;
+  QProcess proc;
+
+public:
+  explicit Script(QWidget *parent = 0);
+  ~Script();
+
+  void setPath(const QString & _path);
+  const QString out() {return proc.readAllStandardOutput();}
+  const QString err() {return proc.readAllStandardError();}
+  int waitStop();
+  bool isRunning() const { return proc.pid(); };
+  const QString path() const;
+
+public slots:
+  bool start();
+  int execute() { return start() ? waitStop() : -1 ; };
+  void stop() {if (isRunning()) proc.kill();};
+
+private slots:
+  void browse();
+  void evaluate();
+  void onState(QProcess::ProcessState state);
+  void onStartStop() { if (isRunning()) stop(); else start(); };
+
+signals:
+  void editingFinished();
+  void executed();
+  void finished(int status);
+  void started();
 
 };
 
 
 
-#endif // QPTEEXT_H
+class FilterFileTemplateEvent : public QObject {
+  Q_OBJECT;
+public:
+  FilterFileTemplateEvent(QObject * parent=0) :
+    QObject(parent) {}
+protected:
+  bool eventFilter(QObject *obj, QEvent *event) {
+    if (event->type() == QEvent::FocusIn ||
+        event->type() == QEvent::FocusOut )
+      emit focusInOut();
+    return QObject::eventFilter(obj,event);
+  }
+signals:
+  void focusInOut();
+};
+
+
+
+#endif // CTGUIADDITIONALCLASSES

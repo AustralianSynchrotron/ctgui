@@ -11,7 +11,9 @@ TEMPLATE = app
 
 
 SOURCES += main.cpp\
-        ctgui_mainwindow.cpp
+        ctgui_mainwindow.cpp \
+    additional_classes.cpp \
+    detector.cpp
 
 IMBLEXEC   = $$system(command -v imblgui)
 IMBLORIGIN = $$dirname(IMBLEXEC)
@@ -26,15 +28,18 @@ QMAKE_LFLAGS += -Wl,-rpath,$$IMBLRPATH
 
 
 
-LIBS += -lqcamotor -lqcamotorgui \
+LIBS +=     -lqtpv -lqtpvwidgets \
+            -lqcamotor -lqcamotorgui \
             -L$$IMBLRPATH \
-            -lshutter1A
+            -lshutter1A -lcomponent
 
 HEADERS  += ctgui_mainwindow.h \
-    additional_classes.h
+    additional_classes.h \
+    detector.h
 
 FORMS    += ctgui_mainwindow.ui \
-    ctgui_variables.ui
+    ctgui_variables.ui \
+    script.ui
 
 RESOURCES += \
     ctgui.qrc

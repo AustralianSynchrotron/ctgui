@@ -1,5 +1,3 @@
-
-#include "ctgui_mainwindow.h"
 #include <QDebug>
 #include <QFileDialog>
 #include <QVector>
@@ -8,6 +6,12 @@
 #include <QSettings>
 #include <QFile>
 
+#include "additional_classes.h"
+
+#include "ctgui_mainwindow.h"
+
+#include "ui_ctgui_mainwindow.h"
+#include "ui_ctgui_variables.h"
 
 
 
@@ -18,110 +22,78 @@ static int evalExpr(const QString & templ, QString & result) {
   proc.start("/bin/sh -c \"eval echo -n " + templ + "\"");
   proc.waitForFinished();
 
-  if ( proc.exitCode()  )  {
+  if ( proc.exitCode()  )
     result = proc.readAllStandardError();
-    return proc.exitCode();
-  } else {
+  else
     result = proc.readAllStandardOutput();
-    return 0;
-  }
-
+  return proc.exitCode();
 
 
 }
-
-static int checkScript(const QString & script, QString & result) {
-
-  QProcess proc;
-  proc.start("/bin/sh -n " + script);
-  proc.waitForFinished();
-
-  if ( proc.exitCode() )  {
-    result = proc.readAllStandardError();
-    return proc.exitCode();
-  } else {
-    result = proc.readAllStandardOutput();
-    return 0;
-  }
-
-}
-
-
-
-
-
-
 
 QHash<QString,QString> MainWindow::envDesc;
-QHash<MainWindow::Role,QString> MainWindow::roleName;
+const QString MainWindow::storedState=QDir::homePath()+"/.ctgui";
 const bool MainWindow::inited = MainWindow::init();
 const QIcon MainWindow::badIcon = QIcon(":/warn.svg");
 const QIcon MainWindow::goodIcon = QIcon();
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
+  isLoadingState(false),
   ui(new Ui::MainWindow),
   hui(new Ui::HelpDialog),
   hDialog(new QDialog(this, Qt::Tool)),
-  scanList(new QStandardItemModel(0,4,this)),
-  proxyModel(new QSortFilterProxyModel(this)),
-  transQty(0),
   stopMe(true),
-  engineStatus(Stopped)
+  detfname(new QEpicsPv("SR08ID01DET02:TIFF1:FileName"))
 {
 
-
-  aqExec = new QFile( QString(tmpnam(0)) + ".ctgui_aq", this) ;
-  aqExec->open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
-  aqExec->setPermissions( QFile::ExeUser | QFile::ReadUser | QFile::WriteUser);
-
-  preExec = new QFile( QString(tmpnam(0)) + ".ctgui_pre", this) ;
-  preExec->open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
-  preExec->setPermissions( QFile::ExeUser | QFile::ReadUser | QFile::WriteUser);
-
-  postExec = new QFile( QString(tmpnam(0)) + ".ctgui_post", this) ;
-  postExec->open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
-  postExec->setPermissions( QFile::ExeUser | QFile::ReadUser | QFile::WriteUser);
-
   ui->setupUi(this);
+  ui->control->setCurrentIndex(0);
+  ui->loopLayout->setColumnMinimumWidth(0, ui->postSubLoopScriptLabel->width());
+
   hui->setupUi(hDialog);
 
-  widgetsNeededHelp
-      << ui->preCommand
-      << ui->postCommand
-      << ui->detectorCommand
-      << ui->sampleFile
-      << ui->bgFile
-      << ui->dfFile;
   insertVariableIntoMe=0;
+
+  QPushButton * save = new QPushButton("Save");
+  save->setFlat(true);
+  connect(save, SIGNAL(clicked()), SLOT(saveConfiguration()));
+  ui->statusBar->addPermanentWidget(save);
+
+  QPushButton * load = new QPushButton("Load");
+  load->setFlat(true);
+  connect(load, SIGNAL(clicked()), SLOT(loadConfiguration()));
+  ui->statusBar->addPermanentWidget(load);
 
   QCheckBox * showVariables = new QCheckBox("Show variables");
   connect(showVariables, SIGNAL(toggled(bool)), hDialog, SLOT(setVisible(bool)));
   showVariables->setCheckState(Qt::Unchecked);
   ui->statusBar->addPermanentWidget(showVariables);
 
+  FilterFileTemplateEvent * fileTemplateEventFilter = new FilterFileTemplateEvent(this);
+  ui->sampleFile->installEventFilter(fileTemplateEventFilter);
+  ui->bgFile->installEventFilter(fileTemplateEventFilter);
+  ui->dfFile->installEventFilter(fileTemplateEventFilter);
 
+  ui->stepTime->setSuffix("s");
+  ui->exposureInfo->setSuffix("s");
 
+  serialMotor = new QCaMotorGUI;
+  ui->placeSerialMotor->layout()->addWidget(serialMotor->setupButton());
   thetaMotor = new QCaMotorGUI;
-  ui->scanLayout->addWidget(thetaMotor->setupButton(), 0, 0, 1, 1);
+  ui->placeThetaMotor->layout()->addWidget(thetaMotor->setupButton());
   bgMotor = new QCaMotorGUI;
-  ui->ffLayout->addWidget(bgMotor->setupButton(), 3, 0, 1, 1);
+  ui->placeBGmotor->layout()->addWidget(bgMotor->setupButton());
   loopMotor = new QCaMotorGUI;
-  ui->loopLayout->addWidget(loopMotor->setupButton(), 0, 0, 1, 1);
+  ui->placeLoopMotor->layout()->addWidget(loopMotor->setupButton());
   subLoopMotor = new QCaMotorGUI;
-  ui->subLoopLayout->addWidget(subLoopMotor->setupButton(), 0, 0, 1, 1);
+  ui->placeSubLoopMotor->layout()->addWidget(subLoopMotor->setupButton());
   dynoMotor = new QCaMotorGUI;
-  ui->dyno1Layout->addWidget(dynoMotor->setupButton(), 1, 0, 1, 1);
+  ui->placeDynoMotor->layout()->addWidget(dynoMotor->setupButton());
   dyno2Motor = new QCaMotorGUI;
-  ui->dyno2Layout->addWidget(dyno2Motor->setupButton(), 0, 0, 1, 1);
+  ui->placeDyno2Motor->layout()->addWidget(dyno2Motor->setupButton());
 
-  ui->dynoStarStopWg->setVisible(false); // until we have Qt-areaDetector and can trig the detector.
-
-  proxyModel->setSourceModel(scanList);
-  proxyModel->setFilterKeyColumn(-1);
-  ui->scanView->setModel(proxyModel);
-  setScanTable();
-
+  motorsInitials[serialMotor] = 0 ;
   motorsInitials[thetaMotor] = 0 ;
   motorsInitials[bgMotor] = 0 ;
   motorsInitials[loopMotor] = 0 ;
@@ -130,6 +102,194 @@ MainWindow::MainWindow(QWidget *parent) :
   motorsInitials[dyno2Motor] = 0 ;
 
   sh1A = new Shutter1A(ui->tabFF);
+
+
+  connect(ui->preRunScript, SIGNAL(editingFinished()), SLOT(tempSlot()));
+
+  connect(ui->expPath, SIGNAL(textChanged(QString)), SLOT(onWorkingDirChange()));
+  connect(ui->browseExpPath, SIGNAL(clicked()), SLOT(onWorkingDirBrowse()));
+  connect(ui->continiousMode, SIGNAL(toggled(bool)), SLOT(onAcquisitionMode()));
+  connect(ui->stepAndShotMode, SIGNAL(toggled(bool)), SLOT(onAcquisitionMode()));
+  connect(ui->checkSerial, SIGNAL(toggled(bool)), SLOT(onSerialCheck()));
+  connect(ui->checkFF, SIGNAL(toggled(bool)), SLOT(onFFcheck()));
+  connect(ui->checkDyno, SIGNAL(toggled(bool)), SLOT(onDynoCheck()));
+  connect(ui->checkMulti, SIGNAL(toggled(bool)), SLOT(onMultiCheck()));
+  connect(ui->sampleFile, SIGNAL(textChanged(QString)), SLOT(onSampleFile()));
+  connect(ui->bgFile, SIGNAL(textChanged(QString)), SLOT(onBGfile()));
+  connect(ui->dfFile, SIGNAL(textChanged(QString)), SLOT(onDFfile()));
+  connect(fileTemplateEventFilter, SIGNAL(focusInOut()), SLOT(onFileTemplateFocus()));
+
+  connect(ui->endNumber, SIGNAL(toggled(bool)), SLOT(onEndCondition()));
+  connect(ui->endTime, SIGNAL(toggled(bool)), SLOT(onEndCondition()));
+  connect(ui->endCondition, SIGNAL(toggled(bool)), SLOT(onEndCondition()));
+  connect(serialMotor->motor(), SIGNAL(changedUserPosition(double)),
+          ui->serialCurrent, SLOT(setValue(double)));
+  connect(serialMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onSerialMotor()));
+  connect(serialMotor->motor(), SIGNAL(changedPrecision(int)), SLOT(onSerialMotor()));
+  connect(serialMotor->motor(), SIGNAL(changedConnected(bool)), SLOT(onSerialMotor()));
+  connect(serialMotor->motor(), SIGNAL(changedPv()), SLOT(onSerialMotor()));
+  connect(serialMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onSerialMotor()));
+  connect(serialMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onSerialMotor()));
+  connect(serialMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onSerialMotor()));
+  connect(ui->serialStep, SIGNAL(valueChanged(double)), SLOT(onSerialStep()));
+  connect( ui->ongoingSeries, SIGNAL(toggled(bool)),
+           ui->ffOnEachScan, SLOT(setHidden(bool)));
+
+
+  connect(ui->scanRange, SIGNAL(valueChanged(double)), SLOT(onScanRange()));
+  connect(thetaMotor->motor(), SIGNAL(changedUserPosition(double)),
+          ui->scanCurrent, SLOT(setValue(double)));
+  connect(thetaMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onScanMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedPrecision(int)), SLOT(onScanMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedConnected(bool)), SLOT(onScanMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedPv()), SLOT(onScanMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onScanMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onScanMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onScanMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedNormalSpeed(double)), SLOT(onScanMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), SLOT(onScanMotor()));
+  connect(ui->projections, SIGNAL(valueChanged(int)), SLOT(onProjections()));
+  connect(ui->rotSpeed, SIGNAL(valueChanged(double)), SLOT(onRotSpeed()));
+
+  connect(ui->nofBGs, SIGNAL(valueChanged(int)), SLOT(onNofBG()));
+  connect(ui->bgTravel, SIGNAL(valueChanged(double)), SLOT(onBGtravel()));
+  connect(bgMotor->motor(), SIGNAL(changedUserPosition(double)),
+          ui->bgCurrent, SLOT(setValue(double)));
+  connect(bgMotor->motor(), SIGNAL(changedUserPosition(double)), SLOT(onBGtravel()));
+  connect(bgMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onBGmotor()));
+  connect(bgMotor->motor(), SIGNAL(changedPrecision(int)), SLOT(onBGmotor()));
+  connect(bgMotor->motor(), SIGNAL(changedConnected(bool)), SLOT(onBGmotor()));
+  connect(bgMotor->motor(), SIGNAL(changedPv()), SLOT(onBGmotor()));
+  connect(bgMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onBGmotor()));
+  connect(bgMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onBGmotor()));
+  connect(bgMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onBGmotor()));
+  connect(ui->nofDFs, SIGNAL(valueChanged(int)), SLOT(onNofDF()));
+  connect(sh1A, SIGNAL(stateChanged(Shutter1A::State)), SLOT(onShutterStatus()));
+  connect(sh1A, SIGNAL(connectionChanged(bool)), SLOT(onShutterStatus()));
+
+  connect(loopMotor->motor(), SIGNAL(changedUserPosition(double)),
+          ui->loopCurrent, SLOT(setValue(double)));
+  connect(loopMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onLoopMotor()));
+  connect(loopMotor->motor(), SIGNAL(changedPrecision(int)), SLOT(onLoopMotor()));
+  connect(loopMotor->motor(), SIGNAL(changedConnected(bool)), SLOT(onLoopMotor()));
+  connect(loopMotor->motor(), SIGNAL(changedPv()), SLOT(onLoopMotor()));
+  connect(loopMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onLoopMotor()));
+  connect(loopMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onLoopMotor()));
+  connect(loopMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onLoopMotor()));
+  connect(ui->loopStep, SIGNAL(valueChanged(double)), SLOT(onLoopStep()));
+
+  connect(ui->subLoop, SIGNAL(toggled(bool)), SLOT(onSubLoop()));
+  connect(subLoopMotor->motor(), SIGNAL(changedUserPosition(double)),
+          ui->subLoopCurrent, SLOT(setValue(double)));
+  connect(subLoopMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onSubLoopMotor()));
+  connect(subLoopMotor->motor(), SIGNAL(changedPrecision(int)), SLOT(onSubLoopMotor()));
+  connect(subLoopMotor->motor(), SIGNAL(changedConnected(bool)), SLOT(onSubLoopMotor()));
+  connect(subLoopMotor->motor(), SIGNAL(changedPv()), SLOT(onSubLoopMotor()));
+  connect(subLoopMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onSubLoopMotor()));
+  connect(subLoopMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onSubLoopMotor()));
+  connect(subLoopMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onSubLoopMotor()));
+  connect(ui->subLoopStep, SIGNAL(valueChanged(double)), SLOT(onSubLoopStep()));
+
+  connect(dynoMotor->motor(), SIGNAL(changedUserPosition(double)),
+          ui->dynoCurrent, SLOT(setValue(double)));
+  connect(dynoMotor->motor(), SIGNAL(changedNormalSpeed(double)), SLOT(onDynoMotor()));
+  connect(dynoMotor->motor(), SIGNAL(changedMaximumSpeed(double)), SLOT(onDynoMotor()));
+  connect(dynoMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onDynoMotor()));
+  connect(dynoMotor->motor(), SIGNAL(changedPrecision(int)), SLOT(onDynoMotor()));
+  connect(dynoMotor->motor(), SIGNAL(changedConnected(bool)), SLOT(onDynoMotor()));
+  connect(dynoMotor->motor(), SIGNAL(changedPv()), SLOT(onDynoMotor()));
+  connect(dynoMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onDynoMotor()));
+  connect(dynoMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onDynoMotor()));
+  connect(dynoMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onDynoMotor()));
+
+  connect(ui->dyno2Shot, SIGNAL(toggled(bool)), SLOT(onDyno2()));
+  connect(dyno2Motor->motor(), SIGNAL(changedUserPosition(double)),
+          ui->dyno2Current, SLOT(setValue(double)));
+  connect(dyno2Motor->motor(), SIGNAL(changedNormalSpeed(double)), SLOT(onDyno2Motor()));
+  connect(dyno2Motor->motor(), SIGNAL(changedMaximumSpeed(double)), SLOT(onDyno2Motor()));
+  connect(dyno2Motor->motor(), SIGNAL(changedUnits(QString)), SLOT(onDyno2Motor()));
+  connect(dyno2Motor->motor(), SIGNAL(changedPrecision(int)), SLOT(onDyno2Motor()));
+  connect(dyno2Motor->motor(), SIGNAL(changedConnected(bool)), SLOT(onDyno2Motor()));
+  connect(dyno2Motor->motor(), SIGNAL(changedPv()), SLOT(onDyno2Motor()));
+  connect(dyno2Motor->motor(), SIGNAL(changedDescription(QString)), SLOT(onDyno2Motor()));
+  connect(dyno2Motor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onDyno2Motor()));
+  connect(dyno2Motor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onDyno2Motor()));
+  connect(ui->dynoDirectionLock, SIGNAL(toggled(bool)), SLOT(onDynoDirectionLock()));
+  connect(ui->dynoSpeedLock, SIGNAL(toggled(bool)), SLOT(onDynoSpeedLock()));
+
+
+  connect( ui->expName, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->expDesc, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->sampleDesc, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->expPath, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->aqModeButtonGroup, SIGNAL(buttonClicked(int)), SLOT(storeCurrentState()));
+  connect( ui->checkSerial, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->checkFF, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->checkDyno, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->checkMulti, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->sampleFile, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->bgFile, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->dfFile, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->preRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->postRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->endConditionButtonGroup, SIGNAL(buttonClicked(int)), SLOT(storeCurrentState()));
+  connect( ui->nofScans, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->scanTime, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->conditionScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->ongoingSeries, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->ffOnEachScan, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->scanDelay, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( serialMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
+  connect( ui->serialStep, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( thetaMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
+  connect( ui->scanRange, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->projections, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->rotSpeed, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->scanAdd, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->preRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->postRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->nofBGs, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->bgInterval, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( bgMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
+  connect( ui->bgTravel, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->nofDFs, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->dfInterval, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->multiBg, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( loopMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
+  connect( ui->loopNumber, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->loopStep, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->preLoopScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->postLoopScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->subLoop, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( subLoopMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
+  connect( ui->subLoopNumber, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->subLoopStep, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->preSubLoopScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->postSubLoopScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( dynoMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
+  connect( ui->dynoSpeed, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->dynoDirButtonGroup, SIGNAL(buttonClicked(int)), SLOT(storeCurrentState()));
+  connect( ui->dyno2Shot, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( dyno2Motor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
+  connect( ui->dynoSpeedLock, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->dyno2Speed, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->dynoDirectionLock, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->dyno2DirButtonGroup, SIGNAL(buttonClicked(int)), SLOT(storeCurrentState()));
+
+
+  loadConfiguration(storedState);
+
+  onFileTemplateFocus();
+  onWorkingDirChange();
+  onAcquisitionMode();
+  onSerialCheck();
+  onFFcheck();
+  onDynoCheck();
+  onMultiCheck();
+
+
+
+  /*
 
   setEnv("FILE", ".temp.tif");
   setEnv("AQTYPE", "SINGLESHOT");
@@ -153,381 +313,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(hui->table, SIGNAL(cellClicked(int,int)),
           SLOT(onHelpClecked(int)));
 
-  connect(ui->startStop, SIGNAL(clicked()),
-          SLOT(onStartStop()));
-  connect(ui->assistant, SIGNAL(clicked()),
-          SLOT(onAssistant()));
-
-  connect(ui->browseExpPath, SIGNAL(clicked()),
-          SLOT(onBrowseExpPath()));
-  connect(ui->expPath, SIGNAL(textChanged(QString)),
-          SLOT(onExpPathChanges()));
-  connect(ui->saveConfig, SIGNAL(clicked()),
-          SLOT(saveConfiguration()));
-
-  connect(ui->loadConfig, SIGNAL(clicked()),
-          SLOT(loadConfiguration()));
-  connect(ui->expName, SIGNAL(textChanged(QString)),
-          SLOT(onExpNameChanges()));
-  connect(ui->expDesc, SIGNAL(textChanged()),
-          SLOT(onExpDescChanges()));
-  connect(ui->sampleDesc, SIGNAL(textChanged()),
-          SLOT(onSampleDescChanges()));
-  connect(ui->peopleList, SIGNAL(textChanged()),
-          SLOT(onPeopleListChanges()));
-
-  connect(ui->preCommand, SIGNAL(textChanged()),
-          SLOT(onPreCommandChanges()));
-  connect(ui->postCommand, SIGNAL(textChanged()),
-          SLOT(onPostCommandChanges()));
-  connect(ui->preExec, SIGNAL(clicked()),
-          SLOT(onPreExec()));
-  connect(ui->postExec, SIGNAL(clicked()),
-          SLOT(onPostExec()));
-
-
-  connect(thetaMotor->motor(), SIGNAL(changedUserPosition(double)),
-          ui->currentPos, SLOT(setValue(double)));
-      connect(thetaMotor->motor(), SIGNAL(changedUserPosition(double)),
-          SLOT(onScanPosChanges()));
-  connect(thetaMotor->motor(), SIGNAL(changedUnits(QString)),
-          SLOT(setThetaUnits()));
-  connect(thetaMotor->motor(), SIGNAL(changedPrecision(int)),
-          SLOT  (setThetaPrec()));
-  connect(thetaMotor->motor(), SIGNAL(changedConnected(bool)),
-          SLOT(onThetaMotorChanges()));
-  connect(thetaMotor->motor(), SIGNAL(changedPv()),
-          SLOT(onThetaMotorChanges()));
-  connect(thetaMotor->motor(), SIGNAL(changedDescription(QString)),
-          SLOT(onThetaMotorChanges()));
-  connect(thetaMotor->motor(), SIGNAL(changedUserLoLimit(double)),
-          SLOT(onThetaMotorChanges()));
-  connect(thetaMotor->motor(), SIGNAL(changedUserHiLimit(double)),
-          SLOT(onThetaMotorChanges()));
-
-  connect(ui->getScanStart, SIGNAL(clicked()),
-          SLOT(getThetaStart()));
-  connect(ui->scanRange, SIGNAL(valueChanged(double)),
-          SLOT(onScanRangeChanges()));
-  connect(ui->scanStep, SIGNAL(valueChanged(double)),
-          SLOT(onScanStepChanges()));
-  connect(ui->projections, SIGNAL(valueChanged(int)),
-          SLOT(onProjectionsChanges()));
-  connect(ui->scanStart, SIGNAL(valueChanged(double)),
-          SLOT(onScanStartChanges()));
-  connect(ui->scanEnd, SIGNAL(valueChanged(double)),
-          SLOT(onScanEndChanges()));
-  connect(ui->scanAdd, SIGNAL(toggled(bool)),
-          SLOT(onScanAddChanges()));
-  connect(ui->selectiveScan, SIGNAL(toggled(bool)),
-          SLOT(onSelectiveScanChanges()));
-
-  connect(ui->listFilter, SIGNAL(textChanged(QString)),
-          SLOT(onFilterChanges(QString)));
-  connect(ui->selectAll, SIGNAL(clicked()),
-          SLOT(onSelectAll()));
-  connect(ui->selectNone, SIGNAL(clicked()),
-          SLOT(onSelectNone()));
-  connect(ui->selectInvert, SIGNAL(clicked()),
-          SLOT(onSelectInvert()));
-  connect(ui->checkAll, SIGNAL(clicked()),
-          SLOT(onCheckAll()));
-  connect(ui->checkNone, SIGNAL(clicked()),
-          SLOT(onCheckNone()));
-  connect(ui->checkInvert, SIGNAL(clicked()),
-          SLOT(onCheckInvert()));
-
-  connect(bgMotor->motor(), SIGNAL(changedUserPosition(double)),
-          ui->transCurrent, SLOT(setValue(double)));
-  connect(bgMotor->motor(), SIGNAL(changedUserPosition(double)),
-          SLOT(onTransPosChanges()));
-  connect(bgMotor->motor(), SIGNAL(changedUnits(QString)),
-          SLOT(setBgUnits()));
-  connect(bgMotor->motor(), SIGNAL(changedPrecision(int)),
-          SLOT(setBgPrec()));
-  connect(bgMotor->motor(), SIGNAL(changedConnected(bool)),
-          SLOT(onTransMotorChanges()));
-  connect(bgMotor->motor(), SIGNAL(changedPv()),
-          SLOT(onTransMotorChanges()));
-  connect(bgMotor->motor(), SIGNAL(changedDescription(QString)),
-          SLOT(onTransMotorChanges()));
-  connect(bgMotor->motor(), SIGNAL(changedUserLoLimit(double)),
-          SLOT(onTransMotorChanges()));
-  connect(bgMotor->motor(), SIGNAL(changedUserHiLimit(double)),
-          SLOT(onTransMotorChanges()));
-
-  connect(ui->getTransIn, SIGNAL(clicked()),
-          SLOT(getBgStart()));
-  connect(ui->transInterval, SIGNAL(valueChanged(int)),
-          SLOT(onTransIntervalChanges()));
-  connect(ui->transDist, SIGNAL(valueChanged(double)),
-          SLOT(onTransDistChanges()));
-  connect(ui->transIn, SIGNAL(valueChanged(double)),
-          SLOT(onTransInChanges()));
-  connect(ui->transOut, SIGNAL(valueChanged(double)),
-          SLOT(onTransOutChanges()));
-
-  connect(ui->dfBefore, SIGNAL(valueChanged(int)),
-          SLOT(onDfChanges()));
-  connect(ui->dfAfter, SIGNAL(valueChanged(int)),
-          SLOT(onDfChanges()));
-  connect(sh1A, SIGNAL(connectionChanged(bool)),
-          SLOT(onDfChanges()));
-  connect(sh1A, SIGNAL(stateChanged(Shutter1A::State)),
-          SLOT(onShutterChanges()));
-  connect(ui->shutterMan, SIGNAL(clicked()),
-          sh1A, SLOT(toggle()));
-  connect(ui->singleShot, SIGNAL(toggled(bool)),
-          SLOT(onShotModeChanges()));
-  connect(ui->multiShot, SIGNAL(toggled(bool)),
-          SLOT(onShotModeChanges()));
-  connect(ui->multiBg, SIGNAL(toggled(bool)),
-          SLOT(setScanTable()));
-
-  connect(loopMotor->motor(), SIGNAL(changedUserPosition(double)),
-          ui->loopCurrent, SLOT(setValue(double)));
-  connect(loopMotor->motor(), SIGNAL(changedUserPosition(double)),
-          SLOT(onLoopPosChanges()));
-  connect(loopMotor->motor(), SIGNAL(changedUnits(QString)),
-          SLOT(setLoopUnits()));
-  connect(loopMotor->motor(), SIGNAL(changedPrecision(int)),
-          SLOT(setLoopPrec()));
-  connect(loopMotor->motor(), SIGNAL(changedConnected(bool)),
-          SLOT(onLoopMotorChanges()));
-  connect(loopMotor->motor(), SIGNAL(changedPv()),
-          SLOT(onLoopMotorChanges()));
-  connect(loopMotor->motor(), SIGNAL(changedDescription(QString)),
-          SLOT(onLoopMotorChanges()));
-  connect(loopMotor->motor(), SIGNAL(changedUserLoLimit(double)),
-          SLOT(onLoopMotorChanges()));
-  connect(loopMotor->motor(), SIGNAL(changedUserHiLimit(double)),
-          SLOT(onLoopMotorChanges()));
-
-  connect(ui->getLoopStart, SIGNAL(clicked()),
-          SLOT(getLoopStart()));
-  connect(ui->loopRange, SIGNAL(valueChanged(double)),
-          SLOT(onLoopRangeChanges()));
-  connect(ui->loopNumber, SIGNAL(valueChanged(int)),
-          SLOT(onLoopNumberChanges()));
-  connect(ui->loopStep, SIGNAL(valueChanged(double)),
-          SLOT(onLoopStepChanges()));
-  connect(ui->loopStart, SIGNAL(valueChanged(double)),
-          SLOT(onLoopStartChanges()));
-  connect(ui->loopEnd, SIGNAL(valueChanged(double)),
-          SLOT(onLoopEndChanges()));
-
-  connect(ui->subLoop, SIGNAL(toggled(bool)),
-          SLOT(onSubLoopChanges()));
-  connect(subLoopMotor->motor(), SIGNAL(changedUserPosition(double)),
-          ui->subLoopCurrent, SLOT(setValue(double)));
-  connect(subLoopMotor->motor(), SIGNAL(changedUserPosition(double)),
-          SLOT(onSubLoopPosChanges()));
-  connect(subLoopMotor->motor(), SIGNAL(changedUnits(QString)),
-          SLOT(setSubLoopUnits()));
-  connect(subLoopMotor->motor(), SIGNAL(changedPrecision(int)),
-          SLOT(setSubLoopPrec()));
-  connect(subLoopMotor->motor(), SIGNAL(changedConnected(bool)),
-          SLOT(onSubLoopMotorChanges()));
-  connect(subLoopMotor->motor(), SIGNAL(changedPv()),
-          SLOT(onSubLoopMotorChanges()));
-  connect(subLoopMotor->motor(), SIGNAL(changedDescription(QString)),
-          SLOT(onSubLoopMotorChanges()));
-  connect(subLoopMotor->motor(), SIGNAL(changedUserLoLimit(double)),
-          SLOT(onSubLoopMotorChanges()));
-  connect(subLoopMotor->motor(), SIGNAL(changedUserHiLimit(double)),
-          SLOT(onSubLoopMotorChanges()));
-
-  connect(ui->getSubLoopStart, SIGNAL(clicked()),
-          SLOT(getSubLoopStart()));
-  connect(ui->subLoopRange, SIGNAL(valueChanged(double)),
-          SLOT(onSubLoopRangeChanges()));
-  connect(ui->subLoopNumber, SIGNAL(valueChanged(int)),
-          SLOT(onSubLoopNumberChanges()));
-  connect(ui->subLoopStep, SIGNAL(valueChanged(double)),
-          SLOT(onSubLoopStepChanges()));
-  connect(ui->subLoopStart, SIGNAL(valueChanged(double)),
-          SLOT(onSubLoopStartChanges()));
-  connect(ui->subLoopEnd, SIGNAL(valueChanged(double)),
-          SLOT(onSubLoopEndChanges()));
-
-  connect(ui->testMulti, SIGNAL(clicked()),
-          SLOT(onAcquireMulti()));
-
-  connect(dynoMotor->motor(), SIGNAL(changedUserPosition(double)),
-          ui->dynoCurrent, SLOT(setValue(double)));
-  connect(dynoMotor->motor(), SIGNAL(changedUserPosition(double)),
-          SLOT(onDynoPosChanges()));
-  connect(dynoMotor->motor(), SIGNAL(changedUnits(QString)),
-          SLOT(setDynoUnits()));
-  connect(dynoMotor->motor(), SIGNAL(changedPrecision(int)),
-          SLOT  (setDynoPrec()));
-  connect(dynoMotor->motor(), SIGNAL(changedConnected(bool)),
-          SLOT(onDynoMotorChanges()));
-  connect(dynoMotor->motor(), SIGNAL(changedPv()),
-          SLOT(onDynoMotorChanges()));
-  connect(dynoMotor->motor(), SIGNAL(changedDescription(QString)),
-          SLOT(onDynoMotorChanges()));
-  connect(dynoMotor->motor(), SIGNAL(changedUserLoLimit(double)),
-          SLOT(onDynoMotorChanges()));
-  connect(dynoMotor->motor(), SIGNAL(changedUserHiLimit(double)),
-          SLOT(onDynoMotorChanges()));
-
-  connect(ui->dynoShot, SIGNAL(toggled(bool)),
-          SLOT(onDynoChanges()));
-  connect(ui->getDynoStart, SIGNAL(clicked()),
-          SLOT(getDynoStart()));
-  connect(ui->dynoRange, SIGNAL(valueChanged(double)),
-          SLOT(onDynoRangeChanges()));
-  connect(ui->dynoStart, SIGNAL(valueChanged(double)),
-          SLOT(onDynoStartChanges()));
-  connect(ui->dynoEnd, SIGNAL(valueChanged(double)),
-          SLOT(onDynoEndChanges()));
-
-  connect(ui->dyno2Shot, SIGNAL(toggled(bool)),
-          SLOT(onDyno2Changes()));
-  connect(dyno2Motor->motor(), SIGNAL(changedUserPosition(double)),
-          ui->dyno2Current, SLOT(setValue(double)));
-  connect(dyno2Motor->motor(), SIGNAL(changedUserPosition(double)),
-          SLOT(onDyno2PosChanges()));
-  connect(dyno2Motor->motor(), SIGNAL(changedUnits(QString)),
-          SLOT(setDyno2Units()));
-  connect(dyno2Motor->motor(), SIGNAL(changedPrecision(int)),
-          SLOT  (setDyno2Prec()));
-  connect(dyno2Motor->motor(), SIGNAL(changedConnected(bool)),
-          SLOT(onDyno2MotorChanges()));
-  connect(dyno2Motor->motor(), SIGNAL(changedPv()),
-          SLOT(onDyno2MotorChanges()));
-  connect(dyno2Motor->motor(), SIGNAL(changedDescription(QString)),
-          SLOT(onDyno2MotorChanges()));
-  connect(dyno2Motor->motor(), SIGNAL(changedUserLoLimit(double)),
-          SLOT(onDyno2MotorChanges()));
-  connect(dyno2Motor->motor(), SIGNAL(changedUserHiLimit(double)),
-          SLOT(onDyno2MotorChanges()));
-
-  connect(ui->getDyno2Start, SIGNAL(clicked()),
-          SLOT(getDyno2Start()));
-  connect(ui->dyno2Range, SIGNAL(valueChanged(double)),
-          SLOT(onDyno2RangeChanges()));
-  connect(ui->dyno2Start, SIGNAL(valueChanged(double)),
-          SLOT(onDyno2StartChanges()));
-  connect(ui->dyno2End, SIGNAL(valueChanged(double)),
-          SLOT(onDyno2EndChanges()));
-  connect(ui->testDyno, SIGNAL(clicked()),
-          SLOT(onAcquireDyno()));
-
-
-  connect(ui->sampleFile, SIGNAL(textChanged(QString)),
-          SLOT(onSampleFileChanges()));
-  connect(ui->bgFile, SIGNAL(textChanged(QString)),
-          SLOT(onBgFileChanges()));
-  connect(ui->dfFile, SIGNAL(textChanged(QString)),
-          SLOT(onDfFileChanges()));
-  connect(ui->detectorCommand, SIGNAL(textChanged()),
-          SLOT(onDetectorCommandChanges()));
-  connect(ui->testDetector, SIGNAL(clicked()),
-          SLOT(onAcquireDetector()));
-
-  connect(ui->remoteCT, SIGNAL(toggled(bool)),
-          SLOT(onDoCT()));
-  connect(ui->imageHeight, SIGNAL(valueChanged(int)),
-          SLOT(onImageHeightChanges()));
-  connect(ui->imageWidth, SIGNAL(valueChanged(int)),
-          SLOT(onImageWidthChanges()));
-  connect(ui->lockPixelSize, SIGNAL(toggled(bool)),
-          SLOT(onLockPixelSize()));
-
-  connect(ui->topSlice, SIGNAL(valueChanged(int)),
-          SLOT(onTopSliceChanges()));
-  connect(ui->bottomSlice, SIGNAL(valueChanged(int)),
-          SLOT(onBottomSliceChanges()));
-  connect(ui->rorLeft, SIGNAL(valueChanged(int)),
-          SLOT(onRorLeftChanges()));
-  connect(ui->rorRight, SIGNAL(valueChanged(int)),
-          SLOT(onRorRightChanges()));
-  connect(ui->rorFront, SIGNAL(valueChanged(int)),
-          SLOT(onRorFrontChanges()));
-  connect(ui->rorRear, SIGNAL(valueChanged(int)),
-          SLOT(onRorRearChanges()));
-
-  connect(ui->resetRor, SIGNAL(clicked()),
-          SLOT(onResetRor()));
-  connect(ui->resetTopSlice, SIGNAL(clicked()),
-          SLOT(onResetTop()));
-  connect(ui->resetBottomSlice, SIGNAL(clicked()),
-          SLOT(onResetBottom()));
-  connect(ui->resetLeftRor, SIGNAL(clicked()),
-          SLOT(onResetLeft()));
-  connect(ui->resetRightRor, SIGNAL(clicked()),
-          SLOT(onResetRight()));
-  connect(ui->resetFrontRor, SIGNAL(clicked()),
-          SLOT(onResetFront()));
-  connect(ui->resetRearRor, SIGNAL(clicked()),
-          SLOT(onResetRear()));
-
-
-
-  ui->control->setCurrentIndex(0);
-
-  setEngineStatus(Stopped);
-
-  setThetaUnits();
-  setBgUnits();
-  setLoopUnits();
-  setSubLoopUnits();
-
-  setThetaPrec();
-  setBgPrec();
-  setLoopPrec();
-  setSubLoopPrec();
-
-  onExpPathChanges();
-  onExpNameChanges();
-  onExpDescChanges();
-  onSampleDescChanges();
-  onPeopleListChanges();
-
-  onPreCommandChanges();
-  onPostCommandChanges();
-
-  onThetaMotorChanges();
-  onScanPosChanges();
-  onScanRangeChanges();
-  onScanStepChanges();
-  onProjectionsChanges();
-  onScanStartChanges();
-  onScanEndChanges();
-  setScanTable();
-
-  onTransMotorChanges();
-  onTransPosChanges();
-  onTransIntervalChanges();
-  onTransDistChanges();
-  onTransInChanges();
-  onTransOutChanges();
-  onDfChanges();
-  onShutterChanges();
-
-  onShotModeChanges();
-  onLoopPosChanges();
-  onLoopNumberChanges();
-  onSubLoopPosChanges();
-  onSubLoopNumberChanges();
-
-  onDynoChanges();
-
-  onSampleFileChanges();
-  onBgFileChanges();
-  onDfFileChanges();
-
-  onDoCT();
-
-  updateTestButtons();
-
-  hui->table->sortByColumn(0, Qt::AscendingOrder);
-
-  ui->expPath->setText(QDir::homePath());
-  // WARNING: PORTING ISSUE
-  loadConfiguration("/etc/ctgui.defaults");
+*/
 
 
 }
@@ -535,28 +321,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
-  aqExec->close();
-  aqExec->remove();
-  preExec->close();
-  preExec->remove();
-  postExec->close();
-  postExec->remove();
-  delete thetaMotor;
-  delete bgMotor;
-  delete loopMotor;
-  delete subLoopMotor;
   delete ui;
 }
 
 
 bool MainWindow::init() {
-
-  roleName[SAMPLE] = "sample";
-  roleName[DF] = "dark-current";
-  roleName[BG] = "background";
-  roleName[LOOP] = "loop";
-  roleName[SLOOP] = "sub-loop";
-
+  Q_INIT_RESOURCE(ctgui);
   envDesc["GTRANSPOS"] = "Directed position of the translation stage.";
   envDesc["FILE"] = "Name of the last aquired image.";
   envDesc["BGFILE"] = "Name of the last aquired background image.";
@@ -645,6 +415,101 @@ bool MainWindow::init() {
 
 
 
+void MainWindow::tempSlot() {
+
+  if (!detfname->isConnected())
+    return;
+
+  QVariantList list;
+
+  foreach (QChar chv, ui->preRunScript->path())
+    list.append(chv);
+
+  //qDebug() << list;
+
+  detfname->set(list);
+
+
+  /*
+
+  QVariant var = detfname->get();
+  qDebug() << var.type() << var.typeName();
+  if (var.type() == QVariant::List &&
+      var.toList().size() &&
+      var.toList().at(0).canConvert(QVariant::Char) ) {
+    QString str;
+    foreach ( QVariant chmem, var.toList() ) {
+      QChar chv=chmem.toChar();
+      if (chv.toAscii())
+        str += chv;
+    }
+    qDebug() << str;
+  }
+
+  qDebug() << "";
+  */
+
+}
+
+
+
+
+static void setInConfig(QSettings & config, const QString & key, QWidget * wdg) {
+  if (key.isEmpty())
+    return;
+  if (dynamic_cast<QLineEdit*>(wdg))
+    config.setValue(key, dynamic_cast<QLineEdit*>(wdg)->text());
+  else if (dynamic_cast<QPlainTextEdit*>(wdg))
+    config.setValue(key, dynamic_cast<QPlainTextEdit*>(wdg)->toPlainText());
+  else if (dynamic_cast<QAbstractButton*>(wdg))
+    config.setValue(key, dynamic_cast<QAbstractButton*>(wdg)->isChecked());
+  else if (dynamic_cast<Script*>(wdg))
+    config.setValue(key, dynamic_cast<Script*>(wdg)->path());
+  else if (dynamic_cast<QSpinBox*>(wdg))
+    config.setValue(key, dynamic_cast<QSpinBox*>(wdg)->value());
+  else if (dynamic_cast<QDoubleSpinBox*>(wdg))
+    config.setValue(key, dynamic_cast<QDoubleSpinBox*>(wdg)->value());
+  else if (dynamic_cast<QTimeEdit*>(wdg))
+    config.setValue(key, dynamic_cast<QTimeEdit*>(wdg)->time());
+  else if (dynamic_cast<QCaMotorGUI*>(wdg))
+    config.setValue(key, dynamic_cast<QCaMotorGUI*>(wdg)->motor()->getPv());
+  else
+    qDebug() << "Cannot save the value of widget" << wdg << "into config";
+}
+
+static void restoreFromConfig(QSettings & config, const QString & key, QWidget * wdg) {
+  if ( ! config.contains(key) ) {
+    qDebug() << "Config does not contain key" << key;
+    return;
+  }
+  QVariant value=config.value(key);
+  if ( ! value.isValid() ) {
+    qDebug() << "Value read from config key" << key << "is not valid";
+    return;
+  }
+
+  if ( dynamic_cast<QLineEdit*>(wdg) && value.canConvert(QVariant::String) )
+    dynamic_cast<QLineEdit*>(wdg)->setText(value.toString());
+  else if ( dynamic_cast<QPlainTextEdit*>(wdg) && value.canConvert(QVariant::String) )
+    dynamic_cast<QPlainTextEdit*>(wdg)->setPlainText(value.toString());
+  else if ( dynamic_cast<QAbstractButton*>(wdg) && value.canConvert(QVariant::Bool) )
+    dynamic_cast<QAbstractButton*>(wdg)->setChecked(value.toBool());
+  else if ( dynamic_cast<Script*>(wdg) && value.canConvert(QVariant::String) )
+    dynamic_cast<Script*>(wdg)->setPath(value.toString());
+  else if ( dynamic_cast<QSpinBox*>(wdg) && value.canConvert(QVariant::Int) )
+    dynamic_cast<QSpinBox*>(wdg)->setValue(value.toInt());
+  else if ( dynamic_cast<QDoubleSpinBox*>(wdg) && value.canConvert(QVariant::Double) )
+    dynamic_cast<QDoubleSpinBox*>(wdg)->setValue(value.toDouble());
+  else if ( dynamic_cast<QTimeEdit*>(wdg) && value.canConvert(QVariant::Time) )
+    dynamic_cast<QTimeEdit*>(wdg)->setTime(value.toTime());
+  else if ( dynamic_cast<QCaMotorGUI*>(wdg) && value.canConvert(QVariant::String) )
+    dynamic_cast<QCaMotorGUI*>(wdg)->motor()->setPv(value.toString());
+  else
+    qDebug() << "Cannot restore the value of widget" << wdg
+             << "from value" << value << "in config.";
+}
+
+
 void MainWindow::saveConfiguration(QString fileName) {
 
   if ( fileName.isEmpty() )
@@ -652,98 +517,109 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   QSettings config(fileName, QSettings::IniFormat);
 
-  config.beginGroup("general");
-  config.setValue("title", ui->expName->text());
-  config.setValue("description", ui->expDesc->toPlainText());
-  config.setValue("sample", ui->sampleDesc->toPlainText());
-  config.setValue("people", ui->peopleList->toPlainText());
-  config.endGroup();
 
-  config.beginGroup("prepost");
-  config.setValue("pre", ui->preCommand->toPlainText());
-  config.setValue("post", ui->postCommand->toPlainText());
-  config.endGroup();
+  setInConfig(config, "title", ui->expName);
+  setInConfig(config, "description", ui->expDesc);
+  setInConfig(config, "sample", ui->sampleDesc);
+  setInConfig(config, "workingdir", ui->expPath);
+  config.setValue("acquisitionmode", ui->stepAndShotMode->isChecked() ?
+                    "step-and-shot" : "continious");
+  setInConfig(config, "doserialscans", ui->checkSerial);
+  setInConfig(config, "doflatfield", ui->checkFF);
+  setInConfig(config, "dodyno", ui->checkDyno);
+  setInConfig(config, "domulti", ui->checkMulti);
+  setInConfig(config, "sampleFile", ui->sampleFile);
+  setInConfig(config, "backgroundFile", ui->bgFile);
+  setInConfig(config, "darkfieldFile", ui->dfFile);
+  setInConfig(config, "prerun", ui->preRunScript);
+  setInConfig(config, "postrun", ui->postRunScript);
 
-  config.beginGroup("scan");
-  config.setValue("motor", thetaMotor->motor()->getPv());
-  config.setValue("prec", thetaMotor->motor()->getPrecision());
-  config.setValue("start", ui->scanStart->value());
-  config.setValue("range", ui->scanRange->value());
-  config.setValue("steps", ui->projections->value());
-  config.setValue("add", ui->scanAdd->isChecked());
-  config.endGroup();
-
-  config.beginGroup("flatfield");
-  config.setValue("interval", ui->transInterval->value());
-  config.setValue("motor", bgMotor->motor()->getPv());
-  config.setValue("prec", bgMotor->motor()->getPrecision());
-  config.setValue("inbeam", ui->transIn->value());
-  config.setValue("distance", ui->transDist->value());
-  config.setValue("before", ui->dfBefore->value());
-  config.setValue("after", ui->dfAfter->value());
-  config.endGroup();
-
-  if (ui->multiShot->isChecked()) {
-
-    config.beginGroup("loop");
-    config.setValue("singleBackground", ! ui->multiBg->isChecked() );
-    config.setValue("motor", loopMotor->motor()->getPv());
-    config.setValue("prec", loopMotor->motor()->getPrecision());
-    config.setValue("start", ui->loopStart->value());
-    config.setValue("range", ui->loopRange->value());
-    config.setValue("steps", ui->loopNumber->value());
-
-    if (ui->subLoop->isChecked()) {
-      config.beginGroup("subloop");
-      config.setValue("motor", subLoopMotor->motor()->getPv());
-      config.setValue("prec", subLoopMotor->motor()->getPrecision());
-      config.setValue("start", ui->subLoopStart->value());
-      config.setValue("range", ui->subLoopRange->value());
-      config.setValue("steps", ui->subLoopNumber->value());
-      config.endGroup();
-    }
-
+  if (ui->checkSerial->isChecked()) {
+    config.beginGroup("serial");
+    if (ui->endNumber->isChecked())
+      setInConfig(config, "number", ui->nofScans);
+    else if (ui->endTime->isChecked())
+      setInConfig(config, "time", ui->scanTime);
+    else if (ui->endCondition->isChecked())
+      setInConfig(config, "condition", ui->conditionScript);
+    setInConfig(config, "ongoingseries",ui->ongoingSeries);
+    setInConfig(config, "ffoneachscan",ui->ffOnEachScan);
+    setInConfig(config, "scandelay",ui->scanDelay);
+    setInConfig(config, "serialmotor",serialMotor);
+    setInConfig(config, "serialstep",ui->serialStep);
     config.endGroup();
-
   }
 
-  if (ui->dynoShot->isChecked()) {
+  config.beginGroup("scan");
+  setInConfig(config, "motor", thetaMotor);
+  setInConfig(config, "range", ui->scanRange);
+  setInConfig(config, "steps", ui->projections);
+  setInConfig(config, "add", ui->scanAdd);
+  setInConfig(config, "prerun", ui->preRunScript);
+  setInConfig(config, "postrun", ui->postRunScript);
+  setInConfig(config, "rotationspeed", ui->rotSpeed);
+  config.endGroup();
 
-    config.beginGroup("dynoshot");
-    config.setValue("motor", dynoMotor->motor()->getPv());
-    config.setValue("prec", dynoMotor->motor()->getPrecision());
-    config.setValue("start", ui->dynoStart->value());
-    config.setValue("range", ui->dynoRange->value());
-
-    if (ui->dyno2Shot->isChecked()) {
-
-      config.beginGroup("dyno2shot");
-      config.setValue("motor", dyno2Motor->motor()->getPv());
-      config.setValue("prec", dyno2Motor->motor()->getPrecision());
-      config.setValue("start", ui->dyno2Start->value());
-      config.setValue("range", ui->dyno2Range->value());
-      config.endGroup();
-
-    }
-
+  if (ui->checkFF->isChecked()) {
+    config.beginGroup("flatfield");
+    setInConfig(config, "bgs", ui->nofBGs);
+    setInConfig(config, "bginterval", ui->bgInterval);
+    setInConfig(config, "motor", bgMotor);
+    setInConfig(config, "bgtravel", ui->bgTravel);
+    setInConfig(config, "dfs", ui->nofDFs);
+    setInConfig(config, "dfinterval", ui->dfInterval);
     config.endGroup();
+  }
 
+  if (ui->checkMulti->isChecked()) {
+    config.beginGroup("loop");
+    setInConfig(config, "ffforeach", ui->multiBg);
+    setInConfig(config, "motor", loopMotor);
+    setInConfig(config, "shots", ui->loopNumber);
+    setInConfig(config, "step", ui->loopStep);
+    setInConfig(config, "prerun", ui->preLoopScript);
+    setInConfig(config, "postrun", ui->postLoopScript);
+    setInConfig(config, "subloop", ui->subLoop);
+    if (ui->subLoop->isChecked()) {
+      config.beginGroup("subloop");
+      setInConfig(config, "motor", subLoopMotor);
+      setInConfig(config, "shots", ui->subLoopNumber);
+      setInConfig(config, "step", ui->subLoopStep);
+      setInConfig(config, "prerun", ui->preSubLoopScript);
+      setInConfig(config, "postrun", ui->postSubLoopScript);
+      config.endGroup();
+    }
+    config.endGroup();
+  }
+
+  if (ui->checkDyno->isChecked()) {
+    config.beginGroup("dyno");
+    setInConfig(config, "motor", dynoMotor);
+    setInConfig(config, "speed", ui->dynoSpeed);
+    config.setValue("direction", ui->dynoPos->isChecked() ?
+                      "positive" : "negative");
+    setInConfig(config, "dyno2", ui->dyno2Shot);
+    if (ui->dyno2Shot->isChecked()) {
+      config.beginGroup("dyno2");
+      setInConfig(config, "motor", dyno2Motor);
+      setInConfig(config, "speedLock", ui->dynoSpeedLock);
+      setInConfig(config, "speed", ui->dyno2Speed);
+      setInConfig(config, "dirLock", ui->dynoDirectionLock);
+      config.setValue("direction", ui->dyno2Pos->isChecked() ?
+                        "positive" : "negative");
+      config.endGroup();
+    }
+    config.endGroup();
   }
 
   config.beginGroup("detector");
-  config.setValue("sampleFile", ui->sampleFile->text());
-  config.setValue("backgroundFile", ui->bgFile->text());
-  config.setValue("darkfieldFile", ui->dfFile->text());
-  config.setValue("command", ui->detectorCommand->toPlainText());
-  config.setValue("live", ui->livePreview->isChecked());
   config.endGroup();
+
 
 }
 
 
 void MainWindow::loadConfiguration(QString fileName) {
-
-  engineStatus=Paused; // to prevent scanView table updates;
 
   if ( fileName.isEmpty() )
     fileName = QFileDialog::getOpenFileName(0, "Load configuration", QDir::currentPath());
@@ -752,172 +628,745 @@ void MainWindow::loadConfiguration(QString fileName) {
     appendMessage(ERROR, "Configuration file \"" + fileName + "\" does not exist.");
     return;
   }
+  isLoadingState=true;
   QSettings config(fileName, QSettings::IniFormat);
-
-  int prec=0;
 
   QStringList groups = config.childGroups();
 
+  restoreFromConfig(config, "title", ui->expName);
+  restoreFromConfig(config, "description", ui->expDesc);
+  restoreFromConfig(config, "sample", ui->sampleDesc);
+  restoreFromConfig(config, "workingdir", ui->expPath);
+  if (config.contains("acquisitionmode")) {
+    if ( config.value("acquisitionmode").toString() == "step-and-shot" )
+      ui->stepAndShotMode->setChecked(true);
+    else if ( config.value("acquisitionmode").toString() == "continious" )
+      ui->continiousMode->setChecked(true);
+  }
+  restoreFromConfig(config, "doserialscans", ui->checkSerial);
+  restoreFromConfig(config, "doflatfield", ui->checkFF);
+  restoreFromConfig(config, "dodyno", ui->checkDyno);
+  restoreFromConfig(config, "domulti", ui->checkMulti);
+  restoreFromConfig(config, "sampleFile", ui->sampleFile);
+  restoreFromConfig(config, "backgroundFile", ui->bgFile);
+  restoreFromConfig(config, "darkfieldFile", ui->dfFile);
+  restoreFromConfig(config, "prerun", ui->preRunScript);
+  restoreFromConfig(config, "postrun", ui->postRunScript);
 
-  config.beginGroup("general");
-  if ( config.contains("title")  )
-    ui->expName->setText( config.value("title").toString() );
-  if ( config.contains("description")  )
-    ui->expDesc->setPlainText( config.value("description").toString() );
-  if ( config.contains("sample")  )
-    ui->sampleDesc->setPlainText( config.value("sample").toString() );
-  if ( config.contains("people")  )
-    ui->peopleList->setPlainText(config.value("people").toString());
-  config.endGroup();
+  if (ui->checkSerial->isChecked() && groups.contains("serial") ) {
+    config.beginGroup("serial");
+    if (config.contains("number")) {
+      ui->endNumber->setChecked(true);
+      restoreFromConfig(config, "number", ui->nofScans);
+    } else if (config.contains("time")) {
+      ui->endTime->setChecked(true);
+      restoreFromConfig(config, "time", ui->scanTime);
+    } else if (config.contains("condition")) {
+      ui->endCondition->setChecked(true);
+      restoreFromConfig(config, "condition", ui->conditionScript);
+    }
+    restoreFromConfig(config, "ongoingseries",ui->ongoingSeries);
+    restoreFromConfig(config, "ffoneachscan",ui->ffOnEachScan);
+    restoreFromConfig(config, "scandelay",ui->scanDelay);
+    restoreFromConfig(config, "serialmotor",serialMotor);
+    restoreFromConfig(config, "serialstep",ui->serialStep);
+    config.endGroup();
+  }
 
-  config.beginGroup("prepost");
-  if ( config.contains("pre")  )
-    ui->preCommand->setPlainText(config.value("pre").toString());
-  if ( config.contains("post")  )
-    ui->postCommand->setPlainText(config.value("post").toString());
-  config.endGroup();
+  if (groups.contains("scan")) {
+    config.beginGroup("scan");
+    restoreFromConfig(config, "motor", thetaMotor);
+    restoreFromConfig(config, "range", ui->scanRange);
+    restoreFromConfig(config, "steps", ui->projections);
+    restoreFromConfig(config, "add", ui->scanAdd);
+    restoreFromConfig(config, "prerun", ui->preRunScript);
+    restoreFromConfig(config, "postrun", ui->postRunScript);
+    restoreFromConfig(config, "rotationspeed", ui->rotSpeed);
+    config.endGroup();
+  }
 
-  config.beginGroup("scan");
-  if ( config.contains("prec") &&
-       ( prec = config.value("prec").toInt() ) )
-    setThetaPrec(prec);
-  if ( config.contains("motor")  )
-    thetaMotor->motor()->setPv( config.value("motor").toString() );
-  if ( config.contains("start")  )
-    ui->scanStart->setValue( config.value("start").toDouble() );
-  if ( config.contains("range")  )
-    ui->scanRange->setValue( config.value("range").toDouble() );
-  if ( config.contains("steps")  )
-    ui->projections->setValue( config.value("steps").toInt() );
-  if ( config.contains("add")  )
-    ui->scanAdd->setChecked( config.value("add").toBool() );
-  config.endGroup();
 
-  config.beginGroup("flatfield");
-  if ( config.contains("interval")  )
-    ui->transInterval->setValue( config.value("interval").toInt() );
-  if ( config.contains("prec") &&
-       ( prec = config.value("prec").toInt() ) )
-    setBgPrec(prec);
-  if ( config.contains("motor")  )
-    bgMotor->motor()->setPv( config.value("motor").toString() );
-  if ( config.contains("inbeam")  )
-    ui->transIn->setValue( config.value("inbeam").toDouble() );
-  if ( config.contains("distance")  )
-    ui->transDist->setValue( config.value("distance").toDouble() );
-  if ( config.contains("before")  )
-    ui->dfBefore->setValue( config.value("before").toInt() );
-  if ( config.contains("after")  )
-    ui->dfAfter->setValue( config.value("after").toInt() );
-  config.endGroup();
+  if (ui->checkFF->isChecked() && groups.contains("flatfield")) {
+    config.beginGroup("flatfield");
+    restoreFromConfig(config, "bgs", ui->nofBGs);
+    restoreFromConfig(config, "bginterval", ui->bgInterval);
+    restoreFromConfig(config, "motor", bgMotor);
+    restoreFromConfig(config, "bgtravel", ui->bgTravel);
+    restoreFromConfig(config, "dfs", ui->nofDFs);
+    restoreFromConfig(config, "dfinterval", ui->dfInterval);
+    config.endGroup();
+  }
 
-  ui->multiShot->setChecked( groups.contains("loop"));
-  if ( groups.contains("loop") ) {
-
+  if (ui->checkMulti->isChecked() && groups.contains("loop")) {
     config.beginGroup("loop");
-
-    if ( config.contains("singleBackground")  )
-      ui->multiBg->setChecked( config.value("singleBackground").toBool() );
-    if ( config.contains("prec") &&
-         ( prec = config.value("prec").toInt() ) )
-      setLoopPrec(prec);
-    if ( config.contains("motor")  )
-      loopMotor->motor()->setPv( config.value("motor").toString() );
-    if ( config.contains("start")  )
-      ui->loopStart->setValue( config.value("start").toDouble() ) ;
-    if ( config.contains("steps")  )
-      ui->loopNumber->setValue( config.value("steps").toInt() );
-    if ( config.contains("range")  )
-      ui->loopRange->setValue( config.value("range").toDouble() ) ;
-
-    if ( ! config.childGroups().contains("subloop") ) {
-      ui->subLoop->setChecked(false);
-    } else {
-      ui->subLoop->setChecked(true);
-
+    restoreFromConfig(config, "ffforeach", ui->multiBg);
+    restoreFromConfig(config, "motor", loopMotor);
+    restoreFromConfig(config, "shots", ui->loopNumber);
+    restoreFromConfig(config, "step", ui->loopStep);
+    restoreFromConfig(config, "prerun", ui->preLoopScript);
+    restoreFromConfig(config, "postrun", ui->postLoopScript);
+    restoreFromConfig(config, "subloop", ui->subLoop);
+    if (ui->subLoop->isChecked()) {
       config.beginGroup("subloop");
-      if ( config.contains("prec") &&
-           ( prec = config.value("prec").toInt() ) )
-        setSubLoopPrec(prec);
-      if ( config.contains("motor")  )
-        subLoopMotor->motor()->setPv( config.value("motor").toString() );
-      if ( config.contains("start")  )
-        ui->subLoopStart->setValue( config.value("start").toDouble() ) ;
-      if ( config.contains("steps")  )
-        ui->subLoopNumber->setValue( config.value("steps").toInt() );
-      if ( config.contains("range")  )
-        ui->subLoopRange->setValue( config.value("range").toDouble() );
-
+      restoreFromConfig(config, "motor", subLoopMotor);
+      restoreFromConfig(config, "shots", ui->subLoopNumber);
+      restoreFromConfig(config, "step", ui->subLoopStep);
+      restoreFromConfig(config, "prerun", ui->preSubLoopScript);
+      restoreFromConfig(config, "postrun", ui->postSubLoopScript);
       config.endGroup();
-
     }
-
     config.endGroup();
-
   }
 
-  ui->dynoShot->setChecked(groups.contains("dynoshot"));
-  if ( groups.contains("dynoshot") ) {
-
-    config.beginGroup("dynoshot");
-
-    if ( config.contains("prec") &&
-         ( prec = config.value("prec").toInt() ) )
-      setDynoPrec(prec);
-    if ( config.contains("motor")  )
-      dynoMotor->motor()->setPv( config.value("motor").toString() );
-    if ( config.contains("start")  )
-      ui->dynoStart->setValue( config.value("start").toDouble() ) ;
-    if ( config.contains("range")  )
-      ui->dynoRange->setValue( config.value("range").toDouble() ) ;
-
-
-    if ( ! config.childGroups().contains("dyno2shot") ) {
-      ui->dyno2Shot->setChecked(false);
-    } else {
-      ui->dyno2Shot->setChecked(true);
-
-      config.beginGroup("dyno2shot");
-      if ( config.contains("prec") &&
-           ( prec = config.value("prec").toInt() ) )
-        setDyno2Prec(prec);
-      if ( config.contains("motor")  )
-        dyno2Motor->motor()->setPv( config.value("motor").toString() );
-      if ( config.contains("start")  )
-        ui->dyno2Start->setValue( config.value("start").toDouble() ) ;
-      if ( config.contains("range")  )
-        ui->dyno2Range->setValue( config.value("range").toDouble() ) ;
-      config.endGroup();
-
+  if (ui->checkDyno->isChecked() && groups.contains("dyno")) {
+    config.beginGroup("dyno");
+    restoreFromConfig(config, "motor", dynoMotor);
+    restoreFromConfig(config, "speed", ui->dynoSpeed);
+    if ( config.contains("direction") &&
+         config.value("direction").canConvert(QVariant::String) ) {
+      if (config.value("direction").toString() == "positive")
+        ui->dynoPos->setChecked(true);
+      else if (config.value("direction").toString() == "negative")
+        ui->dynoNeg->setChecked(true);
     }
-
+    restoreFromConfig(config, "dyno2", ui->dyno2Shot);
+    if (ui->dyno2Shot->isChecked()) {
+      config.beginGroup("dyno2");
+      restoreFromConfig(config, "motor", dyno2Motor);
+      restoreFromConfig(config, "speedLock", ui->dynoSpeedLock);
+      if ( ! ui->dynoSpeedLock->isChecked() )
+        restoreFromConfig(config, "speed", ui->dyno2Speed);
+      restoreFromConfig(config, "dirLock", ui->dynoDirectionLock);
+      if ( ! ui->dynoDirectionLock->isChecked() &&
+           config.contains("direction") &&
+           config.value("direction").canConvert(QVariant::String) ) {
+        if (config.value("direction").toString() == "positive")
+          ui->dyno2Pos->setChecked(true);
+        else if (config.value("direction").toString() == "negative")
+          ui->dyno2Neg->setChecked(true);
+      }
+      config.endGroup();
+    }
     config.endGroup();
-
   }
-
 
   config.beginGroup("detector");
-  if ( config.contains("sampleFile")  )
-    ui->sampleFile->setText( config.value("sampleFile").toString() );
-  if ( config.contains("backgroundFile")  )
-    ui->bgFile->setText( config.value("backgroundFile").toString() );
-  if ( config.contains("darkfieldFile")  )
-    ui->dfFile->setText( config.value("darkfieldFile").toString() );
-  if ( config.contains("command")  )
-    ui->detectorCommand->setPlainText(config.value("command").toString());
-  if ( config.contains("live")  )
-    ui->livePreview->setChecked( config.value("live").toBool() );
   config.endGroup();
 
 
   if ( ui->expPath->text().isEmpty()  || fileName.isEmpty() )
     ui->expPath->setText( QFileInfo(fileName).absolutePath());
 
-  engineStatus=Stopped; // to reenable scanView table updates;
-  QTimer::singleShot(0, this, SLOT(setScanTable()));
-
+  isLoadingState=false;
 
 }
+
+
+void MainWindow::storeCurrentState() {
+  if (!isLoadingState)
+    saveConfiguration(storedState);
+}
+
+
+/*
+void MainWindow::onHelpClecked(int row) {
+  if ( ! insertVariableIntoMe )
+    return;
+  QString inS = hui->table->item(row, 0)->text();
+  if (  qobject_cast<QLineEdit*>(insertVariableIntoMe) )
+    ( (QLineEdit*) insertVariableIntoMe )->insert(inS);
+  else if (  qobject_cast<QPlainTextEdit*>(insertVariableIntoMe) )
+    ( (QPlainTextEdit*) insertVariableIntoMe )->insertPlainText(inS);
+  QApplication::setActiveWindow(this);
+}
+*/
+
+
+
+
+void MainWindow::onWorkingDirChange() {
+
+  const QString txt = ui->expPath->text();
+
+  bool isOK;
+  if (QDir::isAbsolutePath(txt)) {
+    QFileInfo fi(txt);
+    isOK = fi.isDir() && fi.isWritable();
+  } else
+    isOK = false;
+
+  if (isOK)
+    QDir::setCurrent(txt);
+
+  check(ui->expPath, isOK);
+
+}
+
+void MainWindow::onWorkingDirBrowse() {
+  ui->expPath->setText(
+        QFileDialog::getExistingDirectory(0, "Working directory", QDir::currentPath()) );
+}
+
+void MainWindow::onAcquisitionMode() {
+  const bool sasMode = ui->stepAndShotMode->isChecked();
+  if (!sasMode) {
+    ui->checkDyno->setChecked(false);
+    ui->checkMulti->setChecked(false);
+  }
+  ui->checkDyno->setVisible(sasMode);
+  ui->checkMulti->setVisible(sasMode);
+
+  ui->speedsLine->setVisible(!sasMode);
+  ui->speedsLabel->setVisible(!sasMode);
+  ui->timesLabel->setVisible(!sasMode);
+  ui->rotSpeedLabel->setVisible(!sasMode);
+  ui->rotSpeed->setVisible(!sasMode);
+  ui->normalSpeed->setVisible(!sasMode);
+  ui->normalSpeedLabel->setVisible(!sasMode);
+  ui->stepTime->setVisible(!sasMode);
+  ui->stepTimeLabel->setVisible(!sasMode);
+  ui->expOverStep->setVisible(!sasMode);
+  ui->expOverStepLabel->setVisible(!sasMode);
+  ui->maximumSpeed->setVisible(!sasMode);
+  ui->maximumSpeedLabel->setVisible(!sasMode);
+  ui->exposureInfo->setVisible(!sasMode);
+  ui->exposureInfoLabel->setVisible(!sasMode);
+
+  onProjections();
+  onSampleFile();
+}
+
+void MainWindow::onSerialCheck() {
+  static const QString tabSerialLabel =
+      ui->control->tabText(ui->control->indexOf(ui->tabSerial));
+  if (ui->checkSerial->isChecked())
+    ui->control->insertTab(ui->control->indexOf(ui->tabScan), ui->tabSerial, tabSerialLabel);
+  else
+    ui->control->removeTab(ui->control->indexOf(ui->tabSerial));
+  onSerialMotor();
+  onEndCondition();
+}
+
+void MainWindow::onFFcheck() {
+  static const QString tabFFLabel =
+      ui->control->tabText(ui->control->indexOf(ui->tabFF));
+  if (ui->checkFF->isChecked()) {
+    ui->control->insertTab(ui->control->indexOf(ui->tabScan)+1, ui->tabFF, tabFFLabel);
+    ui->dfFile->setVisible(true);
+    ui->dfFileLabel->setVisible(true);
+    ui->bgFile->setVisible(true);
+    ui->bgFileLabel->setVisible(true);
+  } else {
+    ui->control->removeTab(ui->control->indexOf(ui->tabFF));
+    ui->dfFile->setVisible(false);
+    ui->dfFileLabel->setVisible(false);
+    ui->bgFile->setVisible(false);
+    ui->bgFileLabel->setVisible(false);
+  }
+  onBGfile();
+  onDFfile();
+  onBGmotor();
+  onShutterStatus();
+}
+
+void MainWindow::onDynoCheck() {
+  static const QString tabDynoLabel =
+      ui->control->tabText(ui->control->indexOf(ui->tabDyno));
+  if (ui->stepAndShotMode->isChecked() && ui->checkDyno->isChecked()) {
+    int idx = qMax( ui->control->indexOf(ui->tabFF), ui->control->indexOf(ui->tabScan) );
+    ui->control->insertTab(idx+1, ui->tabDyno, tabDynoLabel);
+  } else
+    ui->control->removeTab(ui->control->indexOf(ui->tabDyno));
+  onDynoMotor();
+  onDyno2();
+}
+
+void MainWindow::onMultiCheck() {
+  static const QString tabMultiLabel =
+      ui->control->tabText(ui->control->indexOf(ui->tabMulti));
+  if (ui->stepAndShotMode->isChecked() && ui->checkMulti->isChecked())
+    ui->control->insertTab(ui->control->indexOf(ui->tabDetector), ui->tabMulti, tabMultiLabel);
+  else
+    ui->control->removeTab(ui->control->indexOf(ui->tabMulti));
+  onLoopMotor();
+  onSubLoop();
+}
+
+void MainWindow::onSampleFile() {
+  QString example;
+  bool isOK = ! evalExpr(ui->sampleFile->text(), example) &&
+      ! example.isEmpty();
+  ui->exampleFile->setText(example);
+  check(ui->sampleFile, isOK);
+}
+
+void MainWindow::onBGfile() {
+  QString example;
+  bool isOK =
+      ! ui->checkFF->isChecked() ||
+      ( ! evalExpr(ui->bgFile->text(), example) &&
+        ! example.isEmpty() );
+  ui->exampleFile->setText(example);
+  check(ui->bgFile, isOK);
+}
+
+void MainWindow::onDFfile() {
+  QString example;
+  bool isOK =
+      ! ui->checkFF->isChecked() ||
+      ( ! evalExpr(ui->dfFile->text(), example) &&
+        ! example.isEmpty() );
+  ui->exampleFile->setText(example);
+  check(ui->dfFile, isOK);
+}
+
+void MainWindow::onFileTemplateFocus() {
+  bool showSample = true;
+  if (ui->sampleFile->hasFocus())
+    onSampleFile();
+  else if (ui->bgFile->hasFocus())
+    onBGfile();
+  else if (ui->dfFile->hasFocus())
+    onDFfile();
+  else
+    showSample=false;
+  ui->exampleFile->setShown(showSample);
+}
+
+
+void MainWindow::onEndCondition() {
+  ui->nofScans->setVisible(ui->endNumber->isChecked());
+  ui->nofScansLabel->setVisible(ui->endNumber->isChecked());
+  ui->scanTime->setVisible(ui->endTime->isChecked());
+  ui->scanTimeLabel->setVisible(ui->endTime->isChecked());
+  ui->conditionScript->setVisible(ui->endCondition->isChecked());
+  ui->conditionScriptLabel->setVisible(ui->endCondition->isChecked());
+}
+
+void MainWindow::onSerialMotor() {
+
+  setEnv("SERIALMOTORPV", serialMotor->motor()->getPv());
+  onSerialStep();
+
+  ui->serialStep->setEnabled(serialMotor->motor()->isConnected());
+  if ( ! serialMotor->motor()->isConnected() ) {
+    ui->serialCurrent->setText("no link");
+    return;
+  }
+  ui->serialCurrent->setValue(serialMotor->motor()->getUserPosition());
+
+  setEnv("SERIALMOTORDESC", serialMotor->motor()->getDescription());
+
+  const QString units = serialMotor->motor()->getUnits();
+  setEnv("SERIALMOTORUNITS", units);
+  ui->serialCurrent->setSuffix(units);
+  ui->serialStep->setSuffix(units);
+
+  const int prec = serialMotor->motor()->getPrecision();
+  setEnv("SERIALMOTORPREC", prec);
+  ui->serialCurrent->setDecimals(prec);
+  ui->serialStep->setDecimals(prec);
+
+}
+
+void MainWindow::onSerialStep() {
+  check(ui->serialStep,
+        ! ui->checkSerial->isChecked() ||
+        ! serialMotor->motor()->isConnected() ||
+        ui->serialStep->value() != 0.0);
+}
+
+
+void MainWindow::onScanRange() {
+  const double range = ui->scanRange->value();
+  ui->scanStep->setValue(range/ui->projections->value());
+  setEnv("SCANRANGE", range);
+  check(ui->scanRange, range != 0.0);
+  onRotSpeed();
+}
+
+void MainWindow::onProjections() {
+  const int projs =  ui->projections->value();
+  const int minInterval = ui->stepAndShotMode->isChecked() ?
+        0 : projs - 1;
+  ui->bgInterval->setRange(minInterval, projs);
+  ui->dfInterval->setRange(minInterval, projs);
+  onRotSpeed();
+}
+
+void MainWindow::onRotSpeed() {
+  check( ui->rotSpeed,
+         ! ui->continiousMode->isChecked() ||
+         ui->rotSpeed->value() > 0 );
+  if ( ui->rotSpeed->value() > 0 )
+    ui->stepTime->setValue(ui->scanRange->value() /
+                           (ui->projections->value() * ui->rotSpeed->value()) );
+  else
+    ui->stepTime->setText("");
+}
+
+void MainWindow::onScanMotor() {
+
+  setEnv("SCANMOTORPV", thetaMotor->motor()->getPv());
+  onScanRange();
+
+  check(thetaMotor->setupButton(), thetaMotor->motor()->isConnected());
+  if (!thetaMotor->motor()->isConnected()) {
+    ui->scanCurrent->setText("no link");
+    ui->rotSpeed->setValue(0.0);
+    return;
+  }
+  ui->scanCurrent->setValue(thetaMotor->motor()->getUserPosition());
+  if (ui->rotSpeed->value()==0.0)
+    ui->rotSpeed->setValue(thetaMotor->motor()->getNormalSpeed());
+
+  setEnv("SCANMOTORDESC", thetaMotor->motor()->getDescription());
+
+  const QString units = thetaMotor->motor()->getUnits();
+  setEnv("SCANMOTORUNITS", units);
+  ui->scanRange->setSuffix(units);
+  ui->scanCurrent->setSuffix(units);
+  ui->scanStep->setSuffix(units);
+  ui->rotSpeed->setSuffix(units+"/s");
+  ui->normalSpeed->setSuffix(units+"/s");
+  ui->maximumSpeed->setSuffix(units+"/s");
+
+  const int prec = thetaMotor->motor()->getPrecision();
+  setEnv("SCANMOTORPREC", prec);
+  ui->scanCurrent->setDecimals(prec);
+  ui->scanStep->setDecimals(prec);
+  ui->scanRange->setDecimals(prec);
+  ui->rotSpeed->setDecimals(prec);
+  ui->normalSpeed->setDecimals(prec);
+  ui->maximumSpeed->setDecimals(prec);
+
+  ui->normalSpeed->setValue(thetaMotor->motor()->getNormalSpeed());
+  ui->maximumSpeed->setValue(thetaMotor->motor()->getMaximumSpeed());
+  ui->rotSpeed->setMaximum(thetaMotor->motor()->getMaximumSpeed());
+
+}
+
+
+void MainWindow::onNofBG() {
+
+  const int nofbgs = ui->nofBGs->value();
+  ui->bgInterval->setEnabled(nofbgs);
+  ui->bgTravel->setEnabled(nofbgs);
+  bgMotor->setupButton()->setEnabled(nofbgs);
+
+  check(bgMotor->setupButton(), ! nofbgs || bgMotor->motor()->isConnected() );
+  onBGtravel();
+
+}
+
+void MainWindow::onBGmotor() {
+
+  setEnv("BGMOTORPV", bgMotor->motor()->getPv());
+  onNofBG();
+  onBGtravel();
+
+  if (!bgMotor->motor()->isConnected()) {
+    ui->bgCurrent->setText("no link");
+    return;
+  }
+  ui->bgCurrent->setValue(bgMotor->motor()->getUserPosition());
+
+  setEnv("BGMOTORDESC", bgMotor->motor()->getDescription());
+
+  const QString units = bgMotor->motor()->getUnits();
+  setEnv("BGMOTORUNITS", units);
+  ui->bgCurrent->setSuffix(units);
+  ui->bgTravel->setSuffix(units);
+
+  const int prec = bgMotor->motor()->getPrecision();
+  setEnv("BGMOTORPREC", prec);
+  ui->bgCurrent->setDecimals(prec);
+  ui->bgTravel->setDecimals(prec);
+
+}
+
+void MainWindow::onBGtravel() {
+  check(ui->bgTravel,
+        ! ui->nofBGs->value() ||
+        ui->bgTravel->value() != 0.0 );
+}
+
+void MainWindow::onNofDF() {
+  const int nofdfs = ui->nofDFs->value();
+  ui->dfInterval->setEnabled(nofdfs);
+  check( ui->nofDFs, ! nofdfs || sh1A->isEnabled() );
+}
+
+void MainWindow::onShutterStatus() {
+
+  if ( ! sh1A->isConnected() )
+    ui->shutterStatus->setText("no link");
+  else
+    switch (sh1A->state()) {
+      case Shutter1A::BETWEEN :
+        ui->shutterStatus->setText("in progress");
+        break;
+      case Shutter1A::OPENED :
+        ui->shutterStatus->setText("opened");
+        break;
+      case Shutter1A::CLOSED :
+        ui->shutterStatus->setText("closed");
+        break;
+    }
+
+  onNofDF();
+
+}
+
+
+
+void MainWindow::onLoopMotor() {
+
+  setEnv("LOOPMOTORPV", loopMotor->motor()->getPv());
+  onLoopStep();
+
+  ui->loopStep->setEnabled(loopMotor->motor()->isConnected());
+  if ( ! loopMotor->motor()->isConnected() ) {
+    ui->loopCurrent->setText("no link");
+    return;
+  }
+  ui->loopCurrent->setValue(loopMotor->motor()->getUserPosition());
+
+  setEnv("LOOPMOTORDESC", loopMotor->motor()->getDescription());
+
+  const QString units = loopMotor->motor()->getUnits();
+  setEnv("LOOPMOTORUNITS", units);
+  ui->loopCurrent->setSuffix(units);
+  ui->loopStep->setSuffix(units);
+
+  const int prec = loopMotor->motor()->getPrecision();
+  setEnv("LOOPMOTORPREC", prec);
+  ui->loopCurrent->setDecimals(prec);
+  ui->loopStep->setDecimals(prec);
+
+}
+
+void MainWindow::onLoopStep() {
+  check(ui->loopStep,
+        ! ui->checkMulti->isChecked() ||
+        ! loopMotor->motor()->isConnected() ||
+        ui->loopStep->value() != 0.0 );
+}
+
+void MainWindow::onSubLoop() {
+  const bool dosl=ui->subLoop->isChecked();
+  ui->subLoopCurrent->setVisible(dosl);
+  ui->placeSubLoopMotor->setVisible(dosl);
+  ui->subLoopNumber->setVisible(dosl);
+  ui->subLoopNumberLabel->setVisible(dosl);
+  ui->subLoopStep->setVisible(dosl);
+  ui->subLoopStepLabel->setVisible(dosl);
+  ui->preSubLoopScript->setVisible(dosl);
+  ui->preSubLoopScriptLabel->setVisible(dosl);
+  ui->postSubLoopScript->setVisible(dosl);
+  ui->postSubLoopScriptLabel->setVisible(dosl);
+  onSubLoopMotor();
+}
+
+void MainWindow::onSubLoopMotor() {
+
+  setEnv("SUBLOOPMOTORPV", subLoopMotor->motor()->getPv());
+  onSubLoopStep();
+
+  ui->subLoopStep->setEnabled(subLoopMotor->motor()->isConnected());
+  if ( ! subLoopMotor->motor()->isConnected() ) {
+    ui->subLoopCurrent->setText("no link");
+    return;
+  }
+  ui->subLoopCurrent->setValue(subLoopMotor->motor()->getUserPosition());
+
+  setEnv("SUBLOOPMOTORDESC", subLoopMotor->motor()->getDescription());
+
+  const QString units = subLoopMotor->motor()->getUnits();
+  setEnv("SUBLOOPMOTORUNITS", units);
+  ui->subLoopCurrent->setSuffix(units);
+  ui->subLoopStep->setSuffix(units);
+
+  const int prec = subLoopMotor->motor()->getPrecision();
+  setEnv("SUBLOOPMOTORPREC", prec);
+  ui->subLoopCurrent->setDecimals(prec);
+  ui->subLoopStep->setDecimals(prec);
+
+}
+
+void MainWindow::onSubLoopStep() {
+  check(ui->subLoopStep,
+        ! ui->checkMulti->isChecked() ||
+        ! ui->subLoop->isChecked() ||
+        ! subLoopMotor->motor()->isConnected() ||
+        ui->subLoopStep->value() != 0.0 );
+}
+
+void MainWindow::onLoopTest() {
+
+}
+
+
+void MainWindow::onDynoMotor() {
+
+  setEnv("DYNOMOTORPV", dynoMotor->motor()->getPv());
+  check(dynoMotor->setupButton(),
+        ! ui->checkDyno->isChecked() || dynoMotor->motor()->isConnected() );
+  check(ui->dynoNormalSpeed,
+        ! dynoMotor->motor()->isConnected() ||
+        dynoMotor->motor()->getNormalSpeed()>=0.0);
+
+  if ( ! dynoMotor->motor()->isConnected() ) {
+    ui->dynoCurrent->setText("no link");
+    return;
+  }
+  ui->dynoCurrent->setValue(dynoMotor->motor()->getUserPosition());
+
+  if (ui->dynoSpeed->value()==0.0)
+    ui->dynoSpeed->setValue(dynoMotor->motor()->getNormalSpeed());
+  ui->dynoSpeed->setMaximum(dynoMotor->motor()->getMaximumSpeed());
+  ui->dynoNormalSpeed->setValue(dynoMotor->motor()->getNormalSpeed());
+
+  setEnv("DYNOMOTORDESC", dynoMotor->motor()->getDescription());
+
+  const QString units = dynoMotor->motor()->getUnits();
+  setEnv("DYNOMOTORUNITS", units);
+  ui->dynoCurrent->setSuffix(units);
+  ui->dynoNormalSpeed->setSuffix(units+"/s");
+  ui->dynoSpeed->setSuffix(units+"/s");
+
+  const int prec = dynoMotor->motor()->getPrecision();
+  setEnv("DYNOMOTORPREC", prec);
+  ui->dynoCurrent->setDecimals(prec);
+  ui->dynoNormalSpeed->setDecimals(prec);
+  ui->dynoSpeed->setDecimals(prec);
+
+}
+
+void MainWindow::onDyno2() {
+  const bool dod2 = ui->dyno2Shot->isChecked();
+  ui->placeDyno2Motor->setVisible(dod2);
+  ui->dynoDirectionLock->setVisible(dod2);
+  ui->dynoSpeedLock->setVisible(dod2);
+  ui->dyno2Current->setVisible(dod2);
+  ui->dyno2Neg->setVisible(dod2);
+  ui->dyno2NormalSpeed->setVisible(dod2);
+  ui->dyno2Pos->setVisible(dod2);
+  ui->dyno2Speed->setVisible(dod2);
+  ui->dyno2NormalSpeedLabel->setVisible(dod2);
+  ui->dyno2SpeedLabel->setVisible(dod2);
+  ui->dyno2DirectionLabel->setVisible(dod2);
+  onDyno2Motor();
+  onDynoSpeedLock();
+  onDynoDirectionLock();
+}
+
+void MainWindow::onDyno2Motor() {
+
+  setEnv("DYNO2MOTORPV", dyno2Motor->motor()->getPv());
+  check(dyno2Motor->setupButton(),
+        ! ui->checkDyno->isChecked() ||
+        ! ui->dyno2Shot->isChecked() ||
+        dyno2Motor->motor()->isConnected() );
+  check(ui->dyno2NormalSpeed,
+        ! dyno2Motor->motor()->isConnected() ||
+        dyno2Motor->motor()->getNormalSpeed()>=0.0);
+
+  if ( ! dyno2Motor->motor()->isConnected() ) {
+    ui->dyno2Current->setText("no link");
+    return;
+  }
+  ui->dyno2Current->setValue(dyno2Motor->motor()->getUserPosition());
+
+  if (ui->dyno2Speed->value()==0.0)
+    ui->dyno2Speed->setValue(dyno2Motor->motor()->getNormalSpeed());
+  ui->dyno2Speed->setMaximum(dyno2Motor->motor()->getMaximumSpeed());
+  ui->dyno2NormalSpeed->setValue(dyno2Motor->motor()->getNormalSpeed());
+
+
+  setEnv("DYNO2MOTORDESC", dyno2Motor->motor()->getDescription());
+
+  const QString units = dyno2Motor->motor()->getUnits();
+  setEnv("DYNO2MOTORUNITS", units);
+  ui->dyno2Current->setSuffix(units);
+  ui->dyno2NormalSpeed->setSuffix(units+"/s");
+  ui->dyno2Speed->setSuffix(units+"/s");
+
+  const int prec = dyno2Motor->motor()->getPrecision();
+  setEnv("DYNO2MOTORPREC", prec);
+  ui->dyno2Current->setDecimals(prec);
+  ui->dyno2NormalSpeed->setDecimals(prec);
+  ui->dyno2Speed->setDecimals(prec);
+
+}
+
+void MainWindow::onDynoSpeedLock() {
+  ui->dyno2Speed->setDisabled(ui->dynoSpeedLock->isChecked());
+  if (ui->dynoSpeedLock->isChecked()) {
+    connect(ui->dynoSpeed, SIGNAL(valueChanged(double)),
+            ui->dyno2Speed, SLOT(setValue(double)));
+    ui->dyno2Speed->setValue(ui->dynoSpeed->value());
+  } else
+    disconnect(ui->dynoSpeed, SIGNAL(valueChanged(double)),
+               ui->dyno2Speed, SLOT(setValue(double)));
+}
+
+void MainWindow::onDynoDirectionLock() {
+  const bool lockDir = ui->dynoDirectionLock->isChecked();
+  ui->dyno2Pos->setDisabled(lockDir);
+  ui->dyno2Neg->setDisabled(lockDir);
+  if (lockDir) {
+    connect(ui->dynoPos, SIGNAL(toggled(bool)),
+            ui->dyno2Pos, SLOT(setChecked(bool)));
+    connect(ui->dynoNeg, SIGNAL(toggled(bool)),
+            ui->dyno2Neg, SLOT(setChecked(bool)));
+    ui->dyno2Pos->setChecked(ui->dynoPos->isChecked());
+    ui->dyno2Neg->setChecked(ui->dynoNeg->isChecked());
+  } else {
+    disconnect(ui->dynoPos, SIGNAL(toggled(bool)),
+            ui->dyno2Pos, SLOT(setChecked(bool)));
+    disconnect(ui->dynoNeg, SIGNAL(toggled(bool)),
+            ui->dyno2Neg, SLOT(setChecked(bool)));
+  }
+}
+
+void MainWindow::onDynoTest() {
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -957,1393 +1406,6 @@ void MainWindow::setEnv(const char * var, const char * val){
 }
 
 
-void MainWindow::onFocusChange( QWidget * , QWidget * now ) {
-  /*
-  hDialog->setVisible( widgetsNeededHelp.contains(now) ||
-                      QApplication::activeWindow() == hDialog ||
-                      engineStatus == Running || engineStatus == Paused );
-  */
-  if ( widgetsNeededHelp.contains(now) )
-    insertVariableIntoMe = now;
-  else if ( QApplication::activeWindow() != hDialog )
-    insertVariableIntoMe = 0;
-}
-
-
-void MainWindow::onHelpClecked(int row) {
-  if ( ! insertVariableIntoMe )
-    return;
-  QString inS = hui->table->item(row, 0)->text();
-  if (  qobject_cast<QLineEdit*>(insertVariableIntoMe) )
-    ( (QLineEdit*) insertVariableIntoMe )->insert(inS);
-  else if (  qobject_cast<QPlainTextEdit*>(insertVariableIntoMe) )
-    ( (QPlainTextEdit*) insertVariableIntoMe )->insertPlainText(inS);
-  QApplication::setActiveWindow(this);
-}
-
-
-int MainWindow::doExec(QFile * fileExec, const QString & action) {
-
-  if ( ! fileExec ) {
-    errorOnScan("Internal error: no execution file. Please report to developer.");
-    return 1;
-  }
-
-  if ( fileExec->isOpen() ) {
-    fileExec->close();
-    fileExec->setPermissions( QFile::ExeUser | QFile::ReadUser | QFile::WriteUser);
-  }
-
-  QEventLoop q;
-  QProcess proc;
-  connect(&proc, SIGNAL(finished(int,QProcess::ExitStatus)), &q, SLOT(quit()));
-  connect(this, SIGNAL(requestToStopAcquisition()), &q, SLOT(quit()));
-
-  appendMessage(CONTROL, "Doing " + action + ".");
-
-  proc.start( fileExec->fileName() );
-  q.exec();
-
-  if (proc.pid())
-    proc.kill();
-
-  int exitCode = proc.exitCode();
-
-  QString
-      out = proc.readAllStandardOutput(),
-      err = proc.readAllStandardError();
-
-  if ( ! exitCode )
-    logMessage(out);
-  else
-    appendMessage(ERROR, "Error exit code on " + action + ".");
-
-  if ( ! err.isEmpty() )
-    appendMessage(ERROR, err);
-
-  return exitCode;
-
-}
-
-bool MainWindow::prepareExec(QFile* fileExec, QPTEext * textW, QLabel * errorLabel) {
-
-  QString res, text = textW->toPlainText();
-  bool itemOK = true;
-
-  if ( ! text.startsWith("#!") ||
-      text.startsWith("#!/bin/bash") || text.startsWith("#!/bin/sh") ) {
-
-    if ( fileExec->isOpen() )
-      fileExec->resize(0);
-    else
-      fileExec->open( QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text );
-    fileExec->write( text.toAscii() );
-    fileExec->flush();
-
-    itemOK = ! checkScript(fileExec->fileName(), res);
-
-  }
-
-  check(textW, itemOK);
-
-  errorLabel->setText(res);
-  errorLabel->setVisible(!itemOK);
-
-  return itemOK;
-
-}
-
-
-
-void MainWindow::setThetaUnits() {
-
-  const QString units = thetaMotor->motor()->getUnits();
-  setEnv("SCANMOTORUNITS", units);
-
-  if ( sender() != thetaMotor)
-    return;
-
-  ui->currentPos->setSuffix(units);
-  ui->scanRange->setSuffix(units);
-  ui->scanStart->setSuffix(units);
-  ui->scanEnd->setSuffix(units);
-  ui->scanStep->setSuffix(units);
-
-}
-
-void MainWindow::setBgUnits() {
-
-  const QString units = bgMotor->motor()->getUnits();
-  setEnv("TRANSMOTORUNITS", units);
-
-  if ( sender() != bgMotor)
-    return;
-
-  ui->transCurrent->setSuffix(units);
-  ui->transDist->setSuffix(units);
-  ui->transIn->setSuffix(units);
-  ui->transOut->setSuffix(units);
-
-}
-
-void MainWindow::setLoopUnits() {
-
-  const QString units = loopMotor->motor()->getUnits();
-  setEnv("LOOPMOTORUNITS", units);
-
-  if ( sender() != loopMotor)
-    return;
-
-  ui->loopCurrent->setSuffix(units);
-  ui->loopRange->setSuffix(units);
-  ui->loopStart->setSuffix(units);
-  ui->loopEnd->setSuffix(units);
-  ui->loopStep->setSuffix(units);
-
-}
-
-void MainWindow::setSubLoopUnits() {
-
-  const QString units = subLoopMotor->motor()->getUnits();
-  setEnv("SUBLOOPMOTORUNITS", units);
-
-  if ( sender() != subLoopMotor)
-    return;
-
-  ui->subLoopCurrent->setSuffix(units);
-  ui->subLoopRange->setSuffix(units);
-  ui->subLoopStart->setSuffix(units);
-  ui->subLoopEnd->setSuffix(units);
-  ui->subLoopStep->setSuffix(units);
-
-}
-
-void MainWindow::setThetaPrec(int prec){
-
-  if ( ! prec )
-    prec = thetaMotor->motor()->getPrecision();
-  setEnv("SCANMOTORPREC", prec);
-
-  ui->currentPos->setDecimals(prec);
-  ui->scanRange->setDecimals(prec);
-  ui->scanStart->setDecimals(prec);
-  ui->scanEnd->setDecimals(prec);
-  ui->scanStep->setDecimals(prec);
-
-}
-
-void MainWindow::setBgPrec(int prec){
-
-  if ( ! prec )
-    prec = bgMotor->motor()->getPrecision();
-  setEnv("TRANSMOTORPREC", prec);
-
-  ui->transCurrent->setDecimals(prec);
-  ui->transDist->setDecimals(prec);
-  ui->transIn->setDecimals(prec);
-  ui->transOut->setDecimals(prec);
-
-}
-
-void MainWindow::setLoopPrec(int prec){
-
-  if ( ! prec )
-    prec = loopMotor->motor()->getPrecision();
-  setEnv("LOOPMOTORPREC", prec);
-
-  ui->loopCurrent->setDecimals(prec);
-  ui->loopRange->setDecimals(prec);
-  ui->loopStart->setDecimals(prec);
-  ui->loopEnd->setDecimals(prec);
-  ui->loopStep->setDecimals(prec);
-
-}
-
-void MainWindow::setSubLoopPrec(int prec){
-
-  if ( ! prec )
-    prec = subLoopMotor->motor()->getPrecision();
-  setEnv("SUBLOOPMOTORPREC", prec);
-
-  ui->subLoopCurrent->setDecimals(prec);
-  ui->subLoopRange->setDecimals(prec);
-  ui->subLoopStart->setDecimals(prec);
-  ui->subLoopEnd->setDecimals(prec);
-  ui->subLoopStep->setDecimals(prec);
-
-}
-
-
-
-
-void MainWindow::getThetaStart() {
-  ui->scanStart->setValue(ui->currentPos->value());
-}
-
-void MainWindow::getBgStart()  {
-  ui->transIn->setValue(ui->transCurrent->value());
-}
-
-void MainWindow::getLoopStart() {
-    ui->loopStart->setValue(ui->loopCurrent->value());
-}
-
-void MainWindow::getSubLoopStart() {
-    ui->subLoopStart->setValue(ui->subLoopCurrent->value());
-}
-
-void MainWindow::getDynoStart() {
-  ui->dynoStart->setValue(ui->dynoCurrent->value());
-}
-
-void MainWindow::getDyno2Start() {
-  ui->dyno2Start->setValue(ui->dyno2Current->value());
-}
-
-
-
-void MainWindow::onBrowseExpPath() {
-  QString new_dir = QFileDialog::getExistingDirectory(this, "Open directory", ui->expPath->text());
-  ui->expPath->setText(new_dir);
-}
-
-void MainWindow::onExpPathChanges(){
-
-  const QString path = ui->expPath->text();
-  setEnv("EXPPATH", path);
-
-  bool itemOK = QFile::exists(path);
-  check(ui->expPath, itemOK);
-
-  if (itemOK)
-    QDir::setCurrent(path);
-
-}
-
-void MainWindow::onExpNameChanges(){
-  const QString name = ui->expName->text();
-  check( ui->expName, ! name.isEmpty() );
-  setEnv("EXPNAME", name);
-}
-
-void MainWindow::onExpDescChanges(){
-  setEnv("EXPDESC", ui->expDesc->toPlainText());
-}
-
-void MainWindow::onSampleDescChanges(){
-  setEnv("SAMPLEDESC", ui->sampleDesc->toPlainText());
-}
-
-void MainWindow::onPeopleListChanges(){
-  setEnv("PEOPLE", ui->peopleList->toPlainText());
-}
-
-
-
-void MainWindow::onPreCommandChanges(){
-  bool scriptOK = prepareExec(preExec, ui->preCommand, ui->preError);
-  ui->preExec->setEnabled( scriptOK && ! ui->preCommand->toPlainText().isEmpty() );
-}
-
-void MainWindow::onPostCommandChanges(){
-  bool scriptOK = prepareExec(postExec, ui->postCommand, ui->postError);
-  ui->postExec->setEnabled( scriptOK && ! ui->postCommand->toPlainText().isEmpty() );
-}
-
-
-void MainWindow::onPostExec(){
-  doExec(postExec, "post-scan procedures");
-}
-
-void MainWindow::onPreExec(){
-  doExec(preExec, "pre-scan procedures");
-}
-
-
-
-
-void MainWindow::onThetaMotorChanges() {
-
-  bool itemOK = thetaMotor->motor()->isConnected();
-  check(thetaMotor->setupButton(), itemOK);
-
-  setEnv("SCANMOTORPV", thetaMotor->motor()->getPv());
-  setEnv("SCANMOTORDESC", thetaMotor->motor()->getDescription());
-
-  if ( sender() != thetaMotor )
-    return;
-
-  onScanStartChanges();
-  onScanEndChanges();
-
-}
-
-void MainWindow::onScanPosChanges(){
-  setEnv("SCANPOS", thetaMotor->motor()->get());
-}
-
-void MainWindow::onScanRangeChanges(){
-
-  double range = ui->scanRange->value();
-
-  check(ui->scanRange, range != 0.0);
-  setEnv("SCANRANGE", range);
-
-  if( sender() != ui->scanRange)
-    return;
-
-  ui->scanStep->blockSignals(true);
-  ui->scanStep->setValue(range/ui->projections->value());
-  ui->scanStep->blockSignals(false);
-  ui->scanEnd->setValue(ui->scanStart->value()+range);
-
-  onDoCT();
-
-}
-
-void MainWindow::onProjectionsChanges() {
-
-  const int proj = ui->projections->value();
-  setEnv("PROJECTIONS", proj);
-
-  if( sender() != ui->projections )
-    return;
-
-  ui->scanStep->setValue(ui->scanRange->value()/proj);
-  ui->transInterval->setMaximum(proj);
-
-  setScanTable();
-
-}
-
-void MainWindow::onScanStepChanges(){
-
-  const double step = ui->scanStep->value();
-  setEnv("SCANSTEP", step);
-
-  if( sender() != ui->scanStep )
-    return;
-
-  ui->scanRange->blockSignals(true);
-  ui->scanRange->setValue( copysign( ui->scanRange->value(), step));
-  ui->scanRange->blockSignals(false);
-
-  int proj = (int) nearbyint( ui->scanRange->value() / ( step==0.0 ? 1.0 : step) );
-  if ( ui->scanRange->value() != 0.0 ) {
-    ui->projections->blockSignals(true);
-    ui->projections->setValue(proj);
-    ui->projections->blockSignals(false);
-  }
-  ui->scanStep->setStyleSheet( step * proj == ui->scanRange->value()  ?
-                               ""  :  "color: rgba(255, 0, 0, 128);");
-
-}
-
-void MainWindow::onScanStartChanges(){
-
-  const double start = ui->scanStart->value();
-  setEnv("SCANSTART", start);
-
-  bool itemOK = ! thetaMotor->motor()->isConnected() || (
-        start >= thetaMotor->motor()->getUserLoLimit()  &&
-        start <= thetaMotor->motor()->getUserHiLimit() );
-  check(ui->scanStart, itemOK);
-
-  if( sender() != ui->scanStart)
-    return;
-
-  ui->scanEnd->setValue( start + ui->scanRange->value() );
-  setScanTable();
-
-}
-
-void MainWindow::onScanEndChanges(){
-
-  const double end = ui->scanEnd->value();
-  setEnv("SCANEND", end);
-
-  bool itemOK = ! thetaMotor->motor()->isConnected() || (
-        end >= thetaMotor->motor()->getUserLoLimit()  &&
-        end <= thetaMotor->motor()->getUserHiLimit() );
-  check(ui->scanEnd, itemOK);
-
-  if( sender() != ui->scanEnd )
-    return;
-
-  ui->scanRange->setValue( end - ui->scanStart->value() );
-  setScanTable();
-
-
-}
-
-void MainWindow::onScanAddChanges(){
-  onTransIntervalChanges();
-  if ( sender() != ui->scanAdd )
-    return;
-  setScanTable();
-}
-
-void MainWindow::onSelectiveScanChanges(){
-  ui->scanView->setColumnHidden( 0, ! ui->selectiveScan->isChecked() );
-}
-
-void MainWindow::setScanTable() {
-  if ( engineStatus == Running || engineStatus == Paused )
-    return;
-  if ( engineStatus == Filling ) {
-    stopMe=true;
-    QTimer::singleShot(0, this, SLOT(setScanTable()));
-  } else {
-    ui->scanView->setUpdatesEnabled(false);
-    engine(true);
-    onSelectiveScanChanges();
-    ui->scanView->setUpdatesEnabled(true);
-    check(ui->scanView, engineStatus == Stopped); // Stoppped if has finished populating
-    engineStatus = Stopped;
-  }
-}
-
-
-void MainWindow::onFilterChanges(const QString & text) {
-  proxyModel->setFilterRegExp( QRegExp(
-      QString(".*%1.*").arg(text), Qt::CaseInsensitive) );
-}
-
-void MainWindow::onSelectAll() {
-  ui->scanView->selectAll();
-}
-
-void MainWindow::onSelectNone() {
-  ui->scanView->selectionModel()->clear();
-}
-
-void MainWindow::onSelectInvert() {
-  QItemSelection slct = ui->scanView->selectionModel()->selection();
-  ui->scanView->selectAll();
-  ui->scanView->selectionModel()->select
-      ( slct, QItemSelectionModel::Deselect );
-}
-
-void MainWindow::onCheckAll() {
-  foreach ( QModelIndex idx , ui->scanView->selectionModel()->selectedRows(0) )
-    scanList->itemFromIndex(proxyModel->mapToSource(idx))->setCheckState(Qt::Checked);
-}
-
-void MainWindow::onCheckNone() {
-  foreach ( QModelIndex idx , ui->scanView->selectionModel()->selectedRows(0) )
-    scanList->itemFromIndex(proxyModel->mapToSource(idx))->setCheckState(Qt::Unchecked);
-}
-
-void MainWindow::onCheckInvert() {
-  foreach ( QModelIndex idx , ui->scanView->selectionModel()->selectedRows(0) ) {
-    QStandardItem * itm = scanList->itemFromIndex(proxyModel->mapToSource(idx));
-    Qt::CheckState st = itm->checkState();
-    st = (st == Qt::Checked) ? Qt::Unchecked : Qt::Checked;
-    itm->setCheckState(st);
-  }
-}
-
-
-void MainWindow::onTransMotorChanges() {
-
-  bool itemOK =
-      bgMotor->motor()->isConnected() == (bool) transQty ;
-  check(bgMotor->setupButton(), itemOK);
-
-  setEnv("TRANSMOTORPV", bgMotor->motor()->getPv());
-  setEnv("TRANSMOTORDESC", bgMotor->motor()->getDescription());
-
-  if( sender() != bgMotor )
-    return;
-
-  onTransInChanges();
-  onTransOutChanges();
-  onTransIntervalChanges();
-
-}
-
-void MainWindow::onTransPosChanges() {
-  setEnv("TRANSPOS", bgMotor->motor()->get());
-}
-
-void MainWindow::onTransIntervalChanges() {
-
-  const int interval = ui->transInterval->value();
-  setEnv("TRANSINTERVAL", interval);
-
-  if (interval == ui->transInterval->minimum())
-    transQty = 0;
-  else
-    transQty = (int) ceil(ui->projections->value()/(float)interval) +
-        ( ui->scanAdd->isChecked() ? 1 : 0 ) ;
-
-  setEnv("TRANSN", transQty);
-
-  bool itemOK =
-      bgMotor->motor()->isConnected() == (bool) transQty;
-  check(ui->transInterval , itemOK);
-
-  ui->bgFile->setEnabled(transQty);
-
-  if ( sender() != ui->transInterval )
-    return;
-
-  onTransMotorChanges();
-  onBgFileChanges();
-  onTransDistChanges();
-  onDoCT();
-  setScanTable();
-
-}
-
-void MainWindow::onTransDistChanges() {
-
-  const double dist = ui->transDist->value();
-  setEnv("TRANSDIST", dist);
-
-  bool itemOK =
-      ! transQty ||  dist != 0.0;
-  check(ui->transDist, itemOK);
-
-  if( sender() == ui->transDist )
-    ui->transOut->setValue(ui->transIn->value()+dist);
-
-}
-
-void MainWindow::onTransInChanges() {
-
-  const double pos = ui->transIn->value();
-  setEnv("TRANSIN", pos);
-
-  bool itemOK = ! bgMotor->motor()->isConnected() || (
-        pos >= bgMotor->motor()->getUserLoLimit()  &&
-        pos <= bgMotor->motor()->getUserHiLimit() );
-  check(ui->transIn, itemOK);
-
-  if( sender() != ui->transIn )
-    return;
-
-  ui->transOut->setValue(pos+ui->transDist->value());
-  setScanTable();
-
-}
-
-void MainWindow::onTransOutChanges() {
-
-  const double pos = ui->transOut->value();
-  setEnv("TRANSOUT", pos);
-
-  bool itemOK = ! bgMotor->motor()->isConnected() || (
-        pos >= bgMotor->motor()->getUserLoLimit()  &&
-        pos <= bgMotor->motor()->getUserHiLimit() );
-  check(ui->transOut, itemOK);
-
-  if( sender() != ui->transOut )
-    return;
-
-  ui->transDist->setValue(pos - ui->transIn->value());
-  setScanTable();
-
-}
-
-void MainWindow::onDfChanges() {
-
-  int bf=ui->dfBefore->value(), af=ui->dfAfter->value(),
-      total = af+bf;
-
-  ui->dfFile->setEnabled(total);
-  onDfFileChanges();
-
-  bool itemOK = ! total ||  sh1A->isConnected();
-  check(ui->dfBefore, itemOK);
-  check(ui->dfAfter, itemOK);
-  check(ui->shutterMan, itemOK);
-
-  setEnv("DFBEFORE", bf);
-  setEnv("DFAFTER", af);
-  setEnv("DFTOTAL", total);
-
-  onDoCT();
-  setScanTable();
-
-}
-
-
-void MainWindow::onShotModeChanges() {
-  ui->multiWg->setEnabled(ui->multiShot->isChecked());
-  ui->multiBg->setEnabled(ui->multiShot->isChecked());
-  onLoopMotorChanges();
-  onLoopRangeChanges();
-  onLoopStepChanges();
-  onLoopStartChanges();
-  onLoopEndChanges();
-  onSubLoopChanges();
-  onDoCT();
-  updateTestButtons();
-  if( sender() != ui->singleShot  &&  sender() != ui->multiShot )
-    return;
-  setScanTable();
-}
-
-void MainWindow::onLoopPosChanges() {
-  setEnv("LOOPPOS", loopMotor->motor()->get());
-}
-
-void MainWindow::onLoopMotorChanges() {
-
-  bool itemOK =
-      ui->singleShot->isChecked() || loopMotor->motor()->isConnected();
-  check(loopMotor->setupButton(), itemOK);
-
-  setEnv("LOOPMOTORPV", loopMotor->motor()->getPv());
-  setEnv("LOOPMOTORDESC", loopMotor->motor()->getDescription());
-
-  if( sender() != loopMotor)
-    return;
-
-  onLoopStartChanges();
-  onLoopEndChanges();
-
-}
-
-void MainWindow::onLoopRangeChanges() {
-
-  const double dist = ui->loopRange->value();
-  setEnv("LOOPRANGE", dist);
-
-  bool itemOK =
-      ui->singleShot->isChecked() || dist != 0.0;
-  check(ui->loopRange, itemOK);
-
-  if( sender() != ui->loopRange )
-    return;
-
-  ui->loopEnd->setValue(ui->loopStart->value()+dist);
-
-  ui->loopStep->blockSignals(true);
-  ui->loopStep->setValue(dist/(ui->loopNumber->value()-1));
-  ui->loopStep->blockSignals(false);
-  onLoopStepChanges();
-
-}
-
-void MainWindow::onLoopStepChanges() {
-
-  const double step = ui->loopStep->value();
-  setEnv("LOOPSTEP", step);
-
-  bool itemOK =
-      ui->singleShot->isChecked() || step != 0.0;
-  check(ui->loopStep, itemOK);
-
-  if( sender() != ui->loopStep )
-    return;
-
-  double newRange = step * ( ui->loopNumber->value() - 1 );
-
-  ui->loopRange->blockSignals(true);
-  ui->loopRange->setValue( newRange );
-  ui->loopRange->blockSignals(false);
-
-  ui->loopEnd->blockSignals(true);
-  ui->loopEnd->setValue( ui->loopStart->value() + newRange );
-  ui->loopEnd->blockSignals(false);
-
-}
-
-void MainWindow::onLoopNumberChanges(){
-
-  const int shots = ui->loopNumber->value();
-  setEnv("LOOPN", shots);
-
-  if( sender() != ui->loopNumber )
-    return;
-
-  double newRange = ui->loopStep->value() * (shots-1);
-
-  ui->loopRange->blockSignals(true);
-  ui->loopRange->setValue( newRange );
-  ui->loopRange->blockSignals(false);
-
-  ui->loopEnd->blockSignals(true);
-  ui->loopEnd->setValue( ui->loopStart->value() + newRange );
-  ui->loopEnd->blockSignals(false);
-
-  setScanTable();
-
-}
-
-void MainWindow::onLoopStartChanges() {
-
-  const double pos = ui->loopStart->value();
-  setEnv("LOOPSTART", pos);
-
-  bool itemOK =
-      ui->singleShot->isChecked() || ! loopMotor->motor()->isConnected() ||
-      ( pos >= loopMotor->motor()->getUserLoLimit()  &&
-       pos <= loopMotor->motor()->getUserHiLimit() );
-  check(ui->loopStart, itemOK);
-
-  if( sender() != ui->loopStart )
-    return;
-
-  ui->loopEnd->blockSignals(true);
-  ui->loopEnd->setValue( pos + ui->loopStep->value() * ( ui->loopNumber->value() - 1 ) );
-  ui->loopEnd->blockSignals(false);
-
-  setScanTable();
-
-}
-
-void MainWindow::onLoopEndChanges() {
-
-  const double pos = ui->loopEnd->value();
-  setEnv("LOOPEND", pos);
-
-  bool itemOK =
-      ui->singleShot->isChecked() || ! loopMotor->motor()->isConnected() ||
-      ( pos >= loopMotor->motor()->getUserLoLimit()  &&
-       pos <= loopMotor->motor()->getUserHiLimit() );
-  check(ui->loopEnd, itemOK);
-
-  if( sender() != ui->loopEnd)
-    return;
-
-  double newRange = pos - ui->loopStart->value();
-
-  ui->loopRange->blockSignals(true);
-  ui->loopRange->setValue( newRange );
-  ui->loopRange->blockSignals(false);
-
-  ui->loopStep->blockSignals(true);
-  ui->loopStep->setValue(newRange/(ui->loopNumber->value()-1));
-  ui->loopStep->blockSignals(false);
-
-  setScanTable();
-
-}
-
-
-void MainWindow::onSubLoopChanges() {
-  ui->subLoopWg->setEnabled(ui->subLoop->isChecked());
-  onSubLoopMotorChanges();
-  onSubLoopRangeChanges();
-  onSubLoopStepChanges();
-  onSubLoopStartChanges();
-  onSubLoopEndChanges();
-  if( sender() != ui->subLoop )
-    return;
-  setScanTable();
-}
-
-void MainWindow::onSubLoopPosChanges(){
-  setEnv("SUBLOOPPOS", subLoopMotor->motor()->get() );
-}
-
-void MainWindow::onSubLoopMotorChanges() {
-
-  bool itemOK = ! ui->subLoop->isChecked() ||
-      ui->singleShot->isChecked() || subLoopMotor->motor()->isConnected();
-  check(subLoopMotor->setupButton(), itemOK);
-
-  setEnv("SUBLOOPMOTORPV", subLoopMotor->motor()->getPv());
-  setEnv("SUBLOOPMOTORDESC", subLoopMotor->motor()->getDescription());
-
-  if( sender() != subLoopMotor)
-    return;
-
-  onSubLoopStartChanges();
-  onSubLoopEndChanges();
-
-}
-
-void MainWindow::onSubLoopRangeChanges() {
-
-  const double dist = ui->subLoopRange->value();
-  setEnv("SUBLOOPRANGE", dist);
-
-  bool itemOK = ! ui->subLoop->isChecked() ||
-      ui->singleShot->isChecked() || dist != 0.0;
-  check(ui->subLoopRange, itemOK);
-
-  if( sender() != ui->subLoopRange )
-    return;
-
-  ui->subLoopEnd->setValue(ui->subLoopStart->value()+dist);
-
-  ui->subLoopStep->blockSignals(true);
-  ui->subLoopStep->setValue(dist/(ui->subLoopNumber->value()-1));
-  ui->subLoopStep->blockSignals(false);
-  onSubLoopStepChanges();
-
-}
-
-void MainWindow::onSubLoopStepChanges() {
-
-  const double step = ui->subLoopStep->value();
-  setEnv("SUBLOOPSTEP", step);
-
-  bool itemOK = ! ui->subLoop->isChecked() ||
-      ui->singleShot->isChecked() || step != 0.0;
-  check(ui->subLoopStep, itemOK);
-
-  if( sender() != ui->subLoopStep )
-    return;
-
-  double newRange = step * ( ui->subLoopNumber->value() - 1 );
-
-  ui->subLoopRange->blockSignals(true);
-  ui->subLoopRange->setValue( newRange );
-  ui->subLoopRange->blockSignals(false);
-
-  ui->subLoopEnd->blockSignals(true);
-  ui->subLoopEnd->setValue( ui->subLoopStart->value() + newRange );
-  ui->subLoopEnd->blockSignals(false);
-
-}
-
-void MainWindow::onSubLoopNumberChanges(){
-
-  const int shots = ui->subLoopNumber->value();
-  setEnv("SUBLOOPN", shots);
-
-  if( sender() != ui->subLoopNumber )
-    return;
-
-  double newRange = ui->subLoopStep->value() * (shots-1);
-
-  ui->subLoopRange->blockSignals(true);
-  ui->subLoopRange->setValue( newRange );
-  ui->subLoopRange->blockSignals(false);
-
-  ui->subLoopEnd->blockSignals(true);
-  ui->subLoopEnd->setValue( ui->subLoopStart->value() + newRange );
-  ui->subLoopEnd->blockSignals(false);
-
-  setScanTable();
-
-}
-
-void MainWindow::onSubLoopStartChanges() {
-
-  const double pos = ui->subLoopStart->value();
-  setEnv("SUBLOOPSTART", pos);
-
-  bool itemOK = ! ui->subLoop->isChecked() ||
-      ui->singleShot->isChecked() || ! subLoopMotor->motor()->isConnected() ||
-      ( pos >= subLoopMotor->motor()->getUserLoLimit()  &&
-       pos <= subLoopMotor->motor()->getUserHiLimit() );
-  check(ui->subLoopStart, itemOK);
-
-  if( sender() != ui->subLoopStart )
-    return;
-
-  ui->subLoopEnd->blockSignals(true);
-  ui->subLoopEnd->setValue( pos + ui->subLoopStep->value() * ( ui->subLoopNumber->value() - 1 ) );
-  ui->subLoopEnd->blockSignals(false);
-
-  setScanTable();
-
-}
-
-void MainWindow::onSubLoopEndChanges() {
-
-  const double pos = ui->subLoopEnd->value();
-  setEnv("SUBLOOPEND", pos);
-
-  bool itemOK = ! ui->subLoop->isChecked() ||
-      ui->singleShot->isChecked() || ! subLoopMotor->motor()->isConnected() ||
-      ( pos >= subLoopMotor->motor()->getUserLoLimit()  &&
-       pos <= subLoopMotor->motor()->getUserHiLimit() );
-  check(ui->subLoopEnd, itemOK);
-
-  if( sender() != ui->subLoopEnd)
-    return;
-
-  double newRange = pos - ui->subLoopStart->value();
-
-  ui->subLoopRange->blockSignals(true);
-  ui->subLoopRange->setValue( newRange );
-  ui->subLoopRange->blockSignals(false);
-
-  ui->subLoopStep->blockSignals(true);
-  ui->subLoopStep->setValue(newRange/(ui->subLoopNumber->value()-1));
-  ui->subLoopStep->blockSignals(false);
-
-  setScanTable();
-
-}
-
-
-
-void MainWindow::onDynoChanges() {
-  onDynoMotorChanges();
-  onDynoStartChanges();
-  onDynoEndChanges();
-  onDynoRangeChanges();
-  onDyno2Changes();
-  ui->dynoWg->setEnabled(ui->dynoShot->isChecked());
-  updateTestButtons();
-}
-
-void MainWindow::onDynoPosChanges(){
-  setEnv("DYNOPOS", dynoMotor->motor()->get());
-}
-
-void MainWindow::setDynoUnits(){
-
-  const QString units = dynoMotor->motor()->getUnits();
-  setEnv("DYNOMOTORUNITS", units);
-
-  if ( sender() != dynoMotor)
-    return;
-
-  ui->dynoCurrent->setSuffix(units);
-  ui->dynoRange->setSuffix(units);
-  ui->dynoStart->setSuffix(units);
-  ui->loopEnd->setSuffix(units);
-
-}
-
-void MainWindow::setDynoPrec(int prec){
-
-  if ( ! prec )
-    prec = dynoMotor->motor()->getPrecision();
-  setEnv("DYNOMOTORPREC", prec);
-
-  ui->dynoCurrent->setDecimals(prec);
-  ui->dynoRange->setDecimals(prec);
-  ui->dynoStart->setDecimals(prec);
-  ui->dynoEnd->setDecimals(prec);
-
-}
-
-void MainWindow::onDynoMotorChanges(){
-
-  bool itemOK =
-      ! ui->dynoShot->isChecked() || dynoMotor->motor()->isConnected();
-  check(dynoMotor->setupButton(), itemOK);
-
-  setEnv("DYNOMOTORPV", dynoMotor->motor()->getPv());
-  setEnv("DYNOMOTORDESC", dynoMotor->motor()->getDescription());
-
-  if( sender() != dynoMotor)
-    return;
-
-  onDynoStartChanges();
-  onDynoEndChanges();
-
-}
-
-void MainWindow::onDynoRangeChanges() {
-
-  const double dist = ui->dynoRange->value();
-  setEnv("DYNORANGE", dist);
-
-  bool itemOK =
-      ! ui->dynoShot->isChecked() || dist != 0.0;
-  check(ui->dynoRange, itemOK);
-
-  if( sender() != ui->dynoRange )
-    return;
-
-  ui->dynoEnd->setValue(ui->dynoStart->value()+dist);
-
-}
-
-void MainWindow::onDynoStartChanges() {
-
-  const double pos = ui->dynoStart->value();
-  setEnv("DYNOSTART", pos);
-
-  bool itemOK =
-      ! ui->dynoShot->isChecked() || ! dynoMotor->motor()->isConnected() ||
-      ( pos >= dynoMotor->motor()->getUserLoLimit()  &&
-       pos <= dynoMotor->motor()->getUserHiLimit() );
-  check(ui->dynoStart, itemOK);
-
-  if( sender() != ui->dynoStart )
-    return;
-
-  ui->dynoEnd->blockSignals(true);
-  ui->dynoEnd->setValue( pos + ui->dynoRange->value() );
-  ui->dynoEnd->blockSignals(false);
-
-}
-
-void MainWindow::onDynoEndChanges() {
-
-  const double pos = ui->dynoEnd->value();
-  setEnv("DYNOEND", pos);
-
-  bool itemOK =
-      ! ui->dynoShot->isChecked() || ! dynoMotor->motor()->isConnected() ||
-      ( pos >= dynoMotor->motor()->getUserLoLimit()  &&
-       pos <= dynoMotor->motor()->getUserHiLimit() );
-  check(ui->dynoEnd, itemOK);
-
-  if( sender() != ui->dynoEnd)
-    return;
-
-  double newRange = pos - ui->dynoStart->value();
-
-  ui->dynoRange->blockSignals(true);
-  ui->dynoRange->setValue( newRange );
-  ui->dynoRange->blockSignals(false);
-  onDynoRangeChanges();
-
-}
-
-
-
-
-
-void MainWindow::onDyno2Changes() {
-  onDyno2MotorChanges();
-  onDyno2StartChanges();
-  onDyno2EndChanges();
-  onDyno2RangeChanges();
-  ui->dyno2Wg->setEnabled(ui->dyno2Shot->isChecked());
-}
-
-void MainWindow::onDyno2PosChanges(){
-  setEnv("DYNO2POS", dyno2Motor->motor()->get());
-}
-
-void MainWindow::setDyno2Units(){
-
-  const QString units = dyno2Motor->motor()->getUnits();
-  setEnv("DYNO2MOTORUNITS", units);
-
-  if ( sender() != dyno2Motor)
-    return;
-
-  ui->dyno2Current->setSuffix(units);
-  ui->dyno2Range->setSuffix(units);
-  ui->dyno2Start->setSuffix(units);
-  ui->loopEnd->setSuffix(units);
-
-}
-
-void MainWindow::setDyno2Prec(int prec){
-
-  if ( ! prec )
-    prec = dyno2Motor->motor()->getPrecision();
-  setEnv("DYNO2MOTORPREC", prec);
-
-  ui->dyno2Current->setDecimals(prec);
-  ui->dyno2Range->setDecimals(prec);
-  ui->dyno2Start->setDecimals(prec);
-  ui->dyno2End->setDecimals(prec);
-
-}
-
-void MainWindow::onDyno2MotorChanges(){
-
-  bool itemOK =
-      ! ui->dyno2Shot->isChecked() ||
-      ! ui->dynoShot->isChecked() || dyno2Motor->motor()->isConnected();
-  check(dyno2Motor->setupButton(), itemOK);
-
-  setEnv("DYNO2MOTORPV", dyno2Motor->motor()->getPv());
-  setEnv("DYNO2MOTORDESC", dyno2Motor->motor()->getDescription());
-
-  if( sender() != dyno2Motor)
-    return;
-
-  onDyno2StartChanges();
-  onDyno2EndChanges();
-
-}
-
-void MainWindow::onDyno2RangeChanges() {
-
-  const double dist = ui->dyno2Range->value();
-  setEnv("DYNO2RANGE", dist);
-
-  bool itemOK =
-      ! ui->dyno2Shot->isChecked() ||
-      ! ui->dynoShot->isChecked() || dist != 0.0;
-  check(ui->dyno2Range, itemOK);
-
-  if( sender() != ui->dyno2Range )
-    return;
-
-  ui->dyno2End->setValue(ui->dyno2Start->value()+dist);
-
-}
-
-void MainWindow::onDyno2StartChanges() {
-
-  const double pos = ui->dyno2Start->value();
-  setEnv("DYNO2START", pos);
-
-  bool itemOK =
-      ! ui->dyno2Shot->isChecked() ||
-      ! ui->dynoShot->isChecked() || ! dyno2Motor->motor()->isConnected() ||
-      ( pos >= dyno2Motor->motor()->getUserLoLimit()  &&
-       pos <= dyno2Motor->motor()->getUserHiLimit() );
-  check(ui->dyno2Start, itemOK);
-
-  if( sender() != ui->dyno2Start )
-    return;
-
-  ui->dyno2End->blockSignals(true);
-  ui->dyno2End->setValue( pos + ui->dyno2Range->value() );
-  ui->dyno2End->blockSignals(false);
-
-}
-
-void MainWindow::onDyno2EndChanges() {
-
-  const double pos = ui->dyno2End->value();
-  setEnv("DYNO2END", pos);
-
-  bool itemOK =
-      ! ui->dyno2Shot->isChecked() ||
-      ! ui->dynoShot->isChecked() || ! dyno2Motor->motor()->isConnected() ||
-      ( pos >= dyno2Motor->motor()->getUserLoLimit()  &&
-       pos <= dyno2Motor->motor()->getUserHiLimit() );
-  check(ui->dyno2End, itemOK);
-
-  if( sender() != ui->dyno2End)
-    return;
-
-  double newRange = pos - ui->dyno2Start->value();
-
-  ui->dyno2Range->blockSignals(true);
-  ui->dyno2Range->setValue( newRange );
-  ui->dyno2Range->blockSignals(false);
-  onDyno2RangeChanges();
-
-}
-
-
-
-
-
-
-
-void MainWindow::onSampleFileChanges() {
-
-  QString res, text = ui->sampleFile->text();
-  int evalOK = ! evalExpr(text, res);
-
-  check(ui->sampleFile, ! text.isEmpty() && evalOK );
-
-  ui->exampleImageName->setText( res );
-  ui->exampleImageName->setStyleSheet( evalOK  ?  ""  :  "color: rgba(255, 0, 0, 128);");
-
-  setScanTable();
-
-}
-
-void MainWindow::onBgFileChanges() {
-
-  QString res, text = ui->bgFile->text();
-  int evalOK = ! evalExpr(text, res);
-  bool itemOK =  ! ui->bgFile->isEnabled() || text.isEmpty() || evalOK;
-
-  check(ui->bgFile, itemOK);
-
-  ui->exampleImageName->setText( res );
-  ui->exampleImageName->setStyleSheet( evalOK  ?  ""  :  "color: rgba(255, 0, 0, 128);");
-
-  setScanTable();
-
-}
-
-void MainWindow::onDfFileChanges() {
-
-  QString res, text = ui->dfFile->text();
-  bool evalOK = ! evalExpr(text, res);
-  bool itemOK =  ! ui->dfFile->isEnabled() || text.isEmpty() || evalOK ;
-
-  check(ui->dfFile, itemOK);
-
-  ui->exampleImageName->setText( res );
-  ui->exampleImageName->setStyleSheet( evalOK  ?  ""  :  "color: rgba(255, 0, 0, 128);");
-
-  setScanTable();
-
-}
-
-void MainWindow::onDetectorCommandChanges(){
-
-  bool scriptOK = prepareExec(aqExec, ui->detectorCommand, ui->detectorError);
-  bool itemOK = ! ui->detectorCommand->toPlainText().isEmpty() && scriptOK;
-  check(ui->detectorCommand, itemOK);
-  ui->testDetector->setEnabled(itemOK);
-  updateTestButtons();
-
-}
-
-
-
-
-
-void MainWindow::onDoCT() {
-
-  onImageHeightChanges();
-  onImageWidthChanges();
-  onTopSliceChanges();
-  onBottomSliceChanges();
-  onRorLeftChanges();
-  onRorRightChanges();
-  onRorFrontChanges();
-  onRorRearChanges();
-  onLockPixelSize();
-
-  bool doCT = ui->remoteCT->isChecked();
-
-  bool rangeOK = ! doCT  ||  ui->scanRange->value() == 180;
-  ui->rctReq_scanRange->setShown(!rangeOK);
-
-  bool flatOK = ! doCT ||  ( ui->transInterval->value()  &&
-                             ui->dfBefore->value() + ui->dfAfter->value() );
-  ui->rctReq_flatField->setShown(!flatOK);
-
-  bool multiOK = ! doCT || ui->singleShot->isChecked();
-  ui->rctReq_multiShot->setShown(!multiOK);
-
-  check(ui->remoteCT, ! doCT || (rangeOK && flatOK && multiOK) );
-
-}
-
-
-void MainWindow::onImageHeightChanges() {
-  int height = ui->imageHeight->value();
-  ui->topSlice->setMaximum(height);
-  ui->bottomSlice->setMaximum(height);
-  check(ui->imageHeight, ! ui->remoteCT->isChecked()  ||  height>3);
-}
-
-
-void MainWindow::onImageWidthChanges() {
-  int width = ui->imageWidth->value();
-  ui->rorFront->setMaximum(width);
-  ui->rorRear->setMaximum(width);
-  ui->rorLeft->setMaximum(width);
-  ui->rorRight->setMaximum(width);
-  ui->rotationCenter->setRange(-width/3, width/3); // theoretically should be width/2
-  check(ui->imageWidth, ! ui->remoteCT->isChecked()  ||  width>3);
-}
-
-
-void MainWindow::onLockPixelSize() {
-  bool lock = ui->lockPixelSize->isChecked();
-  if (lock) {
-    ui->pixelWidth->setValue(ui->pixelHeight->value());
-    connect(ui->pixelHeight, SIGNAL(valueChanged(double)),
-            ui->pixelWidth, SLOT(setValue(double)));
-    connect(ui->pixelWidth, SIGNAL(valueChanged(double)),
-            ui->pixelHeight, SLOT(setValue(double)));
-  } else {
-    disconnect(ui->pixelHeight, SIGNAL(valueChanged(double)),
-               ui->pixelWidth, SLOT(setValue(double)));
-    disconnect(ui->pixelWidth, SIGNAL(valueChanged(double)),
-               ui->pixelHeight, SLOT(setValue(double)));
-  }
-}
-
-
-void MainWindow::onTopSliceChanges() {
-  int top = ui->topSlice->value();
-  int bot = ui->bottomSlice->value();
-  if ( bot && top > bot )
-    ui->bottomSlice->setValue(top);
-}
-
-
-void MainWindow::onBottomSliceChanges() {
-  int top = ui->topSlice->value();
-  int bot = ui->bottomSlice->value();
-  if ( bot && top > bot )
-    ui->topSlice->setValue(bot);
-}
-
-
-void MainWindow::onRorLeftChanges() {
-  int left = ui->rorLeft->value();
-  int right = ui->rorRight->value();
-  if ( right && left > right )
-    ui->rorRight->setValue(left);
-}
-
-
-void MainWindow::onRorRightChanges() {
-  int left = ui->rorLeft->value();
-  int right = ui->rorRight->value();
-  if ( right && left > right )
-    ui->rorLeft->setValue(right);
-}
-
-
-void MainWindow::onRorFrontChanges() {
-  int front = ui->rorFront->value();
-  int rear = ui->rorRear->value();
-  if ( rear && front > rear )
-    ui->rorFront->setValue(rear);
-}
-
-
-void MainWindow::onRorRearChanges() {
-  int front = ui->rorFront->value();
-  int rear = ui->rorRear->value();
-  if ( rear && front > rear )
-    ui->rorRear->setValue(front);
-}
-
-void MainWindow::onResetTop() {
-  ui->topSlice->setValue(ui->topSlice->minimum());
-}
-
-
-void MainWindow::onResetBottom() {
-  ui->bottomSlice->setValue(ui->bottomSlice->minimum());
-}
-
-
-void MainWindow::onResetLeft() {
-  ui->rorLeft->setValue(ui->rorLeft->minimum());
-}
-
-
-void MainWindow::onResetRight() {
-  ui->rorRight->setValue(ui->rorRight->minimum());
-}
-
-
-void MainWindow::onResetFront() {
-  ui->rorFront->setValue(ui->rorFront->minimum());
-}
-
-
-void MainWindow::onResetRear() {
-  ui->rorRear->setValue(ui->rorRear->minimum());
-}
-
-
-void MainWindow::onResetRor() {
-  onResetTop();
-  onResetBottom();
-  onResetLeft();
-  onResetRight();
-  onResetFront();
-  onResetRear();
-}
-
-
-
-
-void MainWindow::updateTestButtons() {
-  bool st = preReq[ui->detectorCommand].first
-      && ui->dynoShot->isChecked() && preReq[ui->tabDyno].first;
-  ui->testDyno->setEnabled(st);
-  st = preReq[ui->detectorCommand].first && preReq[ui->tabDyno].first
-      && preReq[ui->tabMulti].first && ui->multiShot->isChecked();
-  ui->testMulti->setEnabled(st);
-}
 
 
 
@@ -2374,17 +1436,28 @@ void MainWindow::check(QWidget * obj, bool status) {
 
   }
 
-  bool tabOK=status, allOK=status;
+  bool tabOK=status;
   if ( status )
     foreach ( ReqP tabel, preReq)
       if ( tabel.second == tab )
         tabOK &= tabel.first;
+
   if (tab) {
+
+    tabOK |= ui->control->indexOf(tab) == -1;
+
+    if (tab==ui->tabDyno)
+      ui->testDyno->setEnabled(tabOK);
+    if (tab==ui->tabMulti)
+      ui->testMulti->setEnabled(tabOK);
+
     preReq[tab] = qMakePair(tabOK, (const QWidget*)0);
     ui->control->setTabIcon(ui->control->indexOf(tab),
                             tabOK ? goodIcon : badIcon);
-    updateTestButtons();
+
   }
+
+  bool allOK=status;
   if ( status )
     foreach ( ReqP tabel, preReq)
       if ( ! tabel.second )
@@ -2395,134 +1468,28 @@ void MainWindow::check(QWidget * obj, bool status) {
 
 
 
-
-void MainWindow::onShutterChanges() {
-
-  if ( ! sh1A->isConnected() ) {
-    ui->shutterMan->setEnabled(false);
-    return;
-  }
-
-  switch (sh1A->state()) {
-  case Shutter1A::BETWEEN :
-    ui->shutterMan->setText("Wait");
-    ui->shutterStatus->setText("in progress");
-    ui->shutterMan->setEnabled(false);
-    break;
-  case Shutter1A::OPENED :
-    ui->shutterStatus->setText("opened");
-    ui->shutterMan->setText("Close");
-    ui->shutterMan->setEnabled(true);
-    break;
-  case Shutter1A::CLOSED :
-    ui->shutterStatus->setText("closed");
-    ui->shutterMan->setText("Open");
-    ui->shutterMan->setEnabled(true);
-    break;
-  }
-
-}
-
-
-/*
-int MainWindow::shutterMan(bool st, bool wait) {
-
-  int rst = st ? 1 : -1 ;
-
-  if ( ! opnSts->isConnected() || ! clsSts->isConnected() ||
-       ! opnCmd->isConnected() || ! clsCmd->isConnected() ) {
-    appendMessage(ERROR, "Shutter is not connected.");
-    return shutterStatus;
-  }
-  if ( rst == shutterStatus )
-    return shutterStatus;
-
-  appendMessage(CONTROL, QString(st ? "Openning" : "Closing") + " shutter.");
-
-  const int delay = 5000;  // 5 sec total delay
-  QEventLoop q;
-  QTimer tT;
-  tT.setSingleShot(true);
-
-  connect(&tT, SIGNAL(timeout()), &q, SLOT(quit()));
-  connect(opnSts, SIGNAL(valueUpdated(QVariant)), &q, SLOT(quit()));
-  connect(opnSts, SIGNAL(connectionChanged(bool)), &q, SLOT(quit()));
-  connect(clsSts, SIGNAL(valueUpdated(QVariant)), &q, SLOT(quit()));
-  connect(clsSts, SIGNAL(connectionChanged(bool)), &q, SLOT(quit()));
-
-
-
-  if ( ! shutterStatus ) { // in prog
-
-    tT.start(delay);
-    while ( tT.isActive() && ! shutterStatus ) {
-      q.exec();
-      onShutterChanges();
-    }
-
-    if ( ! shutterStatus ) {
-      appendMessage(ERROR, "Shutter is in progress for too long. Check it.");
-      return shutterStatus;
-    }
-    if ( rst == shutterStatus )
-      return shutterStatus;
-    tT.stop();onShutterMan()
-
-  }
-
-  ui->shutterMan->setEnabled(false);
-
-  // do manipulation
-  if (st) {
-    clsCmd->set(0);
-    opnCmd->set(1);
-  } else {
-    opnCmd->set(0);
-    clsCmd->set(1);
-  }
-
-  if ( ! wait )
-    return shutterStatus;
-
-  tT.start(delay);
-  while ( tT.isActive() && rst != shutterStatus ) {
-    q.exec();
-    onShutterChanges();
-  }
-
-onShutterMan()
-  return shutterStatus;
-
-}
-*/
-
-
 int MainWindow::acquireDetector(const QString & filename) {
 
+  /*
   if ( ! preReq[ui->detectorCommand].first ) {
     appendMessage(ERROR, "Image cannot be acquired now.");
     return 1;
   }
+  */
   if ( filename.isEmpty() ) {
     appendMessage(ERROR, "Empty filename to store image.");
     return 1;
   }
 
-  ui->detectorWidget->setEnabled(false);
-
+  //ui->detectorWidget->setEnabled(false);
 
   setEnv("FILE", filename);
-  int execStatus = doExec(aqExec, "image acquisition into \"" + filename + "\"");
+  int execStatus /*= doExec(aqExec, "image acquisition into \"" + filename + "\"")*/;
   if (execStatus)
     appendMessage(ERROR, "Error acquiring \"" + filename + "\".");
 
 
-  ui->detectorWidget->setEnabled(true);
-
-  // preview.
-  if ( ! execStatus && ui->livePreview->isChecked() )
-    // TODO. Should be executed in a parelel thread
-    ui->image->setStyleSheet("image: url(" + filename + ");");
+  //ui->detectorWidget->setEnabled(true);
 
   return execStatus;
 
@@ -2530,14 +1497,14 @@ int MainWindow::acquireDetector(const QString & filename) {
 
 
 void MainWindow::waitStopDynos() {
-  if ( ui->dynoShot->isChecked() )
+  if ( ui->checkDyno->isChecked() )
     dynoMotor->motor()->wait_stop();
   if ( ui->dyno2Shot->isChecked() )
     dyno2Motor->motor()->wait_stop();
 }
 
 void MainWindow::stopDynos() {
-  if ( ui->dynoShot->isChecked() )
+  if ( ui->checkDyno->isChecked() )
     dynoMotor->motor()->stop();
   if ( ui->dyno2Shot->isChecked() )
     dyno2Motor->motor()->stop();
@@ -2547,13 +1514,13 @@ void MainWindow::stopDynos() {
 
 void MainWindow::startDynos(double dynoPos, double dyno2Pos) {
 
-  if ( ( ui->dynoShot->isChecked()  && dynoMotor->motor()->getUserGoal()  != dynoPos ) ||
+  if ( ( ui->checkDyno->isChecked()  && dynoMotor->motor()->getUserGoal()  != dynoPos ) ||
        ( ui->dyno2Shot->isChecked() && dyno2Motor->motor()->getUserGoal() != dyno2Pos ) )
     stopDynos();
   else
     waitStopDynos();
 
-  if ( ui->dynoShot->isChecked() )
+  if ( ui->checkDyno->isChecked() )
     dynoMotor->motor()->goUserPosition(dynoPos, QCaMotor::STARTED);
   if ( ui->dyno2Shot->isChecked() )
     dyno2Motor->motor()->goUserPosition(dyno2Pos, QCaMotor::STARTED);
@@ -2565,7 +1532,7 @@ void MainWindow::startDynos(double dynoPos, double dyno2Pos) {
 
 int MainWindow::acquireDyno(const QString & filename) {
 
-  if ( ui->dynoShot->isChecked() && ! preReq[ui->tabDyno].first ) {
+  if ( ui->checkDyno->isChecked() && ! preReq[ui->tabDyno].first ) {
     appendMessage(ERROR, "Image in the dynamic shot mode cannot be acquired now.");
     return 1;
   }
@@ -2574,27 +1541,29 @@ int MainWindow::acquireDyno(const QString & filename) {
     return 1;
   }
 
-  ui->dynoWidget->setEnabled(false);
+  //ui->dynoWidget->setEnabled(false);
 
   int execStatus = 0;
 
+  /*
   const double
       dStart = ui->dynoStart->value(),
       d2Start = ui->dyno2Start->value();
+*/
 
-  startDynos(dStart, d2Start);
+  //startDynos(dStart, d2Start);
   waitStopDynos();
   if (stopMe) {
-    ui->dynoWidget->setEnabled(true);
+  //  ui->dynoWidget->setEnabled(true);
     return execStatus;
   }
 
-  startDynos(ui->dynoEnd->value(), ui->dyno2End->value());
+  //startDynos(ui->dynoEnd->value(), ui->dyno2End->value());
   execStatus = acquireDetector(filename);
 
-  startDynos(dStart, d2Start);
+  //startDynos(dStart, d2Start);
 
-  ui->dynoWidget->setEnabled(true);
+  //ui->dynoWidget->setEnabled(true);
 
   return execStatus;
 
@@ -2608,20 +1577,21 @@ int MainWindow::acquireMulti() {
     return 1;
   }
 
-  ui->multiWidget->setEnabled(false);
+  //ui->multiWidget->setEnabled(false);
 
   const bool
-      doL = ui->multiShot->isChecked(),
+      doL = ui->checkMulti->isChecked(),
       doSL = doL && ui->subLoop->isChecked();
 
   const int
       loopN =  doL ? ui->loopNumber->value() : 1,
       subLoopN = doSL ? ui->subLoopNumber->value() : 1;
-  const double
+  /*const double
       lStart = ui->loopStart->value(),
       lEnd = ui->loopEnd->value(),
       slStart = ui->subLoopStart->value(),
       slEnd = ui->subLoopEnd->value();
+      */
 
   double
       lastLoop = loopMotor->motor()->get(),
@@ -2631,8 +1601,8 @@ int MainWindow::acquireMulti() {
 
   for ( int x = 0; x < loopN; x++) {
 
-    double loopPos = lStart   +
-        ( (loopN==1)  ?  0  :  x * (lEnd-lStart) / (loopN-1) );
+    double loopPos = /*lStart*/   +
+        ( (loopN==1)  ?  0  :  x /* * (lEnd-lStart) / (loopN-1) */);
     if ( doL  &&  lastLoop != loopPos ) {
       appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
       loopMotor->motor()->goUserPosition(loopPos, QCaMotor::STARTED);
@@ -2641,8 +1611,8 @@ int MainWindow::acquireMulti() {
 
     for ( int y = 0; y < subLoopN; y++) {
 
-      double subLoopPos = slStart +
-          ( ( subLoopN == 1 )  ?  0  :  y * (slEnd - slStart) / (subLoopN-1) );
+      double subLoopPos = /*slStart +*/
+          ( ( subLoopN == 1 )  ?  0  :  y /** (slEnd - slStart)*/ / (subLoopN-1) );
       if ( doSL  &&  lastSubLoop != subLoopPos ) {
         appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
         subLoopMotor->motor()->goUserPosition(subLoopPos, QCaMotor::STARTED);
@@ -2652,12 +1622,14 @@ int MainWindow::acquireMulti() {
       loopMotor->motor()->wait_stop();
       subLoopMotor->motor()->wait_stop();
 
+      /*
       if (stopMe) {
         loopMotor->motor()->goUserPosition(lStart);
         subLoopMotor->motor()->goUserPosition(slStart);
-        ui->multiWidget->setEnabled(true);
+        //ui->multiWidget->setEnabled(true);
         return execStatus;
       }
+      */
 
 
       QString filename = ".temp." + QString::number(x) + "." + QString::number(y) + ".tif";
@@ -2665,20 +1637,22 @@ int MainWindow::acquireMulti() {
 
       if (execStatus)
         appendMessage(ERROR, "Failed to acquire image in the multi-shot run.");
+      /*
       if (execStatus || stopMe) {
         loopMotor->motor()->goUserPosition(lStart);
         subLoopMotor->motor()->goUserPosition(slStart);
-        ui->multiWidget->setEnabled(true);
+        //ui->multiWidget->setEnabled(true);
         return execStatus;
       }
+      */
 
     }
 
   }
 
-  loopMotor->motor()->goUserPosition(lStart);
-  subLoopMotor->motor()->goUserPosition(slStart);
-  ui->multiWidget->setEnabled(true);
+  //loopMotor->motor()->goUserPosition(lStart);
+  //subLoopMotor->motor()->goUserPosition(slStart);
+  //ui->multiWidget->setEnabled(true);
   return execStatus;
 
 }
@@ -2687,6 +1661,7 @@ int MainWindow::acquireMulti() {
 
 
 void MainWindow::onAcquireDetector() {
+  /*
   if ( ! ui->detectorWidget->isEnabled() ) {
     emit requestToStopAcquisition();
   } else {
@@ -2695,9 +1670,11 @@ void MainWindow::onAcquireDetector() {
     acquireDetector(".temp.tif");
     ui->testDetector->setText("Test");
   }
+  */
 }
 
 void MainWindow::onAcquireDyno() {
+  /*
   if ( ! ui->dynoWidget->isEnabled() ) {
     stopMe = true;
     emit requestToStopAcquisition();
@@ -2710,9 +1687,11 @@ void MainWindow::onAcquireDyno() {
     acquireDyno(".temp.tif");
     ui->testDyno->setText("Test");
   }
+  */
 }
 
 void MainWindow::onAcquireMulti() {
+  /*
   if ( ! ui->multiWidget->isEnabled() ) {
     stopMe = true;
     emit requestToStopAcquisition();
@@ -2727,6 +1706,7 @@ void MainWindow::onAcquireMulti() {
     acquireMulti();
     ui->testMulti->setText("Test");
   }
+  */
 }
 
 
@@ -2755,31 +1735,9 @@ void MainWindow::logMessage(const QString &msg) {
 }
 
 
-void MainWindow::onAssistant() {
-
-  if ( engineStatus == Stopped || engineStatus == Filling ) { // update initials
-
-    getThetaStart();
-    getBgStart();
-    getDyno2Start();
-    getDynoStart();
-    getLoopStart();
-    getSubLoopStart();
-
-  } else if ( engineStatus == Paused ) { // Break
-
-    setEngineStatus(Stopped);
-
-  }
-
-
-}
-
-
 void MainWindow::onStartStop() {
 
-  if ( engineStatus == Running ) {
-
+  if ( engineStatus ) {
     stopMe = true;
     thetaMotor->motor()->stop();
     bgMotor->motor()->stop();
@@ -2788,16 +1746,14 @@ void MainWindow::onStartStop() {
     dynoMotor->motor()->stop();
     dyno2Motor->motor()->stop();
     emit requestToStopAcquisition();
-
-  } else if ( engineStatus == Filling ) {
-    stopMe = true;
   } else {
-    engine(false);
+    engine();
   }
 
 }
 
 
+/*
 void MainWindow::setEngineStatus(EngineStatus status) {
 
  // if ( status == engineStatus )
@@ -2808,26 +1764,21 @@ void MainWindow::setEngineStatus(EngineStatus status) {
     ui->progressBar->setFormat("Paused at %p%.");
     ui->verticalLayoutt->addWidget(ui->progressBar);
     ui->progressBar->show();
-    ui->scanView->show();
 
     appendMessage(CONTROL, "Pausing engine.");
 
-    if ( ui->dynoShot->isChecked() )
+    if ( ui->checkDyno->isChecked() )
       dynoMotor->motor()->goUserPosition(motorsInitials[dynoMotor], QCaMotor::STARTED);
     if ( ui->dyno2Shot->isChecked() )
       dyno2Motor->motor()->goUserPosition(motorsInitials[dyno2Motor], QCaMotor::STARTED);
 
     ui->startStop->setText("Resume scan");
-    ui->assistant->show();
-    ui->assistant->setText("Break scan");
-    ui->assistant->setToolTip("Breaks the execution and return motors to initial positions.");
 
   } else if (status == Running) {
 
     ui->progressBar->setFormat("Running. %p% done.");
     ui->verticalLayoutt->addWidget(ui->progressBar);
     ui->progressBar->show();
-    ui->scanView->show();
 
     if (engineStatus == Stopped)
       appendMessage(CONTROL,  "Starting engine.");
@@ -2835,15 +1786,12 @@ void MainWindow::setEngineStatus(EngineStatus status) {
       appendMessage(CONTROL,  "Resuming engine.");
 
     ui->startStop->setText("Pause scan");
-    ui->assistant->hide();
 
     ui->tabGeneral->setEnabled(false);
-    ui->tabPrePost->setEnabled(false);
     ui->tabDetector->setEnabled(false);
     ui->tabDyno->setEnabled(false);
     ui->tabFF->setEnabled(false);
     ui->tabMulti->setEnabled(false);
-    ui->tabRemoteCT->setEnabled(false);
     ui->tabScan->setEnabled(false);
 
   } else if ( status == Filling ) {
@@ -2853,12 +1801,10 @@ void MainWindow::setEngineStatus(EngineStatus status) {
     ui->progressBar->setFormat("Updating table.\n %p%");
     ui->horizontalLayout->insertWidget(0,ui->progressBar);
     ui->progressBar->show();
-    ui->scanView->hide();
 
   } else { // Paused while filling or Stopped
 
     ui->progressBar->hide();
-    ui->scanView->show();
 
     if (engineStatus == Paused)
       appendMessage(CONTROL,  "Resetting engine.");
@@ -2872,9 +1818,6 @@ void MainWindow::setEngineStatus(EngineStatus status) {
     }
 
     ui->startStop->setText("Start");
-    ui->assistant->show();
-    ui->assistant->setText("Set initials");
-    ui->assistant->setToolTip("Get starting positions of all stages from their current positions.");
     for (int tabIdx=0 ; tabIdx < ui->control->count() ; tabIdx++ )
       ui->control->widget(tabIdx)->setEnabled(true);
 
@@ -2883,11 +1826,12 @@ void MainWindow::setEngineStatus(EngineStatus status) {
   engineStatus=status;
 
 }
+*/
 
 
 
 
-
+/*
 void MainWindow::appendScanListRow(Role rl, double pos, const QString & fn) {
 
   QList<QStandardItem *> items;
@@ -2916,10 +1860,10 @@ void MainWindow::appendScanListRow(Role rl, double pos, const QString & fn) {
   ti->setEditable(false);
   items << ti;
 
-  scanList->appendRow(items);
+  // scanList->appendRow(items);
 
 }
-
+*/
 
 QString MainWindow::setAqFileEnv(const QLineEdit * edt, const QString & var) {
 
@@ -2934,92 +1878,44 @@ QString MainWindow::setAqFileEnv(const QLineEdit * edt, const QString & var) {
     indexOfDot = eres.size();
   QString res = eres;
   int count = 0;
-  while ( res.isEmpty() || /* QFile::exists(res) || */ listHasFile(res) ) {
+  /*
+  while ( res.isEmpty() || QFile::exists(res) || listHasFile(res) ) {
     res = eres;
     res.insert(indexOfDot, "_(" + QString::number(++count) + ")");
   }
+  */
 
   setEnv(var, res);
   return res;
 
 }
 
+/*
 bool MainWindow::listHasFile(const QString & fn) {
   if (fn.isEmpty())
     return false;
   bool found=false;
+
   int count = 0;
   while ( ! found && count < scanList->rowCount() )
     found  =  scanList->item(count++, 3)->text() == fn;
+
   return found;
 }
+*/
 
+/*
 bool MainWindow::doIt(int count) {
+
   if ( count >= scanList->rowCount() )
     return false;
   if ( ! ui->selectiveScan->isChecked() )
     return true;
   return scanList->item(count,0)->checkState() == Qt::Checked;
+
+  return true;
 }
-
-void MainWindow::createXLIfile(const QString & filename) {
-
-  QFile templ(":/xli.template");
-  templ.open(QFile::ReadOnly);
-  QString text = templ.readAll();
-  templ.close();
-
-  text.replace("${USERNAME}", ui->vblUser->text() );
-  text.replace("${PASSWORD}", ui->vblPassword->text() );
-  text.replace("${PROJECTIONS}", QString::number(ui->projections->value()));
-
-  QString prList, dcList, bgList;
-  for( int idx=0 ; idx < scanList->rowCount() ; idx++ ) {
-    QString filename = scanList->item(idx,3)->text();
-    QString roleText = scanList->item(idx,1)->text();
-    if ( roleText == roleName[SAMPLE] )
-      prList += "," + filename;
-    else if ( roleText == roleName[BG] )
-      bgList += "," + filename;
-    else if ( roleText == roleName[DF] )
-      dcList += "," + filename;
-  }
-  text.replace("${PROJECTION_LIST}", prList);
-  text.replace("${DARK_LIST}", dcList);
-  text.replace("${FLAT_LIST}", bgList);
-
-  text.replace("${TRANSINTERVAL}", QString::number(ui->transInterval->value()));
-  text.replace("${CENTER}", QString::number(ui->rotationCenter->value()) );
-  text.replace("${PIX_HEIGHT}", QString::number(ui->pixelHeight->value()) );
-  text.replace("${PIX_WIDTH}", QString::number(ui->pixelWidth->value()) );
-  text.replace("${SCAN_STEP}", QString::number(ui->scanStep->value()));
-
-  text.replace("${TOP_SLICE}", QString::number(ui->topSlice->value()-1));
-  text.replace("${BOTTOM_SLICE}",
-               QString::number (
-                 ( ui->bottomSlice->value() == ui->bottomSlice->minimum() ?
-                     ui->imageHeight->value() : ui->bottomSlice->value() )
-                 - 1 ) );
-
-  text.replace("${DO_ROR}",
-               ui->rorLeft->value() != ui->rorLeft->minimum() ||
-               ui->rorRight->value() != ui->rorRight->minimum() ||
-               ui->rorFront->value() != ui->rorFront->minimum() ||
-               ui->rorRear->value() != ui->rorRear->minimum()
-               ? "1" : "0");
-  text.replace("${ROR_LEFT}", QString::number(ui->rorLeft->value()-1) );
-  text.replace("${ROR_RIGHT}", QString::number(ui->rorRight->value()-1) );
-  text.replace("${ROR_REAR}", QString::number(ui->rorRear->value()-1) );
-  text.replace("${ROR_FRONT}", QString::number(ui->rorFront->value()-1) );
-  text.replace("${SLICE_BASE}", "slice.tif");
-
-  QFile out(filename);
-  out.open(QFile::WriteOnly|QFile::Truncate);
-  out.write( text.toAscii() );
-  out.close();
-
-
-}
+*/
 
 
 
@@ -3032,7 +1928,9 @@ void MainWindow::createXLIfile(const QString & filename) {
 
 
 
-void MainWindow::engine (const bool dryRun) {
+void MainWindow::engine () {
+
+  /*
 
   stopMe = false;
 
@@ -3058,14 +1956,14 @@ void MainWindow::engine (const bool dryRun) {
   const bool
       scanAdd = ui->scanAdd->isChecked(),
       doBg = transQty,
-      doL = ui->multiShot->isChecked(),
+      doL = ui->checkMulti->isChecked(),
       doSL = doL && ui->subLoop->isChecked(),
       multiBg = doL && ! ui->multiBg->isChecked();
   const double
       start=ui->scanStart->value(),
       end=ui->scanEnd->value(),
       transIn = ui->transIn->value(),
-      transOut = ui->transOut->value(),
+      transOut = ui->bgOut->value(),
       lStart = ui->loopStart->value(),
       lEnd = ui->loopEnd->value(),
       slStart = ui->subLoopStart->value(),
@@ -3340,6 +2238,8 @@ void MainWindow::engine (const bool dryRun) {
     appendMessage(CONTROL, "Scan is finished.");
   }
   setEngineStatus(Stopped);
+
+  */
 
 }
 

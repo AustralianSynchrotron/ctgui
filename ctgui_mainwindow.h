@@ -8,10 +8,9 @@
 #include <QSortFilterProxyModel>
 #include <QStandardItem>
 #include <QFile>
+#include <QLineEdit>
 
 #include <imbl/shutter1A.h>
-#include "ui_ctgui_mainwindow.h"
-#include "ui_ctgui_variables.h"
 
 
 
@@ -44,6 +43,9 @@ private:
 
   static QHash<QString,QString> envDesc;
 
+  static const QString storedState;
+  bool isLoadingState;
+
   static const bool inited;
   static bool init();
 
@@ -54,6 +56,7 @@ private:
 
 
   Shutter1A * sh1A;
+  QCaMotorGUI * serialMotor;
   QCaMotorGUI * thetaMotor;
   QCaMotorGUI * bgMotor;
   QCaMotorGUI * loopMotor;
@@ -61,10 +64,9 @@ private:
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
 
+  QEpicsPv * detfname;
+
   QHash<QCaMotorGUI *, double> motorsInitials;
-
-  //int shutterMan(bool st, bool wait=false);
-
 
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <const QObject*,  ReqP > preReq;
@@ -72,32 +74,9 @@ private:
   static const QIcon goodIcon;
   static const QIcon badIcon;
 
-  QStandardItemModel * scanList;
-  QSortFilterProxyModel * proxyModel;
-
-  void createXLIfile(const QString & filename);
-
-  enum Role {
-    SAMPLE,
-    DF,
-    BG,
-    LOOP,
-    SLOOP
-  };
-  static QHash<Role, QString> roleName;
-
-  bool listHasFile(const QString & fn);
   QString setAqFileEnv(const QLineEdit * edt, const QString & var);
 
-  void appendScanListRow( Role rl, double pos, const QString & fn=QString() );
-
-  int transQty;
-
   void check(QWidget * obj, bool status);
-
-  QFile * aqExec;
-  QFile * preExec;
-  QFile * postExec;
 
   void errorOnScan(const QString & msg) {
     qDebug() << msg;
@@ -107,24 +86,10 @@ private:
   int acquireDyno(const QString & filename);
   int acquireMulti();
 
-  void updateTestButtons();
+  void engine();
 
-  void engine(const bool dryRun);
-
-  bool doIt(int count);
-
+  bool engineStatus;
   bool stopMe;
-
-  enum EngineStatus {
-    Stopped, // The engine is not doing anything.
-    Running, // Scan is in proggress.
-    Paused,  // Scan / Filling is paused.
-    Filling  // The engine is filling the ui->scanView table.
-  };
-  EngineStatus engineStatus;
-
-  int doExec(QFile * fileExec, const QString & action);
-  bool prepareExec(QFile* fileExec, QPTEext * textW, QLabel * errorLabel);
 
   enum MsgType {
     LOG,
@@ -148,7 +113,6 @@ private:
     setEnv(var, QString::number(val));
   }
 
-  QList<QWidget*> widgetsNeededHelp;
   QWidget * insertVariableIntoMe;
 
   void stopDynos();
@@ -160,135 +124,59 @@ private slots:
   void saveConfiguration(QString fileName = QString());
   void loadConfiguration(QString fileName = QString());
 
-  void onFocusChange( QWidget * old, QWidget * now );
-  void onHelpClecked(int row);
+  void storeCurrentState();
 
-  void setThetaUnits();
-  void setBgUnits();
-  void setLoopUnits();
-  void setSubLoopUnits();
+  //void onHelpClecked(int row);
 
-  void setThetaPrec(int prec=0);
-  void setBgPrec(int prec=0);
-  void setLoopPrec(int prec=0);
-  void setSubLoopPrec(int prec=0);
+  void onWorkingDirChange();
+  void onWorkingDirBrowse();
+  void onAcquisitionMode();
+  void onSerialCheck();
+  void onFFcheck();
+  void onDynoCheck();
+  void onMultiCheck();
+  void onSampleFile();
+  void onBGfile();
+  void onDFfile();
+  void onFileTemplateFocus();
 
-  void getThetaStart();
-  void getBgStart();
-  void getLoopStart();
-  void getSubLoopStart();
-  void getDynoStart();
-  void getDyno2Start();
+  void onEndCondition();
+  void onSerialMotor();
+  void onSerialStep();
 
-  void onBrowseExpPath();
-  void onExpPathChanges();
-  void onExpNameChanges();
-  void onExpDescChanges();
-  void onSampleDescChanges();
-  void onPeopleListChanges();
+  void onScanRange();
+  void onScanMotor();
+  void onProjections();
+  void onRotSpeed();
 
-  void onPreCommandChanges();
-  void onPostCommandChanges();
-  void onPreExec();
-  void onPostExec();
+  void onBGmotor();
+  void onNofBG();
+  void onBGtravel();
+  void onNofDF();
+  void onShutterStatus();
 
-  void onThetaMotorChanges();
-  void onScanPosChanges();
-  void onScanRangeChanges();
-  void onScanStepChanges();
-  void onProjectionsChanges();
-  void onScanStartChanges();
-  void onScanEndChanges();
-  void onScanAddChanges();
-  void onSelectiveScanChanges();
-  void setScanTable();
+  void onLoopMotor();
+  void onLoopStep();
+  void onSubLoop();
+  void onSubLoopMotor();
+  void onSubLoopStep();
+  void onLoopTest();
 
-  void onFilterChanges(const QString & text);
-  void onSelectAll();
-  void onSelectNone();
-  void onSelectInvert();
-  void onCheckAll();
-  void onCheckNone();
-  void onCheckInvert();
+  void onDynoMotor();
+  void onDyno2();
+  void onDyno2Motor();
+  void onDynoSpeedLock();
+  void onDynoDirectionLock();
+  void onDynoTest();
 
-  void onTransMotorChanges();
-  void onTransPosChanges();
-  void onTransIntervalChanges();
-  void onTransDistChanges();
-  void onTransInChanges();
-  void onTransOutChanges();
-  void onDfChanges();
-  void onShutterChanges();
-  //void onShutterMan();
-
-  void onShotModeChanges();
-  void onLoopMotorChanges();
-  void onLoopPosChanges();
-  void onLoopRangeChanges();
-  void onLoopNumberChanges();
-  void onLoopStepChanges();
-  void onLoopStartChanges();
-  void onLoopEndChanges();
-
-  void onSubLoopChanges();
-  void onSubLoopMotorChanges();
-  void onSubLoopPosChanges();
-  void onSubLoopRangeChanges();
-  void onSubLoopNumberChanges();
-  void onSubLoopStepChanges();
-  void onSubLoopStartChanges();
-  void onSubLoopEndChanges();
-
-  void onDynoChanges();
-  void onDynoPosChanges();
-  void setDynoUnits();
-  void setDynoPrec(int prec=0);
-  void onDynoMotorChanges();
-  void onDynoRangeChanges();
-  void onDynoStartChanges();
-  void onDynoEndChanges();
-
-  void onDyno2Changes();
-  void onDyno2PosChanges();
-  void setDyno2Units();
-  void setDyno2Prec(int prec=0);
-  void onDyno2MotorChanges();
-  void onDyno2RangeChanges();
-  void onDyno2StartChanges();
-  void onDyno2EndChanges();
-
-  void onDetectorCommandChanges();
-  void onSampleFileChanges();
-  void onBgFileChanges();
-  void onDfFileChanges();
 
   void onStartStop();
-  void onAssistant();
-  void setEngineStatus(EngineStatus status);
-
-
-  void onDoCT();
-  void onImageHeightChanges();
-  void onImageWidthChanges();
-  void onLockPixelSize();
-  void onTopSliceChanges();
-  void onBottomSliceChanges();
-  void onRorLeftChanges();
-  void onRorRightChanges();
-  void onRorFrontChanges();
-  void onRorRearChanges();
-
-  void onResetTop();
-  void onResetBottom();
-  void onResetLeft();
-  void onResetRight();
-  void onResetFront();
-  void onResetRear();
-  void onResetRor();
 
   void onAcquireDetector();
   void onAcquireDyno();
   void onAcquireMulti();
+
+  void tempSlot();
 
 signals:
 
