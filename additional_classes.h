@@ -4,9 +4,33 @@
 #include <QToolButton>
 #include <QStyle>
 #include <QProcess>
+#include <QTemporaryFile>
+#include <QGridLayout>
 
 #ifndef CTGUIADDITIONALCLASSES
 #define CTGUIADDITIONALCLASSES
+
+
+
+struct ColumnResizerPrivate;
+class ColumnResizer : public QObject {
+  Q_OBJECT;
+public:
+  ColumnResizer(QObject* parent = 0);
+  ~ColumnResizer();
+
+  void addWidget(QWidget* widget);
+  void addWidgetsFromGridLayout(QGridLayout*, int column);
+
+private Q_SLOTS:
+  void updateWidth();
+
+protected:
+  bool eventFilter(QObject*, QEvent* event);
+
+private:
+  ColumnResizerPrivate* const d;
+};
 
 
 
@@ -53,6 +77,7 @@ class Script : public QWidget {
 private:
   Ui::Script *ui;
   QProcess proc;
+  QTemporaryFile fileExec;
 
 public:
   explicit Script(QWidget *parent = 0);
@@ -64,6 +89,8 @@ public:
   int waitStop();
   bool isRunning() const { return proc.pid(); };
   const QString path() const;
+
+  void addToColumnResizer(ColumnResizer * columnizer);
 
 public slots:
   bool start();
@@ -85,7 +112,7 @@ signals:
 };
 
 
-
+/*
 class FilterFileTemplateEvent : public QObject {
   Q_OBJECT;
 public:
@@ -101,7 +128,7 @@ protected:
 signals:
   void focusInOut();
 };
-
+*/
 
 
 #endif // CTGUIADDITIONALCLASSES

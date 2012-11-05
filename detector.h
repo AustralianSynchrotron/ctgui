@@ -4,6 +4,7 @@
 #include <QObject>
 #include <qtpv.h>
 #include <QTimer>
+#include <QDebug>
 
 
 class Detector : public QObject {
@@ -13,36 +14,41 @@ public:
 
   enum Camera {
     NONE=0,
-    Amethyst,
-    Ruby,
+    ScintX,
+    PCOedge1,
+    PCOedge2,
     BYPV
   };
 
+  static QString cameraName(Camera cam);
+  static const QList<Camera> knownCameras;
+  static Camera camera(const QString & _cameraName);
+
 private:
 
-  Camera cam;
-  QEpicsPv * expPv; // AcquireTime (_RBV)
-  QEpicsPv * intPv; // AcquirePeriod
-  QEpicsPv * numPv; //NumImages
-  QEpicsPv * numCapPv; // NumCapture
-  QEpicsPv * numCompletePv; // NumCapture
+  QEpicsPv * exposurePv; // AcquireTime (_RBV)
+  QEpicsPv * periodPv; // AcquirePeriod
+  QEpicsPv * numberPv; //NumImages
+  QEpicsPv * counterPv; // NumCapture
   QEpicsPv * triggerModePv;//TriggerMode
   QEpicsPv * imageModePv;//ImageMode
   QEpicsPv * aqPv; //Acquire
-  QEpicsPv * fileNumberPv; // FileNumber
-  QEpicsPv * fileNamePv; // FileName
+  QEpicsPv * filePathPv;
+  QEpicsPv * filePathExistsPv;
+  QEpicsPv * fileNamePv;
+  QEpicsPv * fileTemplatePv;
+  QEpicsPv * fileNumberPv;
+  QEpicsPv * fileLastNamePv;
   QEpicsPv * autoSavePv;
-  QEpicsPv * capturePv;
-  QEpicsPv * writeModePv;
   QEpicsPv * writeStatusPv;
-
-  QTimer internalTimer;
 
 
   bool _con;
-  bool _isReady;
-  int _counter;
+  QString cameraPv;
   QString _name;
+  QString _nameTemplate;
+  QString _nameLast;
+  QString _path;
 
 public:
 
@@ -51,39 +57,57 @@ public:
   void setCamera(Camera _cam);
   void setCamera(const QString & pvName);
 
-  inline double exposure() const {return expPv->get().toDouble();}
-  inline double interval() const {return intPv->get().toDouble();}
-  inline int num() const {return numPv->get().toInt();}
+  inline const QString & pv() const {return cameraPv;}
+  inline double exposure() const {return exposurePv->get().toDouble();}
+  inline double period() const {return periodPv->get().toDouble();}
+  inline int number() const {return numberPv->get().toInt();}
+  inline int counter() const {return counterPv->get().toInt();}
+  inline int triggerMode() const {return triggerModePv->get().toInt();}
+  inline const QString & triggerModeString() const {return triggerModePv->getEnumString();}
+  inline int imageMode() const {return imageModePv->get().toInt();}
+  inline const QString & imageModeString() const {return imageModePv->getEnumString();}
+  inline const QString & filePath() const {return _path;}
+  inline const QString & fileTemplate() const {return _nameTemplate;}
+  inline const QString & fileName() const {return _name;}
+  inline const QString & fileLastName() const {return _nameLast;}
+  inline bool pathExists() { return filePathExistsPv->get().toBool();}
   inline bool isAcquiring() const {return aqPv->get().toInt();}
   inline bool isConnected() const {return _con;}
-  inline bool isReady() const {return _isReady;}
+
+  void waitDone();
 
 public slots:
 
-  void setExposure(double val);
-  void setInterval(double val);
-  void setNum(int val);
-  void setNameTemplate(const QString & ntemp);
-  bool prepare();
-  void start();
+  bool setInterval(double val);
+  bool setNumber(int val);
+  bool setName(const QString & fname);
+  bool start();
   void stop();
+  bool acquire();
+  bool prepareForAcq();
 
 signals:
 
   void connectionChanged(bool);
-  void readynessChanged(bool);
-  void exposureChanged(double);
+  void parameterChanged(); // exp int num trigM imagM path writeSt
+  void counterChanged(int);
+  void templateChanged(const QString &);
+  void nameChanged(const QString &);
+  void lastNameChanged(const QString &);
   void done();
-  void startImage(int);
 
 private slots:
 
   void updateConnection();
-  void updateReadyness();
-  void updateAcquisition();
-  void updateExposure();
   void updateCounter();
-  void trig();
+  void updatePath();
+  void updateName();
+  void updateNameTemplate();
+  void updateLastName();
+  void updateAcq();
+
+private:
+  bool setNameTemplate(const QString & ntemp);
 
 };
 

@@ -11,6 +11,7 @@
 #include <QLineEdit>
 
 #include <imbl/shutter1A.h>
+#include "detector.h"
 
 
 
@@ -64,9 +65,7 @@ private:
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
 
-  QEpicsPv * detfname;
-
-  QHash<QCaMotorGUI *, double> motorsInitials;
+  Detector * det;
 
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <const QObject*,  ReqP > preReq;
@@ -82,13 +81,13 @@ private:
     qDebug() << msg;
   }
 
-  int acquireDetector(const QString & filename);
-  int acquireDyno(const QString & filename);
-  int acquireMulti();
-
   void engine();
 
-  bool engineStatus;
+  bool inAcquisition;
+  bool inDyno;
+  bool inMulti;
+  bool inCT;
+  bool readyToStartCT;
   bool stopMe;
 
   enum MsgType {
@@ -115,9 +114,19 @@ private:
 
   QWidget * insertVariableIntoMe;
 
-  void stopDynos();
-  void waitStopDynos();
-  void startDynos(double dynoPos, double dyno2Pos=0);
+  bool prepareDetector(const QString & filename);
+
+  void stopDetector();
+  int acquireDetector(const QString & filename="");
+  void stopDyno();
+  int acquireDyno(const QString & filename="");
+  void stopMulti();
+  int acquireMulti(const QStringList & filelist);
+  int acquireMulti(const QString & filetemplate);
+
+
+//  int acquireSingle(const QString & filename);
+
 
 private slots:
 
@@ -135,17 +144,13 @@ private slots:
   void onFFcheck();
   void onDynoCheck();
   void onMultiCheck();
-  void onSampleFile();
-  void onBGfile();
-  void onDFfile();
-  void onFileTemplateFocus();
 
   void onEndCondition();
   void onSerialMotor();
   void onSerialStep();
 
   void onScanRange();
-  void onScanMotor();
+  void onThetaMotor();
   void onProjections();
   void onRotSpeed();
 
@@ -169,14 +174,13 @@ private slots:
   void onDynoDirectionLock();
   void onDynoTest();
 
+  void onDetectorSelection();
+  void onDetectorUpdate();
+  void onDetectorTest();
+  void updateDetectorProgress();
 
   void onStartStop();
-
-  void onAcquireDetector();
-  void onAcquireDyno();
-  void onAcquireMulti();
-
-  void tempSlot();
+//  void updateProgress();
 
 signals:
 

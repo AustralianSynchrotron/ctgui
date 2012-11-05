@@ -14,7 +14,24 @@
 #include "ui_ctgui_variables.h"
 
 
+static void restoreMotor(QCaMotor* mot, double pos, double speed=0.0) {
 
+  if ( ! mot || ! mot->isConnected() )
+    return;
+
+  mot->stop();
+  mot->wait_stop();
+
+  if ( speed >= 0.0  &&  mot->getNormalSpeed() != speed ) {
+    mot->setNormalSpeed(speed);
+    mot->waitUpdated<double>
+        (".VELO", speed, &QCaMotor::getNormalSpeed, 200);
+  }
+
+  if (mot->getUserPosition() != pos)
+    mot->goUserPosition(pos, QCaMotor::STARTED);
+
+}
 
 static int evalExpr(const QString & templ, QString & result) {
 
@@ -43,13 +60,35 @@ MainWindow::MainWindow(QWidget *parent) :
   ui(new Ui::MainWindow),
   hui(new Ui::HelpDialog),
   hDialog(new QDialog(this, Qt::Tool)),
-  stopMe(true),
-  detfname(new QEpicsPv("SR08ID01DET02:TIFF1:FileName"))
+  det(new Detector(this)),
+  inAcquisition(false),
+  inDyno(false),
+  inMulti(false),
+  inCT(false),
+  readyToStartCT(false),
+  stopMe(true)
 {
 
   ui->setupUi(this);
   ui->control->setCurrentIndex(0);
-  ui->loopLayout->setColumnMinimumWidth(0, ui->postSubLoopScriptLabel->width());
+
+
+  ColumnResizer * resizer;
+  resizer = new ColumnResizer(this);
+  ui->preRunScript->addToColumnResizer(resizer);
+  ui->postRunScript->addToColumnResizer(resizer);
+  resizer = new ColumnResizer(this);
+  ui->preScanScript->addToColumnResizer(resizer);
+  ui->postScanScript->addToColumnResizer(resizer);
+  resizer = new ColumnResizer(this);
+  ui->preLoopScript->addToColumnResizer(resizer);
+  ui->postLoopScript->addToColumnResizer(resizer);
+  ui->preSubLoopScript->addToColumnResizer(resizer);
+  ui->postSubLoopScript->addToColumnResizer(resizer);
+  resizer = new ColumnResizer(this);
+  ui->preAqScript->addToColumnResizer(resizer);
+  ui->postAqScript->addToColumnResizer(resizer);
+
 
   hui->setupUi(hDialog);
 
@@ -70,13 +109,21 @@ MainWindow::MainWindow(QWidget *parent) :
   showVariables->setCheckState(Qt::Unchecked);
   ui->statusBar->addPermanentWidget(showVariables);
 
-  FilterFileTemplateEvent * fileTemplateEventFilter = new FilterFileTemplateEvent(this);
-  ui->sampleFile->installEventFilter(fileTemplateEventFilter);
-  ui->bgFile->installEventFilter(fileTemplateEventFilter);
-  ui->dfFile->installEventFilter(fileTemplateEventFilter);
+  // FilterFileTemplateEvent * fileTemplateEventFilter = new FilterFileTemplateEvent(this);
+  // ui->sampleFile->installEventFilter(fileTemplateEventFilter);
+  // ui->bgFile->installEventFilter(fileTemplateEventFilter);
+  // ui->dfFile->installEventFilter(fileTemplateEventFilter);
 
+  ui->startStop->setText("Start CT");
+  ui->progressBar->hide();
+  ui->scanProgress->hide();
+  ui->multiProgress->hide();
   ui->stepTime->setSuffix("s");
   ui->exposureInfo->setSuffix("s");
+  ui->detExposure->setSuffix("s");
+  ui->detPeriod->setSuffix("s");
+  foreach (Detector::Camera cam , Detector::knownCameras)
+    ui->detSelection->addItem(Detector::cameraName(cam));
 
   serialMotor = new QCaMotorGUI;
   ui->placeSerialMotor->layout()->addWidget(serialMotor->setupButton());
@@ -93,18 +140,7 @@ MainWindow::MainWindow(QWidget *parent) :
   dyno2Motor = new QCaMotorGUI;
   ui->placeDyno2Motor->layout()->addWidget(dyno2Motor->setupButton());
 
-  motorsInitials[serialMotor] = 0 ;
-  motorsInitials[thetaMotor] = 0 ;
-  motorsInitials[bgMotor] = 0 ;
-  motorsInitials[loopMotor] = 0 ;
-  motorsInitials[subLoopMotor] = 0 ;
-  motorsInitials[dynoMotor] = 0 ;
-  motorsInitials[dyno2Motor] = 0 ;
-
   sh1A = new Shutter1A(ui->tabFF);
-
-
-  connect(ui->preRunScript, SIGNAL(editingFinished()), SLOT(tempSlot()));
 
   connect(ui->expPath, SIGNAL(textChanged(QString)), SLOT(onWorkingDirChange()));
   connect(ui->browseExpPath, SIGNAL(clicked()), SLOT(onWorkingDirBrowse()));
@@ -114,14 +150,12 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->checkFF, SIGNAL(toggled(bool)), SLOT(onFFcheck()));
   connect(ui->checkDyno, SIGNAL(toggled(bool)), SLOT(onDynoCheck()));
   connect(ui->checkMulti, SIGNAL(toggled(bool)), SLOT(onMultiCheck()));
-  connect(ui->sampleFile, SIGNAL(textChanged(QString)), SLOT(onSampleFile()));
-  connect(ui->bgFile, SIGNAL(textChanged(QString)), SLOT(onBGfile()));
-  connect(ui->dfFile, SIGNAL(textChanged(QString)), SLOT(onDFfile()));
-  connect(fileTemplateEventFilter, SIGNAL(focusInOut()), SLOT(onFileTemplateFocus()));
+  // connect(ui->sampleFile, SIGNAL(textChanged(QString)), SLOT(onSampleFile()));
+  // connect(ui->bgFile, SIGNAL(textChanged(QString)), SLOT(onBGfile()));
+  // connect(ui->dfFile, SIGNAL(textChanged(QString)), SLOT(onDFfile()));
+  // connect(fileTemplateEventFilter, SIGNAL(focusInOut()), SLOT(onFileTemplateFocus()));
 
-  connect(ui->endNumber, SIGNAL(toggled(bool)), SLOT(onEndCondition()));
-  connect(ui->endTime, SIGNAL(toggled(bool)), SLOT(onEndCondition()));
-  connect(ui->endCondition, SIGNAL(toggled(bool)), SLOT(onEndCondition()));
+  connect(ui->endConditionButtonGroup, SIGNAL(buttonClicked(int)), SLOT(onEndCondition()));
   connect(serialMotor->motor(), SIGNAL(changedUserPosition(double)),
           ui->serialCurrent, SLOT(setValue(double)));
   connect(serialMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onSerialMotor()));
@@ -131,24 +165,23 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(serialMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onSerialMotor()));
   connect(serialMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onSerialMotor()));
   connect(serialMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onSerialMotor()));
+  connect(serialMotor->motor(), SIGNAL(changedMoving(bool)), SLOT(onSerialMotor()));
   connect(ui->serialStep, SIGNAL(valueChanged(double)), SLOT(onSerialStep()));
-  connect( ui->ongoingSeries, SIGNAL(toggled(bool)),
-           ui->ffOnEachScan, SLOT(setHidden(bool)));
-
 
   connect(ui->scanRange, SIGNAL(valueChanged(double)), SLOT(onScanRange()));
   connect(thetaMotor->motor(), SIGNAL(changedUserPosition(double)),
           ui->scanCurrent, SLOT(setValue(double)));
-  connect(thetaMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onScanMotor()));
-  connect(thetaMotor->motor(), SIGNAL(changedPrecision(int)), SLOT(onScanMotor()));
-  connect(thetaMotor->motor(), SIGNAL(changedConnected(bool)), SLOT(onScanMotor()));
-  connect(thetaMotor->motor(), SIGNAL(changedPv()), SLOT(onScanMotor()));
-  connect(thetaMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onScanMotor()));
-  connect(thetaMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onScanMotor()));
-  connect(thetaMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onScanMotor()));
-  connect(thetaMotor->motor(), SIGNAL(changedNormalSpeed(double)), SLOT(onScanMotor()));
-  connect(thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), SLOT(onScanMotor()));
-  connect(ui->projections, SIGNAL(valueChanged(int)), SLOT(onProjections()));
+  connect(thetaMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onThetaMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedPrecision(int)), SLOT(onThetaMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedConnected(bool)), SLOT(onThetaMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedPv()), SLOT(onThetaMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onThetaMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onThetaMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onThetaMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedNormalSpeed(double)), SLOT(onThetaMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), SLOT(onThetaMotor()));
+  connect(thetaMotor->motor(), SIGNAL(changedMoving(bool)), SLOT(onThetaMotor()));
+  connect(ui->scanProjections, SIGNAL(valueChanged(int)), SLOT(onProjections()));
   connect(ui->rotSpeed, SIGNAL(valueChanged(double)), SLOT(onRotSpeed()));
 
   connect(ui->nofBGs, SIGNAL(valueChanged(int)), SLOT(onNofBG()));
@@ -163,10 +196,13 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(bgMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onBGmotor()));
   connect(bgMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onBGmotor()));
   connect(bgMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onBGmotor()));
+  connect(bgMotor->motor(), SIGNAL(changedMoving(bool)), SLOT(onBGmotor()));
   connect(ui->nofDFs, SIGNAL(valueChanged(int)), SLOT(onNofDF()));
   connect(sh1A, SIGNAL(stateChanged(Shutter1A::State)), SLOT(onShutterStatus()));
+  connect(sh1A, SIGNAL(enabledChanged(bool)), SLOT(onShutterStatus()));
   connect(sh1A, SIGNAL(connectionChanged(bool)), SLOT(onShutterStatus()));
 
+  connect(ui->testMulti, SIGNAL(clicked()), SLOT(onLoopTest()));
   connect(loopMotor->motor(), SIGNAL(changedUserPosition(double)),
           ui->loopCurrent, SLOT(setValue(double)));
   connect(loopMotor->motor(), SIGNAL(changedUnits(QString)), SLOT(onLoopMotor()));
@@ -176,6 +212,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(loopMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onLoopMotor()));
   connect(loopMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onLoopMotor()));
   connect(loopMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onLoopMotor()));
+  connect(loopMotor->motor(), SIGNAL(changedMoving(bool)), SLOT(onLoopMotor()));
   connect(ui->loopStep, SIGNAL(valueChanged(double)), SLOT(onLoopStep()));
 
   connect(ui->subLoop, SIGNAL(toggled(bool)), SLOT(onSubLoop()));
@@ -188,8 +225,10 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(subLoopMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onSubLoopMotor()));
   connect(subLoopMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onSubLoopMotor()));
   connect(subLoopMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onSubLoopMotor()));
+  connect(subLoopMotor->motor(), SIGNAL(changedMoving(bool)), SLOT(onSubLoopMotor()));
   connect(ui->subLoopStep, SIGNAL(valueChanged(double)), SLOT(onSubLoopStep()));
 
+  connect(ui->testDyno, SIGNAL(clicked()), SLOT(onDynoTest()));
   connect(dynoMotor->motor(), SIGNAL(changedUserPosition(double)),
           ui->dynoCurrent, SLOT(setValue(double)));
   connect(dynoMotor->motor(), SIGNAL(changedNormalSpeed(double)), SLOT(onDynoMotor()));
@@ -201,8 +240,9 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(dynoMotor->motor(), SIGNAL(changedDescription(QString)), SLOT(onDynoMotor()));
   connect(dynoMotor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onDynoMotor()));
   connect(dynoMotor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onDynoMotor()));
+  connect(dynoMotor->motor(), SIGNAL(changedMoving(bool)), SLOT(onDynoMotor()));
 
-  connect(ui->dyno2Shot, SIGNAL(toggled(bool)), SLOT(onDyno2()));
+  connect(ui->dyno2, SIGNAL(toggled(bool)), SLOT(onDyno2()));
   connect(dyno2Motor->motor(), SIGNAL(changedUserPosition(double)),
           ui->dyno2Current, SLOT(setValue(double)));
   connect(dyno2Motor->motor(), SIGNAL(changedNormalSpeed(double)), SLOT(onDyno2Motor()));
@@ -214,9 +254,22 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(dyno2Motor->motor(), SIGNAL(changedDescription(QString)), SLOT(onDyno2Motor()));
   connect(dyno2Motor->motor(), SIGNAL(changedUserLoLimit(double)), SLOT(onDyno2Motor()));
   connect(dyno2Motor->motor(), SIGNAL(changedUserHiLimit(double)), SLOT(onDyno2Motor()));
+  connect(dyno2Motor->motor(), SIGNAL(changedMoving(bool)), SLOT(onDyno2Motor()));
   connect(ui->dynoDirectionLock, SIGNAL(toggled(bool)), SLOT(onDynoDirectionLock()));
   connect(ui->dynoSpeedLock, SIGNAL(toggled(bool)), SLOT(onDynoSpeedLock()));
 
+  connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
+  connect(ui->testDetector, SIGNAL(clicked()), SLOT(onDetectorTest()));
+  connect(det, SIGNAL(connectionChanged(bool)), SLOT(onDetectorUpdate()));
+  connect(det, SIGNAL(parameterChanged()), SLOT(onDetectorUpdate()));
+  connect(det, SIGNAL(counterChanged(int)), ui->detProgress, SLOT(setValue(int)));
+  connect(det, SIGNAL(nameChanged(QString)), ui->detFileName, SLOT(setText(QString)));
+  connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
+  connect(det, SIGNAL(templateChanged(QString)), ui->detFileTemplate, SLOT(setText(QString)));
+
+  connect(ui->startStop, SIGNAL(clicked()), SLOT(onStartStop()));
+
+  loadConfiguration(storedState);
 
   connect( ui->expName, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->expDesc, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -227,10 +280,10 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->checkFF, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->checkDyno, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->checkMulti, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
-  connect( ui->sampleFile, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
-  connect( ui->bgFile, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
-  connect( ui->dfFile, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
-  connect( ui->preRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  // connect( ui->sampleFile, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  // connect( ui->bgFile, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  // connect( ui->dfFile, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  // connect( ui->preRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->postRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->endConditionButtonGroup, SIGNAL(buttonClicked(int)), SLOT(storeCurrentState()));
   connect( ui->nofScans, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -243,7 +296,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->serialStep, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( thetaMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->scanRange, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
-  connect( ui->projections, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->scanProjections, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->rotSpeed, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->scanAdd, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->preRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -269,23 +322,24 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( dynoMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->dynoSpeed, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->dynoDirButtonGroup, SIGNAL(buttonClicked(int)), SLOT(storeCurrentState()));
-  connect( ui->dyno2Shot, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->dyno2, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( dyno2Motor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->dynoSpeedLock, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->dyno2Speed, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->dynoDirectionLock, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->dyno2DirButtonGroup, SIGNAL(buttonClicked(int)), SLOT(storeCurrentState()));
+  connect( ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(storeCurrentState()));
+  connect( ui->preAqScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->postAqScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
 
-
-  loadConfiguration(storedState);
-
-  onFileTemplateFocus();
+  //onFileTemplateFocus();
   onWorkingDirChange();
   onAcquisitionMode();
   onSerialCheck();
   onFFcheck();
   onDynoCheck();
   onMultiCheck();
+  onDetectorUpdate();
 
 
 
@@ -415,44 +469,6 @@ bool MainWindow::init() {
 
 
 
-void MainWindow::tempSlot() {
-
-  if (!detfname->isConnected())
-    return;
-
-  QVariantList list;
-
-  foreach (QChar chv, ui->preRunScript->path())
-    list.append(chv);
-
-  //qDebug() << list;
-
-  detfname->set(list);
-
-
-  /*
-
-  QVariant var = detfname->get();
-  qDebug() << var.type() << var.typeName();
-  if (var.type() == QVariant::List &&
-      var.toList().size() &&
-      var.toList().at(0).canConvert(QVariant::Char) ) {
-    QString str;
-    foreach ( QVariant chmem, var.toList() ) {
-      QChar chv=chmem.toChar();
-      if (chv.toAscii())
-        str += chv;
-    }
-    qDebug() << str;
-  }
-
-  qDebug() << "";
-  */
-
-}
-
-
-
 
 static void setInConfig(QSettings & config, const QString & key, QWidget * wdg) {
   if (key.isEmpty())
@@ -465,6 +481,8 @@ static void setInConfig(QSettings & config, const QString & key, QWidget * wdg) 
     config.setValue(key, dynamic_cast<QAbstractButton*>(wdg)->isChecked());
   else if (dynamic_cast<Script*>(wdg))
     config.setValue(key, dynamic_cast<Script*>(wdg)->path());
+  else if (dynamic_cast<QComboBox*>(wdg))
+    config.setValue(key, dynamic_cast<QComboBox*>(wdg)->currentText());
   else if (dynamic_cast<QSpinBox*>(wdg))
     config.setValue(key, dynamic_cast<QSpinBox*>(wdg)->value());
   else if (dynamic_cast<QDoubleSpinBox*>(wdg))
@@ -496,6 +514,13 @@ static void restoreFromConfig(QSettings & config, const QString & key, QWidget *
     dynamic_cast<QAbstractButton*>(wdg)->setChecked(value.toBool());
   else if ( dynamic_cast<Script*>(wdg) && value.canConvert(QVariant::String) )
     dynamic_cast<Script*>(wdg)->setPath(value.toString());
+  else if ( dynamic_cast<QComboBox*>(wdg) && value.canConvert(QVariant::String) ) {
+    const QString val = value.toString();
+    QComboBox * box = dynamic_cast<QComboBox*>(wdg);
+    const int idx = box->findText(val);
+    if ( idx >= 0 )  box->setCurrentIndex(idx);
+    else             box->setEditText(val);
+  }
   else if ( dynamic_cast<QSpinBox*>(wdg) && value.canConvert(QVariant::Int) )
     dynamic_cast<QSpinBox*>(wdg)->setValue(value.toInt());
   else if ( dynamic_cast<QDoubleSpinBox*>(wdg) && value.canConvert(QVariant::Double) )
@@ -528,20 +553,23 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "doflatfield", ui->checkFF);
   setInConfig(config, "dodyno", ui->checkDyno);
   setInConfig(config, "domulti", ui->checkMulti);
-  setInConfig(config, "sampleFile", ui->sampleFile);
-  setInConfig(config, "backgroundFile", ui->bgFile);
-  setInConfig(config, "darkfieldFile", ui->dfFile);
+  // setInConfig(config, "sampleFile", ui->sampleFile);
+  // setInConfig(config, "backgroundFile", ui->bgFile);
+  // setInConfig(config, "darkfieldFile", ui->dfFile);
   setInConfig(config, "prerun", ui->preRunScript);
   setInConfig(config, "postrun", ui->postRunScript);
 
   if (ui->checkSerial->isChecked()) {
     config.beginGroup("serial");
     if (ui->endNumber->isChecked())
-      setInConfig(config, "number", ui->nofScans);
+      config.setValue("endCondition", "number");
     else if (ui->endTime->isChecked())
-      setInConfig(config, "time", ui->scanTime);
+      config.setValue("endCondition", "time");
     else if (ui->endCondition->isChecked())
-      setInConfig(config, "condition", ui->conditionScript);
+      config.setValue("endCondition", "script");
+    setInConfig(config, "number", ui->nofScans);
+    setInConfig(config, "time", ui->scanTime);
+    setInConfig(config, "script", ui->conditionScript);
     setInConfig(config, "ongoingseries",ui->ongoingSeries);
     setInConfig(config, "ffoneachscan",ui->ffOnEachScan);
     setInConfig(config, "scandelay",ui->scanDelay);
@@ -553,7 +581,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   config.beginGroup("scan");
   setInConfig(config, "motor", thetaMotor);
   setInConfig(config, "range", ui->scanRange);
-  setInConfig(config, "steps", ui->projections);
+  setInConfig(config, "steps", ui->scanProjections);
   setInConfig(config, "add", ui->scanAdd);
   setInConfig(config, "prerun", ui->preRunScript);
   setInConfig(config, "postrun", ui->postRunScript);
@@ -598,8 +626,8 @@ void MainWindow::saveConfiguration(QString fileName) {
     setInConfig(config, "speed", ui->dynoSpeed);
     config.setValue("direction", ui->dynoPos->isChecked() ?
                       "positive" : "negative");
-    setInConfig(config, "dyno2", ui->dyno2Shot);
-    if (ui->dyno2Shot->isChecked()) {
+    setInConfig(config, "dyno2", ui->dyno2);
+    if (ui->dyno2->isChecked()) {
       config.beginGroup("dyno2");
       setInConfig(config, "motor", dyno2Motor);
       setInConfig(config, "speedLock", ui->dynoSpeedLock);
@@ -612,9 +640,9 @@ void MainWindow::saveConfiguration(QString fileName) {
     config.endGroup();
   }
 
-  config.beginGroup("detector");
-  config.endGroup();
-
+  setInConfig(config, "detector", ui->detSelection);
+  setInConfig(config, "preacquire", ui->preAqScript);
+  setInConfig(config, "postacquire", ui->postAqScript);
 
 }
 
@@ -647,24 +675,26 @@ void MainWindow::loadConfiguration(QString fileName) {
   restoreFromConfig(config, "doflatfield", ui->checkFF);
   restoreFromConfig(config, "dodyno", ui->checkDyno);
   restoreFromConfig(config, "domulti", ui->checkMulti);
-  restoreFromConfig(config, "sampleFile", ui->sampleFile);
-  restoreFromConfig(config, "backgroundFile", ui->bgFile);
-  restoreFromConfig(config, "darkfieldFile", ui->dfFile);
+  // restoreFromConfig(config, "sampleFile", ui->sampleFile);
+  // restoreFromConfig(config, "backgroundFile", ui->bgFile);
+  // restoreFromConfig(config, "darkfieldFile", ui->dfFile);
   restoreFromConfig(config, "prerun", ui->preRunScript);
   restoreFromConfig(config, "postrun", ui->postRunScript);
 
   if (ui->checkSerial->isChecked() && groups.contains("serial") ) {
     config.beginGroup("serial");
-    if (config.contains("number")) {
-      ui->endNumber->setChecked(true);
-      restoreFromConfig(config, "number", ui->nofScans);
-    } else if (config.contains("time")) {
-      ui->endTime->setChecked(true);
-      restoreFromConfig(config, "time", ui->scanTime);
-    } else if (config.contains("condition")) {
-      ui->endCondition->setChecked(true);
-      restoreFromConfig(config, "condition", ui->conditionScript);
+    if (config.contains("endCondition")) {
+      const QString endCondition = config.value("endCondition").toString();
+      if( endCondition == "number" )
+        ui->endNumber->setChecked(true);
+      else if( endCondition == "time" )
+        ui->endTime->setChecked(true);
+      else if( endCondition == "script" )
+        ui->endCondition->setChecked(true);
     }
+    restoreFromConfig(config, "number", ui->nofScans);
+    restoreFromConfig(config, "time", ui->scanTime);
+    restoreFromConfig(config, "script", ui->conditionScript);
     restoreFromConfig(config, "ongoingseries",ui->ongoingSeries);
     restoreFromConfig(config, "ffoneachscan",ui->ffOnEachScan);
     restoreFromConfig(config, "scandelay",ui->scanDelay);
@@ -677,7 +707,7 @@ void MainWindow::loadConfiguration(QString fileName) {
     config.beginGroup("scan");
     restoreFromConfig(config, "motor", thetaMotor);
     restoreFromConfig(config, "range", ui->scanRange);
-    restoreFromConfig(config, "steps", ui->projections);
+    restoreFromConfig(config, "steps", ui->scanProjections);
     restoreFromConfig(config, "add", ui->scanAdd);
     restoreFromConfig(config, "prerun", ui->preRunScript);
     restoreFromConfig(config, "postrun", ui->postRunScript);
@@ -729,8 +759,8 @@ void MainWindow::loadConfiguration(QString fileName) {
       else if (config.value("direction").toString() == "negative")
         ui->dynoNeg->setChecked(true);
     }
-    restoreFromConfig(config, "dyno2", ui->dyno2Shot);
-    if (ui->dyno2Shot->isChecked()) {
+    restoreFromConfig(config, "dyno2", ui->dyno2);
+    if (ui->dyno2->isChecked()) {
       config.beginGroup("dyno2");
       restoreFromConfig(config, "motor", dyno2Motor);
       restoreFromConfig(config, "speedLock", ui->dynoSpeedLock);
@@ -750,8 +780,9 @@ void MainWindow::loadConfiguration(QString fileName) {
     config.endGroup();
   }
 
-  config.beginGroup("detector");
-  config.endGroup();
+  restoreFromConfig(config, "detector", ui->detSelection);
+  restoreFromConfig(config, "preacquire", ui->preAqScript);
+  restoreFromConfig(config, "postacquire", ui->postAqScript);
 
 
   if ( ui->expPath->text().isEmpty()  || fileName.isEmpty() )
@@ -816,6 +847,7 @@ void MainWindow::onAcquisitionMode() {
   ui->checkDyno->setVisible(sasMode);
   ui->checkMulti->setVisible(sasMode);
 
+  ui->ffOnEachScan->setVisible(!sasMode);
   ui->speedsLine->setVisible(!sasMode);
   ui->speedsLabel->setVisible(!sasMode);
   ui->timesLabel->setVisible(!sasMode);
@@ -833,7 +865,7 @@ void MainWindow::onAcquisitionMode() {
   ui->exposureInfoLabel->setVisible(!sasMode);
 
   onProjections();
-  onSampleFile();
+  //onSampleFile();
 }
 
 void MainWindow::onSerialCheck() {
@@ -852,19 +884,19 @@ void MainWindow::onFFcheck() {
       ui->control->tabText(ui->control->indexOf(ui->tabFF));
   if (ui->checkFF->isChecked()) {
     ui->control->insertTab(ui->control->indexOf(ui->tabScan)+1, ui->tabFF, tabFFLabel);
-    ui->dfFile->setVisible(true);
-    ui->dfFileLabel->setVisible(true);
-    ui->bgFile->setVisible(true);
-    ui->bgFileLabel->setVisible(true);
+    // ui->dfFile->setVisible(true);
+    // ui->dfFileLabel->setVisible(true);
+    // ui->bgFile->setVisible(true);
+    // ui->bgFileLabel->setVisible(true);
   } else {
     ui->control->removeTab(ui->control->indexOf(ui->tabFF));
-    ui->dfFile->setVisible(false);
-    ui->dfFileLabel->setVisible(false);
-    ui->bgFile->setVisible(false);
-    ui->bgFileLabel->setVisible(false);
+    // ui->dfFile->setVisible(false);
+    // ui->dfFileLabel->setVisible(false);
+    // ui->bgFile->setVisible(false);
+    // ui->bgFileLabel->setVisible(false);
   }
-  onBGfile();
-  onDFfile();
+  //onBGfile();
+  //onDFfile();
   onBGmotor();
   onShutterStatus();
 }
@@ -892,58 +924,71 @@ void MainWindow::onMultiCheck() {
   onSubLoop();
 }
 
-void MainWindow::onSampleFile() {
-  QString example;
-  bool isOK = ! evalExpr(ui->sampleFile->text(), example) &&
-      ! example.isEmpty();
-  ui->exampleFile->setText(example);
-  check(ui->sampleFile, isOK);
-}
+// void MainWindow::onSampleFile() {
+//   QString example;
+//   bool isOK = ! evalExpr(ui->sampleFile->text(), example) &&
+//       ! example.isEmpty();
+//   ui->exampleFile->setText(example);
+//   check(ui->sampleFile, isOK);
+// }
 
-void MainWindow::onBGfile() {
-  QString example;
-  bool isOK =
-      ! ui->checkFF->isChecked() ||
-      ( ! evalExpr(ui->bgFile->text(), example) &&
-        ! example.isEmpty() );
-  ui->exampleFile->setText(example);
-  check(ui->bgFile, isOK);
-}
+// void MainWindow::onBGfile() {
+//   QString example;
+//   bool isOK =
+//       ! ui->checkFF->isChecked() ||
+//       ( ! evalExpr(ui->bgFile->text(), example) &&
+//         ! example.isEmpty() );
+//   ui->exampleFile->setText(example);
+//   check(ui->bgFile, isOK);
+// }
 
-void MainWindow::onDFfile() {
-  QString example;
-  bool isOK =
-      ! ui->checkFF->isChecked() ||
-      ( ! evalExpr(ui->dfFile->text(), example) &&
-        ! example.isEmpty() );
-  ui->exampleFile->setText(example);
-  check(ui->dfFile, isOK);
-}
+// void MainWindow::onDFfile() {
+//   QString example;
+//   bool isOK =
+//       ! ui->checkFF->isChecked() ||
+//       ( ! evalExpr(ui->dfFile->text(), example) &&
+//         ! example.isEmpty() );
+//   ui->exampleFile->setText(example);
+//   check(ui->dfFile, isOK);
+// }
 
-void MainWindow::onFileTemplateFocus() {
-  bool showSample = true;
-  if (ui->sampleFile->hasFocus())
-    onSampleFile();
-  else if (ui->bgFile->hasFocus())
-    onBGfile();
-  else if (ui->dfFile->hasFocus())
-    onDFfile();
-  else
-    showSample=false;
-  ui->exampleFile->setShown(showSample);
-}
+// void MainWindow::onFileTemplateFocus() {
+//   bool showSample = true;
+//   if (ui->sampleFile->hasFocus())
+//     onSampleFile();
+//   else if (ui->bgFile->hasFocus())
+//     onBGfile();
+//   else if (ui->dfFile->hasFocus())
+//     onDFfile();
+//   else
+//     showSample=false;
+//   ui->exampleFile->setShown(showSample);
+// }
 
 
 void MainWindow::onEndCondition() {
   ui->nofScans->setVisible(ui->endNumber->isChecked());
   ui->nofScansLabel->setVisible(ui->endNumber->isChecked());
-  ui->scanTime->setVisible(ui->endTime->isChecked());
+  ui->scanTimeWdg->setVisible(ui->endTime->isChecked());
   ui->scanTimeLabel->setVisible(ui->endTime->isChecked());
   ui->conditionScript->setVisible(ui->endCondition->isChecked());
   ui->conditionScriptLabel->setVisible(ui->endCondition->isChecked());
 }
 
 void MainWindow::onSerialMotor() {
+
+  if (inCT)
+    return;
+
+  check(serialMotor->setupButton(),
+        ! ui->checkSerial->isChecked() ||
+        serialMotor->motor()->getPv().isEmpty() ||
+        ( serialMotor->motor()->isConnected() &&
+          ! serialMotor->motor()->isMoving() ) );
+  check(ui->serialCurrent,
+        ! ui->checkSerial->isChecked() ||
+        serialMotor->motor()->getPv().isEmpty() ||
+        ! serialMotor->motor()->getLimitStatus() );
 
   setEnv("SERIALMOTORPV", serialMotor->motor()->getPv());
   onSerialStep();
@@ -979,14 +1024,14 @@ void MainWindow::onSerialStep() {
 
 void MainWindow::onScanRange() {
   const double range = ui->scanRange->value();
-  ui->scanStep->setValue(range/ui->projections->value());
+  ui->scanStep->setValue(range/ui->scanProjections->value());
   setEnv("SCANRANGE", range);
   check(ui->scanRange, range != 0.0);
   onRotSpeed();
 }
 
 void MainWindow::onProjections() {
-  const int projs =  ui->projections->value();
+  const int projs =  ui->scanProjections->value();
   const int minInterval = ui->stepAndShotMode->isChecked() ?
         0 : projs - 1;
   ui->bgInterval->setRange(minInterval, projs);
@@ -998,19 +1043,32 @@ void MainWindow::onRotSpeed() {
   check( ui->rotSpeed,
          ! ui->continiousMode->isChecked() ||
          ui->rotSpeed->value() > 0 );
-  if ( ui->rotSpeed->value() > 0 )
-    ui->stepTime->setValue(ui->scanRange->value() /
-                           (ui->projections->value() * ui->rotSpeed->value()) );
-  else
+  if ( ui->rotSpeed->value() > 0 && ui->scanRange->value() != 0.0 ) {
+    const double step = ui->scanRange->value() /
+        (ui->scanProjections->value() * ui->rotSpeed->value());
+    ui->stepTime->setValue(step);
+    ui->expOverStep->setValue( det->exposure() / step );
+  } else {
     ui->stepTime->setText("");
+    ui->expOverStep->setText("");
+  }
 }
 
-void MainWindow::onScanMotor() {
+
+void MainWindow::onThetaMotor() {
+
+  if (inCT)
+    return;
+
+  check(thetaMotor->setupButton(),
+        thetaMotor->motor()->isConnected() &&
+        ! thetaMotor->motor()->isMoving() );
+  check(ui->scanCurrent,
+        ! thetaMotor->motor()->getLimitStatus() );
 
   setEnv("SCANMOTORPV", thetaMotor->motor()->getPv());
   onScanRange();
 
-  check(thetaMotor->setupButton(), thetaMotor->motor()->isConnected());
   if (!thetaMotor->motor()->isConnected()) {
     ui->scanCurrent->setText("no link");
     ui->rotSpeed->setValue(0.0);
@@ -1054,16 +1112,27 @@ void MainWindow::onNofBG() {
   ui->bgTravel->setEnabled(nofbgs);
   bgMotor->setupButton()->setEnabled(nofbgs);
 
-  check(bgMotor->setupButton(), ! nofbgs || bgMotor->motor()->isConnected() );
+  check(bgMotor->setupButton(),
+        ! ui->checkFF->isChecked() ||
+        ! nofbgs ||
+        ( bgMotor->motor()->isConnected() &&
+          ! bgMotor->motor()->isMoving() ) );
+  check(ui->bgCurrent,
+        ! ui->checkFF->isChecked() ||
+        ! nofbgs ||
+        ! bgMotor->motor()->getLimitStatus() );
+
   onBGtravel();
 
 }
 
 void MainWindow::onBGmotor() {
 
+  if (inCT)
+    return;
+
   setEnv("BGMOTORPV", bgMotor->motor()->getPv());
   onNofBG();
-  onBGtravel();
 
   if (!bgMotor->motor()->isConnected()) {
     ui->bgCurrent->setText("no link");
@@ -1103,16 +1172,19 @@ void MainWindow::onShutterStatus() {
     ui->shutterStatus->setText("no link");
   else
     switch (sh1A->state()) {
-      case Shutter1A::BETWEEN :
-        ui->shutterStatus->setText("in progress");
-        break;
-      case Shutter1A::OPENED :
-        ui->shutterStatus->setText("opened");
-        break;
-      case Shutter1A::CLOSED :
-        ui->shutterStatus->setText("closed");
-        break;
+    case Shutter1A::BETWEEN :
+      ui->shutterStatus->setText("in progress");
+      break;
+    case Shutter1A::OPENED :
+      ui->shutterStatus->setText("opened");
+      break;
+    case Shutter1A::CLOSED :
+      ui->shutterStatus->setText("closed");
+      break;
     }
+
+  if (inCT)
+    return;
 
   onNofDF();
 
@@ -1121,6 +1193,22 @@ void MainWindow::onShutterStatus() {
 
 
 void MainWindow::onLoopMotor() {
+
+  if (inCT)
+    return;
+
+  check(loopMotor->setupButton(),
+        ! ui->checkMulti->isChecked() ||
+        loopMotor->motor()->getPv().isEmpty() ||
+        ( loopMotor->motor()->isConnected() &&
+          ! loopMotor->motor()->isMoving() ) );
+  check(ui->loopCurrent,
+        ! ui->checkMulti->isChecked() ||
+        loopMotor->motor()->getPv().isEmpty() ||
+        ! loopMotor->motor()->getLimitStatus() );
+
+  if (inMulti)
+    return;
 
   setEnv("LOOPMOTORPV", loopMotor->motor()->getPv());
   onLoopStep();
@@ -1170,6 +1258,24 @@ void MainWindow::onSubLoop() {
 
 void MainWindow::onSubLoopMotor() {
 
+  if (inCT)
+    return;
+
+  check(subLoopMotor->setupButton(),
+        ! ui->checkMulti->isChecked() ||
+        ! ui->subLoop->isChecked() ||
+        subLoopMotor->motor()->getPv().isEmpty() ||
+        ( subLoopMotor->motor()->isConnected() &&
+          ! subLoopMotor->motor()->isMoving() ) );
+  check(ui->subLoopCurrent,
+        ! ui->checkMulti->isChecked() ||
+        ! ui->subLoop->isChecked() ||
+        subLoopMotor->motor()->getPv().isEmpty() ||
+        ! subLoopMotor->motor()->getLimitStatus() );
+
+  if (inMulti)
+    return;
+
   setEnv("SUBLOOPMOTORPV", subLoopMotor->motor()->getPv());
   onSubLoopStep();
 
@@ -1203,11 +1309,35 @@ void MainWindow::onSubLoopStep() {
 }
 
 void MainWindow::onLoopTest() {
-
+  if (inMulti) {
+    stopMulti();
+  } else {
+    ui->testMulti->setText("Stop");
+    inMulti=true;
+    check(ui->testMulti, false);
+    acquireMulti(".test");
+    check(ui->testMulti, true);
+    inMulti=false;
+    ui->testMulti->setText("Test");
+  }
 }
 
 
 void MainWindow::onDynoMotor() {
+
+  if ( inCT )
+    return;
+
+  check(dynoMotor->setupButton(),
+        ! ui->checkDyno->isChecked() ||
+        ( dynoMotor->motor()->isConnected() &&
+          ! dynoMotor->motor()->isMoving() ) );
+  check(ui->dynoCurrent,
+        ! ui->checkDyno->isChecked() ||
+        ! dynoMotor->motor()->getLimitStatus() );
+
+  if ( inMulti || inDyno )
+    return;
 
   setEnv("DYNOMOTORPV", dynoMotor->motor()->getPv());
   check(dynoMotor->setupButton(),
@@ -1244,7 +1374,7 @@ void MainWindow::onDynoMotor() {
 }
 
 void MainWindow::onDyno2() {
-  const bool dod2 = ui->dyno2Shot->isChecked();
+  const bool dod2 = ui->dyno2->isChecked();
   ui->placeDyno2Motor->setVisible(dod2);
   ui->dynoDirectionLock->setVisible(dod2);
   ui->dynoSpeedLock->setVisible(dod2);
@@ -1263,10 +1393,26 @@ void MainWindow::onDyno2() {
 
 void MainWindow::onDyno2Motor() {
 
+  if ( inCT )
+    return;
+
+  check(dyno2Motor->setupButton(),
+        ! ui->checkDyno->isChecked() ||
+        ! ui->dyno2->isChecked() ||
+        ( dyno2Motor->motor()->isConnected() &&
+          ! dyno2Motor->motor()->isMoving() ) );
+  check(ui->dyno2Current,
+        ! ui->checkDyno->isChecked() ||
+        ! ui->dyno2->isChecked() ||
+        ! dyno2Motor->motor()->getLimitStatus() );
+
+  if ( inMulti || inDyno )
+    return;
+
   setEnv("DYNO2MOTORPV", dyno2Motor->motor()->getPv());
   check(dyno2Motor->setupButton(),
         ! ui->checkDyno->isChecked() ||
-        ! ui->dyno2Shot->isChecked() ||
+        ! ui->dyno2->isChecked() ||
         dyno2Motor->motor()->isConnected() );
   check(ui->dyno2NormalSpeed,
         ! dyno2Motor->motor()->isConnected() ||
@@ -1324,55 +1470,112 @@ void MainWindow::onDynoDirectionLock() {
     ui->dyno2Neg->setChecked(ui->dynoNeg->isChecked());
   } else {
     disconnect(ui->dynoPos, SIGNAL(toggled(bool)),
-            ui->dyno2Pos, SLOT(setChecked(bool)));
+               ui->dyno2Pos, SLOT(setChecked(bool)));
     disconnect(ui->dynoNeg, SIGNAL(toggled(bool)),
-            ui->dyno2Neg, SLOT(setChecked(bool)));
+               ui->dyno2Neg, SLOT(setChecked(bool)));
   }
 }
 
 void MainWindow::onDynoTest() {
-
+  if (inDyno) {
+    stopDyno();
+  } else {
+    ui->testDyno->setText("Stop");
+    inDyno=true;
+    check(ui->testDyno, false);
+    acquireDyno(".test.tif");
+    check(ui->testDyno, true);
+    inDyno=false;
+    ui->testDyno->setText("Test");
+  }
 }
 
 
 
+void MainWindow::onDetectorSelection() {
+  const QString currentText = ui->detSelection->currentText();
+  if (currentText.isEmpty()) {
+    det->setCamera(Detector::NONE);
+    return;
+  } else {
+    foreach (Detector::Camera cam , Detector::knownCameras)
+      if (currentText==Detector::cameraName(cam)) {
+        det->setCamera(cam);
+        return;
+      }
+  }
+  det->setCamera(currentText);
+}
 
 
+void MainWindow::onDetectorUpdate() {
+
+  if ( ! det->isConnected() )
+    ui->detStatus->setText("no link");
+  else if ( det->isAcquiring() )
+    ui->detStatus->setText("acquiring");
+  else
+    ui->detStatus->setText("idle");
+
+  check (ui->detStatus, det->isConnected() &&
+         ! det->isAcquiring() );
+
+  if (  det->isConnected() ) {
+    onRotSpeed(); // to update exp/step
+    ui->exposureInfo->setValue(det->exposure());
+    ui->detExposure->setValue(det->exposure());
+    ui->detPeriod->setValue(det->period());
+    ui->detTriggerMode->setText(det->triggerModeString());
+    ui->detImageMode->setText(det->imageModeString());
+    ui->detTotalImages->setValue(det->number());
+    ui->detProgress->setMaximum(det->number());
+    ui->detPath->setText(det->filePath());
+    ui->detPath->setStyleSheet( det->pathExists() ? "" : "color: rgb(255, 0, 0);");
+    ui->detFileTemplate->setText(det->fileTemplate());
+    ui->detFileName->setText(det->fileName());
+  } else {
+    ui->exposureInfo->setText("");
+    ui->detExposure->setText("");
+    ui->detPeriod->setText("");
+    ui->detTriggerMode->setText("");
+    ui->detImageMode->setText("");
+    ui->detTotalImages->setText("");
+    ui->detPath->setText("");
+    ui->detPath->setText("");
+    ui->detFileTemplate->setText("");
+    ui->detFileName->setText("");
+  }
+
+  updateDetectorProgress();
+
+}
+
+void MainWindow::updateDetectorProgress() {
+  ui->detProgress->setVisible
+      ( ( inAcquisition || det->isAcquiring() )  &&
+        det->number() > 1 &&
+        det->imageMode() == 1 );
+}
 
 
+void MainWindow::onDetectorTest() {
+  if ( ! det->isConnected() )
+    return;
+  else if (inAcquisition) {
+    stopDetector();
+  } else {
+    ui->testDetector->setText("Stop");
+    inAcquisition=true;
+    check(ui->testDetector, false);
+    acquireDetector(".test.tif");
+    check(ui->testDetector, true);
+    inAcquisition=false;
+    ui->testDetector->setText("Test");
+  }
+}
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void MainWindow::setEnv(const char * var, const char * val){
+void MainWindow::setEnv(const char * var, const char * val) {
 
   setenv(var, val, 1);
 
@@ -1387,7 +1590,7 @@ void MainWindow::setEnv(const char * var, const char * val){
 
     QString desc = envDesc.contains(var) ? envDesc[var] : "" ;
 
-    hui->table->setSortingEnabled(false); // needed to prevent sorting after settingItem
+    hui->table->setSortingEnabled(false);
     hui->table->insertRow(rowCount);
     hui->table->setItem( rowCount, 0, new QTableWidgetItem( QString(var) ));
     hui->table->setItem( rowCount, 1, new QTableWidgetItem( QString(val) ));
@@ -1427,7 +1630,8 @@ void MainWindow::check(QWidget * obj, bool status) {
       if ( t->findChildren<const QObject*>().indexOf(obj) != -1 )
         tab = t;
 
-    preReq[obj] = qMakePair(status, (const QWidget*) tab);
+    if (tab)
+      preReq[obj] = qMakePair(status, (const QWidget*) tab);
 
   } else {
 
@@ -1447,9 +1651,11 @@ void MainWindow::check(QWidget * obj, bool status) {
     tabOK |= ui->control->indexOf(tab) == -1;
 
     if (tab==ui->tabDyno)
-      ui->testDyno->setEnabled(tabOK);
+      ui->testDyno->setEnabled( tabOK || inDyno );
     if (tab==ui->tabMulti)
-      ui->testMulti->setEnabled(tabOK);
+      ui->testMulti->setEnabled( tabOK || inMulti);
+    if (tab==ui->tabDetector)
+      ui->testDetector->setEnabled( tabOK || inAcquisition );
 
     preReq[tab] = qMakePair(tabOK, (const QWidget*)0);
     ui->control->setTabIcon(ui->control->indexOf(tab),
@@ -1457,258 +1663,280 @@ void MainWindow::check(QWidget * obj, bool status) {
 
   }
 
-  bool allOK=status;
+  readyToStartCT=status;
   if ( status )
     foreach ( ReqP tabel, preReq)
       if ( ! tabel.second )
-        allOK &= tabel.first;
-  ui->startStop->setEnabled(allOK);
+        readyToStartCT &= tabel.first;
+  ui->startStop->setEnabled(readyToStartCT);
 
 }
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+bool MainWindow::prepareDetector(const QString & filename) {
+  return
+      ! filename.isEmpty() &&
+      det->isConnected() &&
+      det->setNumber(1) &&
+      det->setName(filename) &&
+      det->prepareForAcq() ;
+}
+
+
+void MainWindow::stopDetector() {
+  stopMe=true;
+  ui->preAqScript->stop();
+  det->stop();
+  ui->postAqScript->stop();
+}
+
 int MainWindow::acquireDetector(const QString & filename) {
+  inAcquisition=true;
+  stopMe=false;
+  int execStatus = -1;
+  if ( ! prepareDetector(filename) || stopMe )
+    goto acquireDetectorExit;
+  updateDetectorProgress();
+  execStatus = ui->preAqScript->execute();
+  if ( execStatus || stopMe )
+    goto acquireDetectorExit;
+  det->acquire();
+  if ( ! stopMe )
+    execStatus = ui->postAqScript->execute();
 
-  /*
-  if ( ! preReq[ui->detectorCommand].first ) {
-    appendMessage(ERROR, "Image cannot be acquired now.");
-    return 1;
-  }
-  */
-  if ( filename.isEmpty() ) {
-    appendMessage(ERROR, "Empty filename to store image.");
-    return 1;
-  }
-
-  //ui->detectorWidget->setEnabled(false);
-
-  setEnv("FILE", filename);
-  int execStatus /*= doExec(aqExec, "image acquisition into \"" + filename + "\"")*/;
-  if (execStatus)
-    appendMessage(ERROR, "Error acquiring \"" + filename + "\".");
-
-
-  //ui->detectorWidget->setEnabled(true);
-
+acquireDetectorExit:
+  inAcquisition=false;
+  updateDetectorProgress();
   return execStatus;
 
 }
 
 
-void MainWindow::waitStopDynos() {
-  if ( ui->checkDyno->isChecked() )
-    dynoMotor->motor()->wait_stop();
-  if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->motor()->wait_stop();
-}
-
-void MainWindow::stopDynos() {
-  if ( ui->checkDyno->isChecked() )
-    dynoMotor->motor()->stop();
-  if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->motor()->stop();
-  waitStopDynos();
-}
-
-
-void MainWindow::startDynos(double dynoPos, double dyno2Pos) {
-
-  if ( ( ui->checkDyno->isChecked()  && dynoMotor->motor()->getUserGoal()  != dynoPos ) ||
-       ( ui->dyno2Shot->isChecked() && dyno2Motor->motor()->getUserGoal() != dyno2Pos ) )
-    stopDynos();
-  else
-    waitStopDynos();
-
-  if ( ui->checkDyno->isChecked() )
-    dynoMotor->motor()->goUserPosition(dynoPos, QCaMotor::STARTED);
-  if ( ui->dyno2Shot->isChecked() )
-    dyno2Motor->motor()->goUserPosition(dyno2Pos, QCaMotor::STARTED);
-
-  //// qtWait(200);
-
-
+void MainWindow::stopDyno() {
+  stopMe=true;
+  dynoMotor->motor()->stop();
+  dyno2Motor->motor()->stop();
+  stopDetector();
 }
 
 int MainWindow::acquireDyno(const QString & filename) {
 
-  if ( ui->checkDyno->isChecked() && ! preReq[ui->tabDyno].first ) {
-    appendMessage(ERROR, "Image in the dynamic shot mode cannot be acquired now.");
-    return 1;
-  }
-  if ( filename.isEmpty() ) {
-    appendMessage(ERROR, "Empty filename to store image.");
-    return 1;
-  }
+  if ( ! ui->checkDyno->isChecked() )
+    return -1;
 
-  //ui->dynoWidget->setEnabled(false);
+  int ret=-1;
+  stopMe=false;
+  inDyno=true;
+  ui->dynoWidget->setEnabled(false);
 
-  int execStatus = 0;
+  dynoMotor->motor()->wait_stop();
+  if ( ui->dyno2->isChecked() )
+    dyno2Motor->motor()->wait_stop();
 
-  /*
   const double
-      dStart = ui->dynoStart->value(),
-      d2Start = ui->dyno2Start->value();
-*/
+      dStart = dynoMotor->motor()->getUserPosition(),
+      d2Start = dyno2Motor->motor()->getUserPosition(),
+      dSpeed = dynoMotor->motor()->getNormalSpeed(),
+      d2Speed = dyno2Motor->motor()->getNormalSpeed();
 
-  //startDynos(dStart, d2Start);
-  waitStopDynos();
-  if (stopMe) {
-  //  ui->dynoWidget->setEnabled(true);
-    return execStatus;
-  }
+  // two stopMes below are reqiuired for the case it changes while the detector is being prepared
+  if ( stopMe || ! prepareDetector(filename) || stopMe )
+    goto acquireDynoExit;
 
-  //startDynos(ui->dynoEnd->value(), ui->dyno2End->value());
-  execStatus = acquireDetector(filename);
+  restoreMotor( dynoMotor->motor(), dStart, ui->dynoSpeed->value() );
+  if ( ui->dyno2->isChecked() )
+    restoreMotor( dyno2Motor->motor(), d2Start, ui->dyno2Speed->value() );
 
-  //startDynos(dStart, d2Start);
+  if (stopMe)
+    goto acquireDynoExit;
 
-  //ui->dynoWidget->setEnabled(true);
+  dynoMotor->motor()->goLimit( ui->dynoPos->isChecked() ? 1 : -1 );
+  if ( ui->dyno2->isChecked() )
+    dyno2Motor->motor()->goLimit( ui->dyno2Pos->isChecked() ? 1 : -1 );
+  dynoMotor->motor()->wait_start();
+  if ( ui->dyno2->isChecked() )
+    dyno2Motor->motor()->wait_start();
 
-  return execStatus;
+  if (stopMe)
+    goto acquireDynoExit;
+
+  ret = acquireDetector();
+
+  if ( dynoMotor->motor()->getLimitStatus() ||
+       ( ui->dyno2->isChecked() && dyno2Motor->motor()->getLimitStatus() ) )
+    ret = 1;
+
+acquireDynoExit:
+
+  restoreMotor( dynoMotor->motor(), dStart, dSpeed );
+  if ( ui->dyno2->isChecked() )
+    restoreMotor( dyno2Motor->motor(), d2Start, d2Speed ) ;
+
+  ui->dynoWidget->setEnabled(true);
+  inDyno=false;
+
+  return ret;
 
 }
 
 
-int MainWindow::acquireMulti() {
 
-  if ( ! ui->testMulti->isEnabled() ) {
-    appendMessage(ERROR, "Images in the multi-shot mode cannot be acquired now.");
-    return 1;
-  }
 
-  //ui->multiWidget->setEnabled(false);
 
-  const bool
-      doL = ui->checkMulti->isChecked(),
-      doSL = doL && ui->subLoop->isChecked();
+void MainWindow::stopMulti() {
+  stopMe=true;
+  loopMotor->motor()->stop();
+  subLoopMotor->motor()->stop();
+  ui->checkDyno->isChecked() ? stopDyno() : stopDetector();
+}
+
+int MainWindow::acquireMulti(const QString &filetemplate) {
 
   const int
-      loopN =  doL ? ui->loopNumber->value() : 1,
-      subLoopN = doSL ? ui->subLoopNumber->value() : 1;
-  /*const double
-      lStart = ui->loopStart->value(),
-      lEnd = ui->loopEnd->value(),
-      slStart = ui->subLoopStart->value(),
-      slEnd = ui->subLoopEnd->value();
-      */
+      loopNumber = ui->loopNumber->value(),
+      subLoopNumber = ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1,
+      loopDigs = QString::number(loopNumber).size(),
+      subLoopDigs = QString::number(subLoopNumber).size();
 
-  double
-      lastLoop = loopMotor->motor()->get(),
-      lastSubLoop = subLoopMotor->motor()->get();
+  QStringList filelist;
+  for ( int x = 0; x < loopNumber; x++)
+    for ( int y = 0; y < subLoopNumber; y++)
+      filelist << filetemplate +
+                  QString(".%1").arg(x, loopDigs, 10, QChar('0')) +
+                  ( ui->subLoop->isChecked()  ?
+                      QString(".%1").arg(y, subLoopDigs, 10, QChar('0')) : "") +
+                  ".tif";
 
-  int execStatus=0;
+  return acquireMulti(filelist);
 
-  for ( int x = 0; x < loopN; x++) {
+}
 
-    double loopPos = /*lStart*/   +
-        ( (loopN==1)  ?  0  :  x /* * (lEnd-lStart) / (loopN-1) */);
-    if ( doL  &&  lastLoop != loopPos ) {
-      appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
-      loopMotor->motor()->goUserPosition(loopPos, QCaMotor::STARTED);
-      lastLoop = loopPos;
+
+int MainWindow::acquireMulti(const QStringList & filelist) {
+
+  stopMe=false;
+
+  if ( ! ui->checkMulti->isEnabled() ) {
+    appendMessage(ERROR, "Images in the multi-shot mode cannot be acquired now.");
+    return -1;
+  }
+
+  const int
+      loopNumber = ui->loopNumber->value(),
+      subLoopNumber = ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1;
+  const bool
+      moveLoop = loopMotor->motor()->isConnected(),
+      moveSubLoop = ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected();
+
+  if ( filelist.size() < loopNumber * subLoopNumber ) {
+    appendMessage(ERROR, "Names for the images in the loop are not provided.");
+    return -1;
+  }
+
+  if (moveLoop)
+    loopMotor->motor()->wait_stop();
+  if (moveSubLoop)
+    subLoopMotor->motor()->wait_stop();
+
+  if (stopMe ||
+      (moveLoop && loopMotor->motor()->getLimitStatus()) ||
+      (moveSubLoop && subLoopMotor->motor()->getLimitStatus()) )
+    return -1;
+
+  int execStatus=-1;
+  inMulti=true;
+  ui->multiWidget->setEnabled(false);
+
+  const QString progressFormat = QString("Multishot progress: %p% ; %v of %m") +
+      ( ui->subLoop->isChecked() ? "(%1,%2 of %3,%4)" : "" );
+  if ( ! ui->subLoop->isChecked() )
+    ui->multiProgress->setFormat(progressFormat);
+  ui->multiProgress->setMaximum(loopNumber*subLoopNumber);
+  ui->multiProgress->reset();
+  ui->multiProgress->setVisible(true);
+
+  const double
+      lStart = loopMotor->motor()->getUserPosition(),
+      slStart = subLoopMotor->motor()->getUserPosition();
+
+  for ( int x = 0; x < loopNumber; x++) {
+
+    for ( int y = 0; y < subLoopNumber; y++) {
+
+      if (moveLoop)
+        loopMotor->motor()->wait_stop();
+      if (moveSubLoop)
+        subLoopMotor->motor()->wait_stop();
+
+      if (stopMe ||
+          (moveLoop && loopMotor->motor()->getLimitStatus()) ||
+          (moveSubLoop && subLoopMotor->motor()->getLimitStatus()) ) {
+        execStatus = -1;
+        goto acquireMultiExit;
+      }
+
+      QString filename = filelist[y+x*subLoopNumber];
+      execStatus = ui->checkDyno->isChecked() ?
+            acquireDyno(filename) : acquireDetector(filename);
+
+      if (ui->subLoop->isChecked())
+        ui->multiProgress->setFormat( progressFormat
+                                      .arg(x+1).arg(y+1)
+                                      .arg(loopNumber).arg(subLoopNumber)  );
+      ui->multiProgress->setValue( 1 + y + subLoopNumber * x );
+
+      if (stopMe || execStatus )
+        goto acquireMultiExit;
+
+      if (moveSubLoop && y < subLoopNumber-1 )
+        subLoopMotor->motor()->goUserPosition
+            ( slStart + y * ui->subLoopStep->value(), QCaMotor::STARTED);
+
+      if (stopMe) {
+        execStatus = -1;
+        goto acquireMultiExit;
+      }
+
     }
 
-    for ( int y = 0; y < subLoopN; y++) {
-
-      double subLoopPos = /*slStart +*/
-          ( ( subLoopN == 1 )  ?  0  :  y /** (slEnd - slStart)*/ / (subLoopN-1) );
-      if ( doSL  &&  lastSubLoop != subLoopPos ) {
-        appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
-        subLoopMotor->motor()->goUserPosition(subLoopPos, QCaMotor::STARTED);
-        lastSubLoop = subLoopPos;
-      }
-
-      loopMotor->motor()->wait_stop();
-      subLoopMotor->motor()->wait_stop();
-
-      /*
-      if (stopMe) {
-        loopMotor->motor()->goUserPosition(lStart);
-        subLoopMotor->motor()->goUserPosition(slStart);
-        //ui->multiWidget->setEnabled(true);
-        return execStatus;
-      }
-      */
-
-
-      QString filename = ".temp." + QString::number(x) + "." + QString::number(y) + ".tif";
-      execStatus = acquireDyno(filename);
-
-      if (execStatus)
-        appendMessage(ERROR, "Failed to acquire image in the multi-shot run.");
-      /*
-      if (execStatus || stopMe) {
-        loopMotor->motor()->goUserPosition(lStart);
-        subLoopMotor->motor()->goUserPosition(slStart);
-        //ui->multiWidget->setEnabled(true);
-        return execStatus;
-      }
-      */
-
+    if (moveLoop && x < loopNumber-1)
+      loopMotor->motor()->goUserPosition
+          ( lStart + x * ui->loopStep->value(), QCaMotor::STARTED);
+    if (moveSubLoop && x < loopNumber-1)
+      subLoopMotor->motor()->goUserPosition
+          ( slStart, QCaMotor::STARTED );
+    if (stopMe) {
+      execStatus = -1;
+      goto acquireMultiExit;
     }
 
   }
 
-  //loopMotor->motor()->goUserPosition(lStart);
-  //subLoopMotor->motor()->goUserPosition(slStart);
-  //ui->multiWidget->setEnabled(true);
+acquireMultiExit:
+
+  if (moveLoop)
+    restoreMotor(loopMotor->motor(), lStart);
+  if (moveSubLoop)
+    restoreMotor(subLoopMotor->motor(), slStart);
+  ui->multiWidget->setEnabled(true);
+  ui->multiProgress->setVisible(false);
+  inMulti=false;
   return execStatus;
 
 }
-
-
-
-
-void MainWindow::onAcquireDetector() {
-  /*
-  if ( ! ui->detectorWidget->isEnabled() ) {
-    emit requestToStopAcquisition();
-  } else {
-    ui->testDetector->setText("Stop acquisition");
-    setEnv("AQTYPE", "SINGLESHOT");
-    acquireDetector(".temp.tif");
-    ui->testDetector->setText("Test");
-  }
-  */
-}
-
-void MainWindow::onAcquireDyno() {
-  /*
-  if ( ! ui->dynoWidget->isEnabled() ) {
-    stopMe = true;
-    emit requestToStopAcquisition();
-    dynoMotor->motor()->stop();
-    dyno2Motor->motor()->stop();
-  } else {
-    stopMe = false;
-    ui->testDyno->setText("Stop acquisition");
-    setEnv("AQTYPE", "DYNOSHOT");
-    acquireDyno(".temp.tif");
-    ui->testDyno->setText("Test");
-  }
-  */
-}
-
-void MainWindow::onAcquireMulti() {
-  /*
-  if ( ! ui->multiWidget->isEnabled() ) {
-    stopMe = true;
-    emit requestToStopAcquisition();
-    loopMotor->motor()->stop();
-    subLoopMotor->motor()->stop();
-    dynoMotor->motor()->stop();
-    dyno2Motor->motor()->stop();
-  } else {
-    stopMe = false;
-    ui->testMulti->setText("Stop acquisition");
-    setEnv("AQTYPE", "MULTISHOT");
-    acquireMulti();
-    ui->testMulti->setText("Test");
-  }
-  */
-}
-
 
 
 
@@ -1736,99 +1964,20 @@ void MainWindow::logMessage(const QString &msg) {
 
 
 void MainWindow::onStartStop() {
-
-  if ( engineStatus ) {
+  if ( inCT ) {
     stopMe = true;
+    serialMotor->motor()->stop();
     thetaMotor->motor()->stop();
-    bgMotor->motor()->stop();
-    loopMotor->motor()->stop();
-    subLoopMotor->motor()->stop();
-    dynoMotor->motor()->stop();
-    dyno2Motor->motor()->stop();
+    stopMulti();
+    stopDyno();
+    stopDetector();
     emit requestToStopAcquisition();
   } else {
+    ui->startStop->setText("Stop CT");
     engine();
+    ui->startStop->setText("Start CT");
   }
-
 }
-
-
-/*
-void MainWindow::setEngineStatus(EngineStatus status) {
-
- // if ( status == engineStatus )
- //   return;
-
-  if (status == Paused  &&  engineStatus != Filling ) {
-
-    ui->progressBar->setFormat("Paused at %p%.");
-    ui->verticalLayoutt->addWidget(ui->progressBar);
-    ui->progressBar->show();
-
-    appendMessage(CONTROL, "Pausing engine.");
-
-    if ( ui->checkDyno->isChecked() )
-      dynoMotor->motor()->goUserPosition(motorsInitials[dynoMotor], QCaMotor::STARTED);
-    if ( ui->dyno2Shot->isChecked() )
-      dyno2Motor->motor()->goUserPosition(motorsInitials[dyno2Motor], QCaMotor::STARTED);
-
-    ui->startStop->setText("Resume scan");
-
-  } else if (status == Running) {
-
-    ui->progressBar->setFormat("Running. %p% done.");
-    ui->verticalLayoutt->addWidget(ui->progressBar);
-    ui->progressBar->show();
-
-    if (engineStatus == Stopped)
-      appendMessage(CONTROL,  "Starting engine.");
-    else if (engineStatus == Paused)
-      appendMessage(CONTROL,  "Resuming engine.");
-
-    ui->startStop->setText("Pause scan");
-
-    ui->tabGeneral->setEnabled(false);
-    ui->tabDetector->setEnabled(false);
-    ui->tabDyno->setEnabled(false);
-    ui->tabFF->setEnabled(false);
-    ui->tabMulti->setEnabled(false);
-    ui->tabScan->setEnabled(false);
-
-  } else if ( status == Filling ) {
-
-    ui->startStop->setText("Stop table update");
-    ui->startStop->setEnabled(true);
-    ui->progressBar->setFormat("Updating table.\n %p%");
-    ui->horizontalLayout->insertWidget(0,ui->progressBar);
-    ui->progressBar->show();
-
-  } else { // Paused while filling or Stopped
-
-    ui->progressBar->hide();
-
-    if (engineStatus == Paused)
-      appendMessage(CONTROL,  "Resetting engine.");
-    else if (engineStatus == Running)
-      appendMessage(CONTROL,  "Stopping engine.");
-
-    if ( engineStatus != Filling ) {
-      foreach (QCaMotorGUI * mot, motorsInitials.keys() )
-        if (mot->motor()->isConnected())
-          mot->motor()->goUserPosition(motorsInitials[mot]);
-    }
-
-    ui->startStop->setText("Start");
-    for (int tabIdx=0 ; tabIdx < ui->control->count() ; tabIdx++ )
-      ui->control->widget(tabIdx)->setEnabled(true);
-
-  }
-
-  engineStatus=status;
-
-}
-*/
-
-
 
 
 /*
@@ -1865,6 +2014,7 @@ void MainWindow::appendScanListRow(Role rl, double pos, const QString & fn) {
 }
 */
 
+/*
 QString MainWindow::setAqFileEnv(const QLineEdit * edt, const QString & var) {
 
   QString eres, expr;
@@ -1878,17 +2028,17 @@ QString MainWindow::setAqFileEnv(const QLineEdit * edt, const QString & var) {
     indexOfDot = eres.size();
   QString res = eres;
   int count = 0;
-  /*
+
   while ( res.isEmpty() || QFile::exists(res) || listHasFile(res) ) {
     res = eres;
     res.insert(indexOfDot, "_(" + QString::number(++count) + ")");
   }
-  */
 
   setEnv(var, res);
   return res;
 
 }
+*/
 
 /*
 bool MainWindow::listHasFile(const QString & fn) {
@@ -1924,11 +2074,228 @@ bool MainWindow::doIt(int count) {
 
 
 
+/*
+void MainWindow::updateProgress() {
 
-
-
+}
+*/
 
 void MainWindow::engine () {
+
+  if ( ! readyToStartCT || inCT )
+    return;
+
+  stopMe = false;
+  inCT = true;
+  for (int idx=0; idx<ui->control->count() ; idx++)
+    ui->control->widget(idx)->setEnabled(false);
+
+  const double
+      serialStart =  serialMotor->motor()->getUserPosition(),
+      bgStart =  bgMotor->motor()->getUserPosition(),
+      thetaStart = thetaMotor->motor()->getUserPosition(),
+      thetaRange = ui->scanRange->value();
+  double thetaInSeriesStart = thetaStart;
+  const bool
+      doSerial = ui->checkSerial->isChecked(),
+      doBG = ui->checkFF->isChecked() && ui->nofBGs->value(),
+      doDF = ui->checkFF->isChecked() && ui->nofDFs->value(),
+      doAdd = ui->scanAdd->isChecked(),
+      ongoingSeries = doSerial && ui->ongoingSeries->isChecked();
+  const int
+      totalScans = doSerial ?
+        ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ,
+      totalProjections = ui->scanProjections->value(),
+      bgInterval = ui->bgInterval->value(),
+      dfInterval = ui->dfInterval->value(),
+      bgs = ui->nofBGs->value(),
+      dfs = ui->nofDFs->value(),
+      scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
+      scanTime = QTime(0, 0, 0, 0).msecsTo( ui->scanTime->time() );
+
+/*
+  ui->scanProgress->setMaximum(totalProjections);
+  ui->serialProgress->reset();
+  ui->progressBar->reset();
+  if ( totalScans ) {
+    ui->progressBar->setMaximum
+        ( totalScans *
+          ui->scanProjections->value() *
+          ( ui->checkMulti->isChecked() ? ui->loopNumber->value() : 1) *
+          ( ui->checkMulti->isChecked() && ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1)
+          );
+    ui->serialProgress->setMaximum(totalScans);
+  } else if ( ui->endTime->isChecked() ) {
+    ui->progressBar->setMaximum(scanTime);
+    ui->serialProgress->setMaximum(scanTime);
+  } else {
+    ui->progressBar->setMaximum(0);
+    ui->serialProgress->setMaximum(0);
+  }
+  ui->progressBar->setVisible(true);
+  updateProgress();
+*/
+
+  QTime inCTtime;
+  inCTtime.restart();
+  int currentScan=0;
+  bool timeToStop=false;
+
+  ui->preRunScript->execute();
+  if (stopMe) goto onEngineExit;
+
+  do { // serial scanning
+
+    qDebug() << "SERIES" << currentScan;
+
+    if (doSerial  && serialMotor->motor()->isConnected())
+      serialMotor->motor()->wait_stop();
+
+    if (stopMe) goto onEngineExit;
+
+    ui->preScanScript->execute();
+
+    if (stopMe) goto onEngineExit;
+
+    if (ui->stepAndShotMode->isChecked()) {
+
+      int
+          currentProjection = 0,
+          beforeBG = 0,
+          beforeDF = 0;
+
+      ui->scanProgress->reset();
+      ui->scanProgress->setVisible(true);
+      do {
+
+        if (doDF && ! beforeDF) {
+          qDebug() << "  DO DF";
+          beforeDF = dfInterval-1;
+          if (stopMe) goto onEngineExit;
+        } else
+          beforeDF--;
+
+        if (doBG && ! beforeBG) {
+          bgMotor->motor()->goUserPosition
+              ( bgStart + ui->bgTravel->value(), QCaMotor::STOPPED);
+          if (stopMe) goto onEngineExit;
+          qDebug() << "  DO BG";
+          if (stopMe) goto onEngineExit;
+          bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STOPPED);
+          beforeBG = bgInterval-1;
+          if (stopMe) goto onEngineExit;
+        } else
+          beforeBG--;
+
+        thetaMotor->motor()->wait_stop();
+        if ( ! currentProjection )
+          thetaInSeriesStart = ongoingSeries ?
+                thetaMotor->motor()->getUserPosition() :
+                thetaStart;
+
+        if (stopMe) goto onEngineExit;
+
+        qDebug() << "  AQ PROJECTION" << currentProjection << thetaMotor->motor()->getUserPosition();
+        if (stopMe) goto onEngineExit;
+
+        ui->scanProgress->setValue(currentProjection);
+
+        currentProjection++;
+        if ( currentProjection < totalProjections ||  doAdd )
+          thetaMotor->motor()->goUserPosition
+              ( thetaInSeriesStart + thetaRange * currentProjection / totalProjections, QCaMotor::STARTED);
+        else if ( ! ongoingSeries )
+          thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
+        if (stopMe) goto onEngineExit;
+
+      } while ( currentProjection < totalProjections );
+
+      if ( doBG && ! beforeBG ) {
+        bgMotor->motor()->goUserPosition
+            ( bgStart + ui->bgTravel->value(), QCaMotor::STOPPED);
+        if (stopMe) goto onEngineExit;
+        qDebug() << "  DO LAST BG";
+        if (stopMe) goto onEngineExit;
+        bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
+        if (stopMe) goto onEngineExit;
+      }
+      if ( doDF && ! beforeDF ) {
+        qDebug() << "  AQ LAST DF";
+        if (stopMe) goto onEngineExit;
+      }
+      if ( doAdd ) {
+        thetaMotor->motor()->wait_stop();
+        if (stopMe) goto onEngineExit;
+        qDebug() << "  AQ LAST PROJECTION" << thetaMotor->motor()->getUserPosition();
+        if (stopMe) goto onEngineExit;
+        if ( ! ongoingSeries )
+          thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
+      }
+
+      ui->scanProgress->setVisible(false);
+
+    } else
+      qDebug() << "CONT" ;
+
+    if (stopMe) goto onEngineExit;
+
+    ui->postScanScript->execute();
+
+    if (stopMe) goto onEngineExit;
+
+    currentScan++;
+    if ( ui->endNumber->isChecked() )
+      timeToStop = currentScan >= totalScans;
+    else if (ui->endTime->isChecked())
+      timeToStop = inCTtime.elapsed() + scanDelay >= scanTime;
+    else if (ui->endCondition->isChecked())
+      timeToStop = ui->conditionScript->execute();
+    else
+      timeToStop = true;
+
+    if ( ! timeToStop ) {
+      if (doSerial  && serialMotor->motor()->isConnected())
+        serialMotor->motor()->goUserPosition
+            ( serialStart + currentScan * ui->serialStep->value(), QCaMotor::STARTED);
+      if (stopMe) goto onEngineExit;
+      qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
+    }
+    if (stopMe) goto onEngineExit;
+
+  } while ( ! timeToStop );
+
+  ui->postRunScript->execute();
+  //sh1A->close();
+  qDebug() << "SH CLOSE";
+
+onEngineExit:
+
+  ui->progressBar->setVisible(false);
+  ui->scanProgress->setVisible(false);
+  if (doSerial && serialMotor->motor()->isConnected())
+    serialMotor->motor()->goUserPosition(serialStart, QCaMotor::STARTED);
+  if ( ! ongoingSeries )
+    thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
+  if ( doBG )
+    bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
+  for (int idx=0; idx<ui->control->count() ; idx++)
+    ui->control->widget(idx)->setEnabled(true);
+  inCT = false;
+
+  QTimer::singleShot(0, this, SLOT(onThetaMotor()));
+  QTimer::singleShot(0, this, SLOT(onBGmotor()));
+  QTimer::singleShot(0, this, SLOT(onSerialMotor()));
+  QTimer::singleShot(0, this, SLOT(onLoopMotor()));
+  QTimer::singleShot(0, this, SLOT(onSubLoopMotor()));
+  QTimer::singleShot(0, this, SLOT(onDynoMotor()));
+  QTimer::singleShot(0, this, SLOT(onDyno2Motor()));
+  QTimer::singleShot(0, this, SLOT(onDetectorUpdate()));
+  QTimer::singleShot(0, this, SLOT(onShutterStatus()));
+
+
+
+
+
 
   /*
 
@@ -1969,7 +2336,7 @@ void MainWindow::engine () {
       slStart = ui->subLoopStart->value(),
       slEnd = ui->subLoopEnd->value();
   const int
-      projs=ui->projections->value(),
+      projs=ui->scanProjections->value(),
       tProjs = projs + ( scanAdd ? 1 : 0 ),
       bgInterval = ui->transInterval->value(),
       lN = doL ? ui->loopNumber->value() : 1,
