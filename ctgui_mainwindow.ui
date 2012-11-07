@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>896</width>
+    <width>911</width>
     <height>647</height>
    </rect>
   </property>
@@ -25,7 +25,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>7</number>
+       <number>2</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -1783,18 +1783,6 @@
      </widget>
     </item>
     <item>
-     <widget class="QProgressBar" name="progressBar">
-      <property name="toolTip">
-       <string>Experiment proggress.
-
-Appears only when a scan is running.</string>
-      </property>
-      <property name="format">
-       <string>Overall progress: %p%</string>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QPushButton" name="startStop">
       <property name="toolTip">
        <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Start / Stop the experiment.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;On start &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;StopMeNow&lt;/span&gt;=false,&lt;/p&gt;&lt;p&gt;On stop &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;StopMeNow&lt;/span&gt;=true,&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1811,8 +1799,8 @@ Appears only when a scan is running.</string>
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>896</width>
-     <height>28</height>
+     <width>911</width>
+     <height>26</height>
     </rect>
    </property>
   </widget>

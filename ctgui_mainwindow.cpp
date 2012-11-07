@@ -115,8 +115,8 @@ MainWindow::MainWindow(QWidget *parent) :
   // ui->dfFile->installEventFilter(fileTemplateEventFilter);
 
   ui->startStop->setText("Start CT");
-  ui->progressBar->hide();
   ui->scanProgress->hide();
+  ui->serialProgress->hide();
   ui->multiProgress->hide();
   ui->stepTime->setSuffix("s");
   ui->exposureInfo->setSuffix("s");
@@ -299,8 +299,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->scanProjections, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->rotSpeed, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->scanAdd, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
-  connect( ui->preRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
-  connect( ui->postRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->preScanScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->postScanScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->nofBGs, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->bgInterval, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( bgMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
@@ -583,8 +583,8 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "range", ui->scanRange);
   setInConfig(config, "steps", ui->scanProjections);
   setInConfig(config, "add", ui->scanAdd);
-  setInConfig(config, "prerun", ui->preRunScript);
-  setInConfig(config, "postrun", ui->postRunScript);
+  setInConfig(config, "prescan", ui->preScanScript);
+  setInConfig(config, "postscan", ui->postScanScript);
   setInConfig(config, "rotationspeed", ui->rotSpeed);
   config.endGroup();
 
@@ -605,16 +605,16 @@ void MainWindow::saveConfiguration(QString fileName) {
     setInConfig(config, "motor", loopMotor);
     setInConfig(config, "shots", ui->loopNumber);
     setInConfig(config, "step", ui->loopStep);
-    setInConfig(config, "prerun", ui->preLoopScript);
-    setInConfig(config, "postrun", ui->postLoopScript);
+    setInConfig(config, "preloop", ui->preLoopScript);
+    setInConfig(config, "postloop", ui->postLoopScript);
     setInConfig(config, "subloop", ui->subLoop);
     if (ui->subLoop->isChecked()) {
       config.beginGroup("subloop");
       setInConfig(config, "motor", subLoopMotor);
       setInConfig(config, "shots", ui->subLoopNumber);
       setInConfig(config, "step", ui->subLoopStep);
-      setInConfig(config, "prerun", ui->preSubLoopScript);
-      setInConfig(config, "postrun", ui->postSubLoopScript);
+      setInConfig(config, "presubloop", ui->preSubLoopScript);
+      setInConfig(config, "postsubloop", ui->postSubLoopScript);
       config.endGroup();
     }
     config.endGroup();
@@ -709,8 +709,8 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "range", ui->scanRange);
     restoreFromConfig(config, "steps", ui->scanProjections);
     restoreFromConfig(config, "add", ui->scanAdd);
-    restoreFromConfig(config, "prerun", ui->preRunScript);
-    restoreFromConfig(config, "postrun", ui->postRunScript);
+    restoreFromConfig(config, "prescan", ui->preScanScript);
+    restoreFromConfig(config, "postscan", ui->postScanScript);
     restoreFromConfig(config, "rotationspeed", ui->rotSpeed);
     config.endGroup();
   }
@@ -733,16 +733,16 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "motor", loopMotor);
     restoreFromConfig(config, "shots", ui->loopNumber);
     restoreFromConfig(config, "step", ui->loopStep);
-    restoreFromConfig(config, "prerun", ui->preLoopScript);
-    restoreFromConfig(config, "postrun", ui->postLoopScript);
+    restoreFromConfig(config, "preloop", ui->preLoopScript);
+    restoreFromConfig(config, "postloop", ui->postLoopScript);
     restoreFromConfig(config, "subloop", ui->subLoop);
     if (ui->subLoop->isChecked()) {
       config.beginGroup("subloop");
       restoreFromConfig(config, "motor", subLoopMotor);
       restoreFromConfig(config, "shots", ui->subLoopNumber);
       restoreFromConfig(config, "step", ui->subLoopStep);
-      restoreFromConfig(config, "prerun", ui->preSubLoopScript);
-      restoreFromConfig(config, "postrun", ui->postSubLoopScript);
+      restoreFromConfig(config, "presubloop", ui->preSubLoopScript);
+      restoreFromConfig(config, "postsubloop", ui->postSubLoopScript);
       config.endGroup();
     }
     config.endGroup();
@@ -1865,7 +1865,7 @@ int MainWindow::acquireMulti(const QStringList & filelist) {
   if ( ! ui->subLoop->isChecked() )
     ui->multiProgress->setFormat(progressFormat);
   ui->multiProgress->setMaximum(loopNumber*subLoopNumber);
-  ui->multiProgress->reset();
+  ui->multiProgress->setValue(0);
   ui->multiProgress->setVisible(true);
 
   const double
@@ -2074,11 +2074,20 @@ bool MainWindow::doIt(int count) {
 
 
 
-/*
-void MainWindow::updateProgress() {
 
+void MainWindow::updateSeriesProgress(bool onTimer) {
+  if ( ui->endTime->isChecked() ) {
+    QString format = "Series progress: %p% "
+        + (QTime(0, 0, 0, 0).addMSecs(inCTtime.elapsed())).toString() + " of " + ui->scanTime->time().toString()
+        + " (scans complete: " + QString::number(currentScan) + ")";
+    ui->serialProgress->setFormat(format);
+    ui->serialProgress->setValue(inCTtime.elapsed());
+    if (onTimer && inCT)
+      QTimer::singleShot(100, this, SLOT(updateSeriesProgress()));
+  } else {
+    ui->serialProgress->setValue(currentScan);
+  }
 }
-*/
 
 void MainWindow::engine () {
 
@@ -2113,33 +2122,23 @@ void MainWindow::engine () {
       scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
       scanTime = QTime(0, 0, 0, 0).msecsTo( ui->scanTime->time() );
 
-/*
-  ui->scanProgress->setMaximum(totalProjections);
-  ui->serialProgress->reset();
-  ui->progressBar->reset();
+  ui->scanProgress->setMaximum(totalProjections + ( doAdd ? 1 : 0 ));
   if ( totalScans ) {
-    ui->progressBar->setMaximum
-        ( totalScans *
-          ui->scanProjections->value() *
-          ( ui->checkMulti->isChecked() ? ui->loopNumber->value() : 1) *
-          ( ui->checkMulti->isChecked() && ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1)
-          );
     ui->serialProgress->setMaximum(totalScans);
+    ui->serialProgress->setFormat("Series progress. %p% (scans complete: %v of %m)");
   } else if ( ui->endTime->isChecked() ) {
-    ui->progressBar->setMaximum(scanTime);
     ui->serialProgress->setMaximum(scanTime);
   } else {
-    ui->progressBar->setMaximum(0);
     ui->serialProgress->setMaximum(0);
+    ui->serialProgress->setFormat("Series progress. Scans complete: %v.");
   }
-  ui->progressBar->setVisible(true);
-  updateProgress();
-*/
+  ui->serialProgress->setValue(0);
+  ui->serialProgress->setVisible(true);
 
-  QTime inCTtime;
   inCTtime.restart();
-  int currentScan=0;
+  currentScan=0;
   bool timeToStop=false;
+  updateSeriesProgress();
 
   ui->preRunScript->execute();
   if (stopMe) goto onEngineExit;
@@ -2164,7 +2163,7 @@ void MainWindow::engine () {
           beforeBG = 0,
           beforeDF = 0;
 
-      ui->scanProgress->reset();
+      ui->scanProgress->setValue(0);
       ui->scanProgress->setVisible(true);
       do {
 
@@ -2198,7 +2197,7 @@ void MainWindow::engine () {
         qDebug() << "  AQ PROJECTION" << currentProjection << thetaMotor->motor()->getUserPosition();
         if (stopMe) goto onEngineExit;
 
-        ui->scanProgress->setValue(currentProjection);
+        ui->scanProgress->setValue(currentProjection+1);
 
         currentProjection++;
         if ( currentProjection < totalProjections ||  doAdd )
@@ -2227,12 +2226,11 @@ void MainWindow::engine () {
         thetaMotor->motor()->wait_stop();
         if (stopMe) goto onEngineExit;
         qDebug() << "  AQ LAST PROJECTION" << thetaMotor->motor()->getUserPosition();
+        ui->scanProgress->setValue(currentProjection+1);
         if (stopMe) goto onEngineExit;
         if ( ! ongoingSeries )
           thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
       }
-
-      ui->scanProgress->setVisible(false);
 
     } else
       qDebug() << "CONT" ;
@@ -2240,6 +2238,8 @@ void MainWindow::engine () {
     if (stopMe) goto onEngineExit;
 
     ui->postScanScript->execute();
+
+    ui->scanProgress->setVisible(false);
 
     if (stopMe) goto onEngineExit;
 
@@ -2252,6 +2252,8 @@ void MainWindow::engine () {
       timeToStop = ui->conditionScript->execute();
     else
       timeToStop = true;
+
+    updateSeriesProgress(false);
 
     if ( ! timeToStop ) {
       if (doSerial  && serialMotor->motor()->isConnected())
@@ -2270,7 +2272,7 @@ void MainWindow::engine () {
 
 onEngineExit:
 
-  ui->progressBar->setVisible(false);
+  ui->serialProgress->setVisible(false);
   ui->scanProgress->setVisible(false);
   if (doSerial && serialMotor->motor()->isConnected())
     serialMotor->motor()->goUserPosition(serialStart, QCaMotor::STARTED);

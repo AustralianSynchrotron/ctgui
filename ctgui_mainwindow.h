@@ -9,6 +9,7 @@
 #include <QStandardItem>
 #include <QFile>
 #include <QLineEdit>
+#include <QTime>
 
 #include <imbl/shutter1A.h>
 #include "detector.h"
@@ -87,6 +88,8 @@ private:
   bool inDyno;
   bool inMulti;
   bool inCT;
+  QTime inCTtime;
+  int currentScan;
   bool readyToStartCT;
   bool stopMe;
 
@@ -123,10 +126,6 @@ private:
   void stopMulti();
   int acquireMulti(const QStringList & filelist);
   int acquireMulti(const QString & filetemplate);
-
-
-//  int acquireSingle(const QString & filename);
-
 
 private slots:
 
@@ -180,7 +179,7 @@ private slots:
   void updateDetectorProgress();
 
   void onStartStop();
-//  void updateProgress();
+  void updateSeriesProgress(bool onTimer=true);
 
 signals:
 
