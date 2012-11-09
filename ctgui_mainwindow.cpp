@@ -25,9 +25,10 @@ MainWindow::MainWindow(QWidget *parent) :
   hui(new Ui::HelpDialog),
   hDialog(new QDialog(this, Qt::Tool)),
   det(new Detector(this)),
-  inAcquisition(false),
-  inDyno(false),
-  inMulti(false),
+  inAcquisitionTest(false),
+  inDynoTest(false),
+  inMultiTest(false),
+  inFFTest(false),
   inCT(false),
   readyToStartCT(false),
   stopMe(true)
@@ -1065,7 +1066,7 @@ void MainWindow::onNofBG() {
 
 void MainWindow::onBGmotor() {
 
-  if (inCT || inFF)
+  if (inCT || inFFTest)
     return;
 
   setEnv("BGMOTORPV", bgMotor->motor()->getPv());
@@ -1128,13 +1129,13 @@ void MainWindow::onShutterStatus() {
 }
 
 void MainWindow::onFFtest() {
-  if (inFF) {
+  if (inFFTest) {
     stopMe=true;
     bgMotor->motor()->stop();
     det->stop();
   } else {
     ui->testFF->setText("Stop");
-    inFF=true;
+    inFFTest=true;
     stopMe=false;
     ui->ffWidget->setEnabled(false);
     check(ui->testFF, false);
@@ -1142,7 +1143,7 @@ void MainWindow::onFFtest() {
     acquireDF(".test");
     check(ui->testFF, true);
     ui->ffWidget->setEnabled(true);
-    inFF=false;
+    inFFTest=false;
     ui->testFF->setText("Test");
     onBGmotor();
   }
@@ -1166,7 +1167,7 @@ void MainWindow::onLoopMotor() {
         loopMotor->motor()->getPv().isEmpty() ||
         ! loopMotor->motor()->getLimitStatus() );
 
-  if (inMulti)
+  if (inMultiTest)
     return;
 
   setEnv("LOOPMOTORPV", loopMotor->motor()->getPv());
@@ -1232,7 +1233,7 @@ void MainWindow::onSubLoopMotor() {
         subLoopMotor->motor()->getPv().isEmpty() ||
         ! subLoopMotor->motor()->getLimitStatus() );
 
-  if (inMulti)
+  if (inMultiTest)
     return;
 
   setEnv("SUBLOOPMOTORPV", subLoopMotor->motor()->getPv());
@@ -1268,16 +1269,16 @@ void MainWindow::onSubLoopStep() {
 }
 
 void MainWindow::onLoopTest() {
-  if (inMulti) {
-    stopMulti();
+  if (inMultiTest) {
+    stopAll();
   } else {
     ui->testMulti->setText("Stop");
-    inMulti=true;
+    inMultiTest=true;
     stopMe=false;
     check(ui->testMulti, false);
     acquireMulti(".test");
     check(ui->testMulti, true);
-    inMulti=false;
+    inMultiTest=false;
     ui->testMulti->setText("Test");
     onLoopMotor();
     onSubLoopMotor();
@@ -1298,7 +1299,7 @@ void MainWindow::onDynoMotor() {
         ! ui->checkDyno->isChecked() ||
         ! dynoMotor->motor()->getLimitStatus() );
 
-  if ( inMulti || inDyno )
+  if ( inMultiTest || inDynoTest )
     return;
 
   setEnv("DYNOMOTORPV", dynoMotor->motor()->getPv());
@@ -1367,7 +1368,7 @@ void MainWindow::onDyno2Motor() {
         ! ui->dyno2->isChecked() ||
         ! dyno2Motor->motor()->getLimitStatus() );
 
-  if ( inMulti || inDyno )
+  if ( inMultiTest || inDynoTest )
     return;
 
   setEnv("DYNO2MOTORPV", dyno2Motor->motor()->getPv());
@@ -1436,16 +1437,16 @@ void MainWindow::onDynoDirectionLock() {
 }
 
 void MainWindow::onDynoTest() {
-  if (inDyno) {
-    stopDyno();
+  if (inDynoTest) {
+    stopAll();
   } else {
     ui->testDyno->setText("Stop");
     stopMe=false;
-    inDyno=true;
+    inDynoTest=true;
     check(ui->testDyno, false);
     acquireDyno(".test");
     check(ui->testDyno, true);
-    inDyno=false;
+    inDynoTest=false;
     ui->testDyno->setText("Test");
     onDynoMotor();
     onDyno2Motor();
@@ -1514,7 +1515,7 @@ void MainWindow::onDetectorUpdate() {
 
 void MainWindow::updateDetectorProgress() {
   ui->detProgress->setVisible
-      ( ( inAcquisition || det->isAcquiring() )  &&
+      ( ( inAcquisitionTest || det->isAcquiring() )  &&
         det->number() > 1 &&
         det->imageMode() == 1 );
 }
@@ -1523,17 +1524,18 @@ void MainWindow::updateDetectorProgress() {
 void MainWindow::onDetectorTest() {
   if ( ! det->isConnected() )
     return;
-  else if (inAcquisition) {
-    stopDetector();
+  else if (inAcquisitionTest) {
+    stopAll();
   } else {
     ui->testDetector->setText("Stop");
-    inAcquisition=true;
+    inAcquisitionTest=true;
     stopMe=false;
     check(ui->testDetector, false);
     acquireDetector(".test");
     check(ui->testDetector, true);
-    inAcquisition=false;
+    inAcquisitionTest=false;
     ui->testDetector->setText("Test");
+    onDetectorUpdate();
   }
 }
 
@@ -1615,17 +1617,19 @@ void MainWindow::check(QWidget * obj, bool status) {
     preReq[tab] = qMakePair( tabOK, (const QWidget*) 0 );
     ui->control->setTabTextColor(tab, tabOK ? QColor() : QColor(Qt::red));
 
-    ui->testDetector->setEnabled( inAcquisition ||
-                                  preReq[ui->tabDetector].first );
-    ui->testDyno->setEnabled ( inDyno ||
-                               (  preReq[ui->tabDetector].first &&
-                                  preReq[ui->tabDyno].first ) );
-    ui->testMulti->setEnabled ( inMulti ||
-                                ( preReq[ui->tabDetector].first &&
-                                  preReq[ui->tabDyno].first &&
-                                  preReq[ui->tabMulti].first) );
-    ui->testFF->setEnabled ( inFF ||
-                             ( preReq[ui->tabDetector].first &&
+    const bool inRun = inCT || inAcquisitionTest || inDynoTest || inFFTest || inMultiTest;
+    ui->testDetector->setEnabled ( inAcquisitionTest || ( ! inRun && preReq[ui->tabDetector].first ) );
+    ui->testDyno->setEnabled ( inDynoTest || ( ! inRun &&
+                                               preReq[ui->tabDetector].first &&
+                                               preReq[ui->tabDyno].first ) );
+    ui->testMulti->setEnabled ( inMultiTest ||
+                                  ( ! inRun &&
+                                    preReq[ui->tabDetector].first &&
+                                    preReq[ui->tabDyno].first &&
+                                    preReq[ui->tabMulti].first) );
+    ui->testFF->setEnabled ( inFFTest ||
+                             ( ! inRun &&
+                               preReq[ui->tabDetector].first &&
                                preReq[ui->tabDyno].first &&
                                preReq[ui->tabMulti].first &&
                                preReq[ui->tabFF].first) );
@@ -1656,13 +1660,6 @@ void MainWindow::check(QWidget * obj, bool status) {
 
 
 
-void MainWindow::stopDetector() {
-  stopMe=true;
-  ui->preAqScript->stop();
-  det->stop();
-  ui->postAqScript->stop();
-}
-
 bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
   QString fileT = "%s%s";
   if (count>1)
@@ -1683,7 +1680,6 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
 
 int MainWindow::acquireDetector() {
 
-  inAcquisition=true;
   int execStatus = -1;
   updateDetectorProgress();
   execStatus = ui->preAqScript->execute();
@@ -1694,7 +1690,6 @@ int MainWindow::acquireDetector() {
     execStatus = ui->postAqScript->execute();
 
 acquireDetectorExit:
-  inAcquisition=false;
   updateDetectorProgress();
   return execStatus;
 
@@ -1706,12 +1701,6 @@ int MainWindow::acquireDetector(const QString & filetemplate, int count) {
   return acquireDetector();
 }
 
-void MainWindow::stopDyno() {
-  stopMe=true;
-  dynoMotor->motor()->stop();
-  dyno2Motor->motor()->stop();
-  stopDetector();
-}
 
 
 static void setMotorSpeed(QCaMotorGUI* mot, double speed) {
@@ -1739,7 +1728,6 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
     if (stopMe) return ret;
   }
 
-  inDyno=true;
   ui->dynoWidget->setEnabled(false);
 
   const double
@@ -1822,7 +1810,6 @@ acquireDynoExit:
 
   ui->dynoProgress->setVisible(false);
   ui->dynoWidget->setEnabled(true);
-  inDyno=false;
 
   return ret;
 
@@ -1832,12 +1819,6 @@ acquireDynoExit:
 
 
 
-void MainWindow::stopMulti() {
-  stopMe=true;
-  loopMotor->motor()->stop();
-  subLoopMotor->motor()->stop();
-  ui->checkDyno->isChecked() ? stopDyno() : stopDetector();
-}
 
 
 int MainWindow::acquireMulti(const QString & filetemplate, int count) {
@@ -1865,7 +1846,6 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
     return -1;
 
   int execStatus=-1;
-  inMulti=true;
   ui->multiWidget->setEnabled(false);
 
   const QString progressFormat = QString("Multishot progress: %p% ; %v of %m") +
@@ -1949,7 +1929,6 @@ acquireMultiExit:
   }
   ui->multiWidget->setEnabled(true);
   ui->multiProgress->setVisible(false);
-  inMulti=false;
   return execStatus;
 
 }
@@ -1978,16 +1957,23 @@ void MainWindow::logMessage(const QString &msg) {
   appendMessage(LOG, msg);
 }
 
+void MainWindow::stopAll() {
+  stopMe=true;
+  det->stop();
+  serialMotor->motor()->stop();
+  thetaMotor->motor()->stop();
+  bgMotor->motor()->stop();
+  loopMotor->motor()->stop();
+  subLoopMotor->motor()->stop();
+  dynoMotor->motor()->stop();
+  dyno2Motor->motor()->stop();
+  foreach( Script * script, findChildren<Script*>() )
+    script->stop();
+}
 
 void MainWindow::onStartStop() {
   if ( inCT ) {
-    stopMe = true;
-    serialMotor->motor()->stop();
-    thetaMotor->motor()->stop();
-    stopMulti();
-    stopDyno();
-    stopDetector();
-    emit requestToStopAcquisition();
+    stopAll();
   } else {
     ui->startStop->setText("Stop CT");
     stopMe=false;

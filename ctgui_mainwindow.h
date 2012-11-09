@@ -83,11 +83,11 @@ private:
   //void doDF(int num, const QString & template);
   //void doBG();
 
-  bool inAcquisition;
-  bool inDyno;
-  bool inMulti;
+  bool inAcquisitionTest;
+  bool inDynoTest;
+  bool inMultiTest;
+  bool inFFTest;
   bool inCT;
-  bool inFF;
   QTime inCTtime;
   int currentScan;
   bool readyToStartCT;
@@ -117,18 +117,20 @@ private:
 
   QWidget * insertVariableIntoMe;
 
-  void stopDetector();
+  //void stopDetector();
   bool prepareDetector(const QString & filetemplate, int count=1);
   int acquireDetector();
   int acquireDetector(const QString & filetemplate, int count=1);
-  void stopDyno();
+  //void stopDyno();
   int acquireDyno(const QString & filetemplate, int count=1);
-  void stopMulti();
+  //void stopMulti();
   int acquireMulti(const QString & filetemplate, int count=1);
 
   int acquireBG(const QString &filetemplate);
   int acquireDF(const QString &filetemplate);
   int acquireProjection(const QString &filetemplate);
+
+  void stopAll();
 
 private slots:
 
@@ -185,9 +187,6 @@ private slots:
   void onStartStop();
   void updateSeriesProgress(bool onTimer=true);
 
-signals:
-
-  void requestToStopAcquisition();
 
 };
 
