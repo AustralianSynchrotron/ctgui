@@ -33,12 +33,12 @@ private:
   QEpicsPv * triggerModePv;//TriggerMode
   QEpicsPv * imageModePv;//ImageMode
   QEpicsPv * aqPv; //Acquire
-  QEpicsPv * filePathPv;
-  QEpicsPv * filePathExistsPv;
-  QEpicsPv * fileNamePv;
-  QEpicsPv * fileTemplatePv;
+  QEpicsPv * pathPv;
+  QEpicsPv * pathExistsPv;
+  QEpicsPv * namePv;
+  QEpicsPv * nameTemplatePv;
   QEpicsPv * fileNumberPv;
-  QEpicsPv * fileLastNamePv;
+  QEpicsPv * lastNamePv;
   QEpicsPv * autoSavePv;
   QEpicsPv * writeStatusPv;
 
@@ -47,7 +47,7 @@ private:
   QString cameraPv;
   QString _name;
   QString _nameTemplate;
-  QString _nameLast;
+  QString _lastName;
   QString _path;
 
 public:
@@ -66,11 +66,11 @@ public:
   inline const QString & triggerModeString() const {return triggerModePv->getEnumString();}
   inline int imageMode() const {return imageModePv->get().toInt();}
   inline const QString & imageModeString() const {return imageModePv->getEnumString();}
-  inline const QString & filePath() const {return _path;}
-  inline const QString & fileTemplate() const {return _nameTemplate;}
-  inline const QString & fileName() const {return _name;}
-  inline const QString & fileLastName() const {return _nameLast;}
-  inline bool pathExists() { return filePathExistsPv->get().toBool();}
+  inline const QString & path() const {return _path;}
+  inline const QString & nameTemplate() const {return _nameTemplate;}
+  inline const QString & name() const {return _name;}
+  inline const QString & lastName() const {return _lastName;}
+  inline bool pathExists() { return pathExistsPv->get().toBool();}
   inline bool isAcquiring() const {return aqPv->get().toInt();}
   inline bool isConnected() const {return _con;}
 
@@ -81,6 +81,7 @@ public slots:
   bool setInterval(double val);
   bool setNumber(int val);
   bool setName(const QString & fname);
+  bool setNameTemplate(const QString & ntemp);
   bool start();
   void stop();
   bool acquire();
@@ -105,9 +106,6 @@ private slots:
   void updateNameTemplate();
   void updateLastName();
   void updateAcq();
-
-private:
-  bool setNameTemplate(const QString & ntemp);
 
 };
 

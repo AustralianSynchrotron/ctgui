@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
         <file>icon.png</file>
-        <file>warn.svg</file>
     </qresource>
 </RCC>

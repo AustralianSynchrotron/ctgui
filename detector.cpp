@@ -29,12 +29,12 @@ Detector::Detector(QObject * parent) :
   triggerModePv( new QEpicsPv(this) ),
   imageModePv( new QEpicsPv(this) ),
   aqPv( new QEpicsPv(this) ),
-  filePathPv( new QEpicsPv(this) ),
-  filePathExistsPv( new QEpicsPv(this) ),
-  fileNamePv( new QEpicsPv(this) ),
-  fileTemplatePv( new QEpicsPv(this) ),
+  pathPv( new QEpicsPv(this) ),
+  pathExistsPv( new QEpicsPv(this) ),
+  namePv( new QEpicsPv(this) ),
+  nameTemplatePv( new QEpicsPv(this) ),
   fileNumberPv( new QEpicsPv(this) ),
-  fileLastNamePv(new QEpicsPv(this) ),
+  lastNamePv(new QEpicsPv(this) ),
   autoSavePv( new QEpicsPv(this) ),
   writeStatusPv( new QEpicsPv(this) ),
   _con(false),
@@ -46,10 +46,10 @@ Detector::Detector(QObject * parent) :
     connect(pv, SIGNAL(connectionChanged(bool)), SLOT(updateConnection()));
 
   connect(counterPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateCounter()));
-  connect(filePathPv, SIGNAL(valueChanged(QVariant)), SLOT(updatePath()));
-  connect(fileTemplatePv, SIGNAL(valueChanged(QVariant)), SLOT(updateNameTemplate()));
-  connect(fileNamePv, SIGNAL(valueChanged(QVariant)), SLOT(updateName()));
-  connect(fileLastNamePv, SIGNAL(valueChanged(QVariant)), SLOT(updateLastName()));
+  connect(pathPv, SIGNAL(valueChanged(QVariant)), SLOT(updatePath()));
+  connect(nameTemplatePv, SIGNAL(valueChanged(QVariant)), SLOT(updateNameTemplate()));
+  connect(namePv, SIGNAL(valueChanged(QVariant)), SLOT(updateName()));
+  connect(lastNamePv, SIGNAL(valueChanged(QVariant)), SLOT(updateLastName()));
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SLOT(updateAcq()));
 
   connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
@@ -59,7 +59,7 @@ Detector::Detector(QObject * parent) :
   connect(numberPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(triggerModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(imageModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(filePathExistsPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(pathExistsPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
 
   updateConnection();
@@ -118,14 +118,14 @@ void Detector::setCamera(const QString & pvName) {
     triggerModePv->setPV(pvName+":CAM:TriggerMode");
     imageModePv->setPV(pvName+":CAM:ImageMode");
     aqPv->setPV(pvName+":CAM:Acquire");
-    fileTemplatePv->setPV(pvName+":TIFF1:FileTemplate");
-    fileNamePv->setPV(pvName+":TIFF1:FileName");
-    fileLastNamePv->setPV(pvName+":TIFF1:FullFileName_RBV");
+    nameTemplatePv->setPV(pvName+":TIFF1:FileTemplate");
+    namePv->setPV(pvName+":TIFF1:FileName");
+    lastNamePv->setPV(pvName+":TIFF1:FullFileName_RBV");
     fileNumberPv->setPV(pvName+":TIFF1:FileNumber");
     autoSavePv->setPV(pvName+":TIFF1:AutoSave");
     writeStatusPv->setPV(pvName+":TIFF1:WriteFile_RBV");
-    filePathPv->setPV(pvName+":TIFF1:FilePath_RBV");
-    filePathExistsPv->setPV(pvName+":TIFF1:FilePathExists_RBV");
+    pathPv->setPV(pvName+":TIFF1:FilePath_RBV");
+    pathExistsPv->setPV(pvName+":TIFF1:FilePathExists_RBV");
   }
 }
 
@@ -139,22 +139,22 @@ void Detector::updateConnection() {
 
 
 void Detector::updatePath() {
-  _path = fromVList(filePathPv->get());
+  _path = fromVList(pathPv->get());
   emit parameterChanged();
 }
 
 void Detector::updateName() {
-  _name = fromVList(fileNamePv->get());
+  _name = fromVList(namePv->get());
   emit nameChanged(_name);
 }
 
 void Detector::updateLastName() {
-  _nameLast = fromVList(fileLastNamePv->get());
-  emit lastNameChanged(_nameLast);
+  _lastName = fromVList(lastNamePv->get());
+  emit lastNameChanged(_lastName);
 }
 
 void Detector::updateNameTemplate() {
-  _nameTemplate = fromVList(fileTemplatePv->get());
+  _nameTemplate = fromVList(nameTemplatePv->get());
   emit templateChanged(_nameTemplate);
 }
 
@@ -181,7 +181,7 @@ bool Detector::setInterval(double val) {
 
 bool Detector::setNumber(int val) {
 
-  if ( ! numberPv->isConnected() || isAcquiring() )
+  if ( ! numberPv->isConnected() || isAcquiring() || val < 1)
     return false;
 
   numberPv->set(val);
@@ -193,37 +193,30 @@ bool Detector::setNumber(int val) {
     qtWait(imageModePv, SIGNAL(valueUpdated(QVariant)), 500);
   }
 
-  const QString fileT = QString("%s%s") + (val==1 ? "" : "%05d");
-  if ( fileTemplate() != fileT) {
-    setNameTemplate(fileT);
-    qtWait(fileTemplatePv, SIGNAL(valueUpdated(QVariant)), 500);
-  }
-
   return
       number() == val &&
-      imageMode() == reqIM &&
-      fileTemplate() == fileT;
+      imageMode() == reqIM;
 
 }
 
 bool Detector::setNameTemplate(const QString & ntemp) {
-  if ( ! fileTemplatePv->isConnected() || isAcquiring() )
+  if ( ! nameTemplatePv->isConnected() || isAcquiring() )
     return false;
-  if ( fileTemplate() != ntemp ) {
-    fileTemplatePv->set(ntemp.toAscii());
-    qtWait(fileTemplatePv, SIGNAL(valueUpdated(QVariant)), 500);
+  if ( nameTemplate() != ntemp ) {
+    nameTemplatePv->set(ntemp.toAscii());
+    qtWait(nameTemplatePv, SIGNAL(valueUpdated(QVariant)), 500);
   }
-  return fileTemplate() == ntemp ;
+  return nameTemplate() == ntemp ;
 }
 
 bool Detector::setName(const QString & fname) {
-  if ( ! fileNamePv->isConnected() || isAcquiring() )
+  if ( ! namePv->isConnected() || isAcquiring() )
     return false;
-  if ( fileName() != fname ) {
-    fileNamePv->set(fname.toAscii());
-    qtWait(fileNamePv, SIGNAL(valueUpdated(QVariant)), 500);
+  if ( name() != fname ) {
+    namePv->set(fname.toAscii());
+    qtWait(namePv, SIGNAL(valueUpdated(QVariant)), 500);
   }
-  return fileName() == fname ;
+  return name() == fname ;
 }
 
 

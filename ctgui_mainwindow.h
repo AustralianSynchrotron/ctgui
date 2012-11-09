@@ -71,9 +71,6 @@ private:
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <const QObject*,  ReqP > preReq;
 
-  static const QIcon goodIcon;
-  static const QIcon badIcon;
-
   QString setAqFileEnv(const QLineEdit * edt, const QString & var);
 
   void check(QWidget * obj, bool status);
@@ -83,11 +80,14 @@ private:
   }
 
   void engine();
+  //void doDF(int num, const QString & template);
+  //void doBG();
 
   bool inAcquisition;
   bool inDyno;
   bool inMulti;
   bool inCT;
+  bool inFF;
   QTime inCTtime;
   int currentScan;
   bool readyToStartCT;
@@ -117,15 +117,18 @@ private:
 
   QWidget * insertVariableIntoMe;
 
-  bool prepareDetector(const QString & filename);
-
   void stopDetector();
-  int acquireDetector(const QString & filename="");
+  bool prepareDetector(const QString & filetemplate, int count=1);
+  int acquireDetector();
+  int acquireDetector(const QString & filetemplate, int count=1);
   void stopDyno();
-  int acquireDyno(const QString & filename="");
+  int acquireDyno(const QString & filetemplate, int count=1);
   void stopMulti();
-  int acquireMulti(const QStringList & filelist);
-  int acquireMulti(const QString & filetemplate);
+  int acquireMulti(const QString & filetemplate, int count=1);
+
+  int acquireBG(const QString &filetemplate);
+  int acquireDF(const QString &filetemplate);
+  int acquireProjection(const QString &filetemplate);
 
 private slots:
 
@@ -158,6 +161,7 @@ private slots:
   void onBGtravel();
   void onNofDF();
   void onShutterStatus();
+  void onFFtest();
 
   void onLoopMotor();
   void onLoopStep();

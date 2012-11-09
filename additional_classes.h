@@ -1,4 +1,5 @@
 #include <QPlainTextEdit>
+#include <QLabel>
 #include <QDebug>
 #include <QLineEdit>
 #include <QToolButton>
@@ -6,6 +7,9 @@
 #include <QProcess>
 #include <QTemporaryFile>
 #include <QGridLayout>
+#include <QTableWidget>
+#include <QWidgetList>
+#include <QProgressBar>
 
 #ifndef CTGUIADDITIONALCLASSES
 #define CTGUIADDITIONALCLASSES
@@ -64,6 +68,42 @@ private slots:
 };
 
 
+
+class EasyTabWidget : public QTabWidget {
+  Q_OBJECT;
+  QWidgetList wdgs;
+  QHash<QWidget*, QString> titles;
+
+public:
+  EasyTabWidget( QWidget * parent = 0 ) : QTabWidget(parent) {}
+  void finilize();
+  void setTabVisible(QWidget * tab, bool visible);
+  void setTabTextColor(QWidget * tab, const QColor & color);
+  const QWidgetList & tabs() const {return wdgs;};
+  QWidgetList tabs() {return wdgs;}
+
+};
+
+
+
+class CTprogressBar : public QProgressBar {
+  Q_OBJECT;
+  QLabel * label;
+  void updateLabel();
+
+public:
+  CTprogressBar(QWidget * parent=0);
+  void setTextVisible(bool visible) ;
+
+public slots:
+  void setValue(int value) ;
+  void setMinimum(int minimum);
+  void setMaximum(int maximum);
+
+protected:
+  virtual void	resizeEvent(QResizeEvent * event);
+
+};
 
 
 

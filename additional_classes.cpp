@@ -130,6 +130,104 @@ void CtGuiLineEdit::resizeEvent(QResizeEvent *) {
 
 
 
+
+
+
+void EasyTabWidget::finilize() {
+  for (int idx=0; idx<count();idx++) {
+    wdgs << widget(idx);
+    titles[wdgs[idx]] = tabText(idx);
+  }
+}
+
+void EasyTabWidget::setTabVisible(QWidget * tab, bool visible) {
+
+  const int
+      idxL=wdgs.indexOf(tab),
+      idxT=indexOf(tab);
+
+  if ( idxL<0 || // does not exist in the list
+       (idxT>=0) == visible ) // in the requested state
+    return;
+
+  if (visible) {
+    int nidx=-1;
+    int pidxL=idxL-1;
+    while ( pidxL>=0 && nidx==-1 ) {
+      int pidxT = indexOf(wdgs.at(pidxL));
+      if (pidxT>=0)
+        nidx=insertTab(pidxT+1, tab, titles[tab]) ;
+      pidxL--;
+    }
+    if (nidx<0)
+      insertTab(0,tab, titles[tab]);
+  } else {
+    removeTab(idxT);
+  }
+
+}
+
+void EasyTabWidget::setTabTextColor(QWidget * tab, const QColor & color) {
+  tabBar()->setTabTextColor(indexOf(tab), color);
+}
+
+
+
+
+
+
+
+
+CTprogressBar::CTprogressBar(QWidget * parent) :
+  QProgressBar(parent),
+  label (new QLabel(this))
+{
+  label->setAlignment(Qt::AlignCenter);
+  label->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+  label->raise();
+}
+
+void CTprogressBar::updateLabel() {
+  label->setVisible( ! minimum() && ! maximum() && isTextVisible() );
+}
+
+
+void CTprogressBar::setTextVisible(bool visible) {
+  QProgressBar::setTextVisible(visible);
+  updateLabel();
+}
+
+void CTprogressBar::setValue(int value) {
+  QProgressBar::setValue(value);
+  qDebug() << value << minimum() << maximum() << isTextVisible() << format() << label->isVisible();
+  if ( ! minimum() && ! maximum() && isTextVisible() ) {
+    QString fmt = format();
+    label->setText(fmt.replace("%v", QString::number(value)));
+  }
+}
+
+void CTprogressBar::setMinimum(int minimum) {
+  QProgressBar::setMinimum(minimum);
+  updateLabel();
+}
+
+void CTprogressBar::setMaximum(int maximum) {
+  QProgressBar::setMaximum(maximum);
+  updateLabel();
+}
+
+
+void CTprogressBar::resizeEvent(QResizeEvent * event) {
+  QProgressBar::resizeEvent(event);
+  label->setMaximumSize(size());
+  label->setMinimumSize(size());
+}
+
+
+
+
+
+
 Script::Script(QWidget *parent) :
   QWidget(parent),
   ui(new Ui::Script),

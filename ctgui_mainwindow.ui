@@ -20,12 +20,12 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayoutt">
     <item>
-     <widget class="QTabWidget" name="control">
+     <widget class="EasyTabWidget" name="control">
       <property name="tabPosition">
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>0</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -518,7 +518,7 @@
          </widget>
         </item>
         <item row="12" column="0" colspan="2">
-         <widget class="QProgressBar" name="serialProgress">
+         <widget class="CTprogressBar" name="serialProgress">
           <property name="format">
            <string>Series progress: %p% (%v of %m)</string>
           </property>
@@ -534,68 +534,16 @@
         <string>Scan</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout_2">
-        <item row="9" column="1">
-         <widget class="QLabel" name="stepTimeLabel">
-          <property name="text">
-           <string>Step</string>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="0" colspan="5">
-         <widget class="QCheckBox" name="scanAdd">
+        <item row="3" column="1" colspan="4">
+         <widget class="QMSpinBox" name="scanProjections">
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DoEndProj&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalProjs&lt;/span&gt;. Defines &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ThetaStep.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
-          <property name="text">
-           <string>Acquire projection in the end point</string>
+          <property name="minimum">
+           <number>2</number>
           </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item row="7" column="4">
-         <widget class="QVariantLabel" name="expOverStep">
-          <property name="text">
-           <string>expOverStep</string>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="1">
-         <widget class="QLabel" name="normalSpeedLabel">
-          <property name="text">
-           <string>Normal</string>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="0">
-         <widget class="QLabel" name="label_43">
-          <property name="text">
-           <string>Step</string>
-          </property>
-         </widget>
-        </item>
-        <item row="7" column="3">
-         <widget class="QLabel" name="expOverStepLabel">
-          <property name="text">
-           <string>Exposre/step</string>
-          </property>
-         </widget>
-        </item>
-        <item row="13" column="1" colspan="4">
-         <widget class="Script" name="postScanScript" native="true"/>
-        </item>
-        <item row="11" column="0" colspan="5">
-         <widget class="Line" name="line_2">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="13" column="0">
-         <widget class="QLabel" name="label_35">
-          <property name="text">
-           <string>Post-scan script</string>
+          <property name="maximum">
+           <number>2147483647</number>
           </property>
          </widget>
         </item>
@@ -612,10 +560,75 @@
           </property>
          </widget>
         </item>
+        <item row="7" column="4">
+         <widget class="QVariantLabel" name="expOverStep">
+          <property name="text">
+           <string>expOverStep</string>
+          </property>
+         </widget>
+        </item>
+        <item row="12" column="0">
+         <widget class="QLabel" name="label_36">
+          <property name="text">
+           <string>Pre-scan script</string>
+          </property>
+         </widget>
+        </item>
+        <item row="12" column="1" colspan="4">
+         <widget class="Script" name="preScanScript" native="true"/>
+        </item>
+        <item row="13" column="0">
+         <widget class="QLabel" name="label_35">
+          <property name="text">
+           <string>Post-scan script</string>
+          </property>
+         </widget>
+        </item>
+        <item row="9" column="3">
+         <widget class="QLabel" name="exposureInfoLabel">
+          <property name="text">
+           <string>Exposure</string>
+          </property>
+         </widget>
+        </item>
         <item row="6" column="0" colspan="5">
          <widget class="Line" name="speedsLine">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="9" column="2">
+         <widget class="QVariantLabel" name="stepTime">
+          <property name="text">
+           <string>stepTime</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="3">
+         <widget class="QLabel" name="maximumSpeedLabel">
+          <property name="text">
+           <string>Maximum</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="0" colspan="5">
+         <widget class="QCheckBox" name="scanAdd">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DoEndProj&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="text">
+           <string>Acquire projection in the end point</string>
+          </property>
+          <property name="checked">
+           <bool>true</bool>
+          </property>
+         </widget>
+        </item>
+        <item row="7" column="3">
+         <widget class="QLabel" name="expOverStepLabel">
+          <property name="text">
+           <string>Exposre/step</string>
           </property>
          </widget>
         </item>
@@ -626,16 +639,41 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="1" colspan="4">
-         <widget class="QMSpinBox" name="scanProjections">
-          <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalProjs&lt;/span&gt;. Defines &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ThetaStep.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+        <item row="9" column="1">
+         <widget class="QLabel" name="stepTimeLabel">
+          <property name="text">
+           <string>Step</string>
           </property>
-          <property name="minimum">
-           <number>2</number>
+         </widget>
+        </item>
+        <item row="8" column="1">
+         <widget class="QLabel" name="normalSpeedLabel">
+          <property name="text">
+           <string>Normal</string>
           </property>
-          <property name="maximum">
-           <number>2147483647</number>
+         </widget>
+        </item>
+        <item row="13" column="1" colspan="4">
+         <widget class="Script" name="postScanScript" native="true"/>
+        </item>
+        <item row="11" column="0" colspan="5">
+         <widget class="Line" name="line_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QLabel" name="label_43">
+          <property name="text">
+           <string>Step</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="4">
+         <widget class="QVariantLabel" name="maximumSpeed">
+          <property name="text">
+           <string>maxSpeed</string>
           </property>
          </widget>
         </item>
@@ -659,64 +697,10 @@
           </property>
          </spacer>
         </item>
-        <item row="2" column="1" colspan="4">
-         <widget class="QMDoubleSpinBox" name="scanRange">
-          <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ScanRange&lt;/span&gt;. Defines &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ThetaStep.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-          </property>
-          <property name="minimum">
-           <double>-2147483647.000000000000000</double>
-          </property>
-          <property name="maximum">
-           <double>2147483647.000000000000000</double>
-          </property>
-          <property name="value">
-           <double>180.000000000000000</double>
-          </property>
-         </widget>
-        </item>
-        <item row="12" column="0">
-         <widget class="QLabel" name="label_36">
-          <property name="text">
-           <string>Pre-scan script</string>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="3">
-         <widget class="QLabel" name="maximumSpeedLabel">
-          <property name="text">
-           <string>Maximum</string>
-          </property>
-         </widget>
-        </item>
-        <item row="12" column="1" colspan="4">
-         <widget class="Script" name="preScanScript" native="true"/>
-        </item>
-        <item row="9" column="2">
-         <widget class="QVariantLabel" name="stepTime">
-          <property name="text">
-           <string>stepTime</string>
-          </property>
-         </widget>
-        </item>
         <item row="9" column="4">
          <widget class="QVariantLabel" name="exposureInfo">
           <property name="text">
            <string>exposure</string>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="4">
-         <widget class="QVariantLabel" name="maximumSpeed">
-          <property name="text">
-           <string>maxSpeed</string>
-          </property>
-         </widget>
-        </item>
-        <item row="9" column="3">
-         <widget class="QLabel" name="exposureInfoLabel">
-          <property name="text">
-           <string>Exposure</string>
           </property>
          </widget>
         </item>
@@ -776,6 +760,22 @@
           </property>
          </widget>
         </item>
+        <item row="2" column="1" colspan="4">
+         <widget class="QMDoubleSpinBox" name="scanRange">
+          <property name="toolTip">
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ScanRange&lt;/span&gt;. Defines &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ThetaStep.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+          </property>
+          <property name="minimum">
+           <double>-2147483647.000000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>2147483647.000000000000000</double>
+          </property>
+          <property name="value">
+           <double>180.000000000000000</double>
+          </property>
+         </widget>
+        </item>
         <item row="4" column="1" colspan="4">
          <widget class="QVariantLabel" name="scanStep">
           <property name="text">
@@ -801,7 +801,7 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_13">
         <item>
-         <widget class="QWidget" name="widget_9" native="true">
+         <widget class="QWidget" name="ffWidget" native="true">
           <layout class="QGridLayout" name="ffLayout">
            <item row="9" column="0" colspan="2">
             <widget class="QLabel" name="label_52">
@@ -982,6 +982,13 @@
           </property>
          </spacer>
         </item>
+        <item>
+         <widget class="QPushButton" name="testFF">
+          <property name="text">
+           <string>Test</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="tabMulti">
@@ -996,7 +1003,7 @@
          <widget class="QWidget" name="multiWidget" native="true">
           <layout class="QGridLayout" name="gridLayout_7">
            <item row="0" column="0" colspan="2">
-            <widget class="QCheckBox" name="multiBg">
+            <widget class="QCheckBox" name="singleBg">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;SameBG&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
@@ -1503,6 +1510,13 @@
          </spacer>
         </item>
         <item>
+         <widget class="QProgressBar" name="dynoProgress">
+          <property name="format">
+           <string>Dyno progress: %p% (%v of %m)</string>
+          </property>
+         </widget>
+        </item>
+        <item>
          <widget class="QPushButton" name="testDyno">
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Test execution of the part of the acquire projection procedure between two &amp;quot;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynamicShot ?&lt;/span&gt;&amp;quot; tests.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -1845,6 +1859,17 @@
    <class>QVariantLabel</class>
    <extends>QLabel</extends>
    <header location="global">qtpvwidgets.h</header>
+  </customwidget>
+  <customwidget>
+   <class>EasyTabWidget</class>
+   <extends>QTabWidget</extends>
+   <header>additional_classes.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>CTprogressBar</class>
+   <extends>QProgressBar</extends>
+   <header>additional_classes.h</header>
   </customwidget>
  </customwidgets>
  <resources>

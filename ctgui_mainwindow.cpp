@@ -14,45 +14,9 @@
 #include "ui_ctgui_variables.h"
 
 
-static void restoreMotor(QCaMotor* mot, double pos, double speed=0.0) {
-
-  if ( ! mot || ! mot->isConnected() )
-    return;
-
-  mot->stop();
-  mot->wait_stop();
-
-  if ( speed >= 0.0  &&  mot->getNormalSpeed() != speed ) {
-    mot->setNormalSpeed(speed);
-    mot->waitUpdated<double>
-        (".VELO", speed, &QCaMotor::getNormalSpeed, 200);
-  }
-
-  if (mot->getUserPosition() != pos)
-    mot->goUserPosition(pos, QCaMotor::STARTED);
-
-}
-
-static int evalExpr(const QString & templ, QString & result) {
-
-  QProcess proc;
-  proc.start("/bin/sh -c \"eval echo -n " + templ + "\"");
-  proc.waitForFinished();
-
-  if ( proc.exitCode()  )
-    result = proc.readAllStandardError();
-  else
-    result = proc.readAllStandardOutput();
-  return proc.exitCode();
-
-
-}
-
 QHash<QString,QString> MainWindow::envDesc;
 const QString MainWindow::storedState=QDir::homePath()+"/.ctgui";
 const bool MainWindow::inited = MainWindow::init();
-const QIcon MainWindow::badIcon = QIcon(":/warn.svg");
-const QIcon MainWindow::goodIcon = QIcon();
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -70,6 +34,7 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
   ui->setupUi(this);
+  ui->control->finilize();
   ui->control->setCurrentIndex(0);
 
 
@@ -116,6 +81,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   ui->startStop->setText("Start CT");
   ui->scanProgress->hide();
+  ui->dynoProgress->hide();
   ui->serialProgress->hide();
   ui->multiProgress->hide();
   ui->stepTime->setSuffix("s");
@@ -201,6 +167,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(sh1A, SIGNAL(stateChanged(Shutter1A::State)), SLOT(onShutterStatus()));
   connect(sh1A, SIGNAL(enabledChanged(bool)), SLOT(onShutterStatus()));
   connect(sh1A, SIGNAL(connectionChanged(bool)), SLOT(onShutterStatus()));
+  connect(ui->testFF, SIGNAL(clicked()), SLOT(onFFtest()));
 
   connect(ui->testMulti, SIGNAL(clicked()), SLOT(onLoopTest()));
   connect(loopMotor->motor(), SIGNAL(changedUserPosition(double)),
@@ -307,7 +274,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->bgTravel, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->nofDFs, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->dfInterval, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
-  connect( ui->multiBg, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->singleBg, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( loopMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->loopNumber, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->loopStep, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -601,7 +568,7 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   if (ui->checkMulti->isChecked()) {
     config.beginGroup("loop");
-    setInConfig(config, "ffforeach", ui->multiBg);
+    setInConfig(config, "singlebg", ui->singleBg);
     setInConfig(config, "motor", loopMotor);
     setInConfig(config, "shots", ui->loopNumber);
     setInConfig(config, "step", ui->loopStep);
@@ -729,7 +696,7 @@ void MainWindow::loadConfiguration(QString fileName) {
 
   if (ui->checkMulti->isChecked() && groups.contains("loop")) {
     config.beginGroup("loop");
-    restoreFromConfig(config, "ffforeach", ui->multiBg);
+    restoreFromConfig(config, "singlebg", ui->singleBg);
     restoreFromConfig(config, "motor", loopMotor);
     restoreFromConfig(config, "shots", ui->loopNumber);
     restoreFromConfig(config, "step", ui->loopStep);
@@ -869,32 +836,13 @@ void MainWindow::onAcquisitionMode() {
 }
 
 void MainWindow::onSerialCheck() {
-  static const QString tabSerialLabel =
-      ui->control->tabText(ui->control->indexOf(ui->tabSerial));
-  if (ui->checkSerial->isChecked())
-    ui->control->insertTab(ui->control->indexOf(ui->tabScan), ui->tabSerial, tabSerialLabel);
-  else
-    ui->control->removeTab(ui->control->indexOf(ui->tabSerial));
+  ui->control->setTabVisible(ui->tabSerial, ui->checkSerial->isChecked());
   onSerialMotor();
   onEndCondition();
 }
 
 void MainWindow::onFFcheck() {
-  static const QString tabFFLabel =
-      ui->control->tabText(ui->control->indexOf(ui->tabFF));
-  if (ui->checkFF->isChecked()) {
-    ui->control->insertTab(ui->control->indexOf(ui->tabScan)+1, ui->tabFF, tabFFLabel);
-    // ui->dfFile->setVisible(true);
-    // ui->dfFileLabel->setVisible(true);
-    // ui->bgFile->setVisible(true);
-    // ui->bgFileLabel->setVisible(true);
-  } else {
-    ui->control->removeTab(ui->control->indexOf(ui->tabFF));
-    // ui->dfFile->setVisible(false);
-    // ui->dfFileLabel->setVisible(false);
-    // ui->bgFile->setVisible(false);
-    // ui->bgFileLabel->setVisible(false);
-  }
+  ui->control->setTabVisible(ui->tabFF, ui->checkFF->isChecked());
   //onBGfile();
   //onDFfile();
   onBGmotor();
@@ -902,24 +850,13 @@ void MainWindow::onFFcheck() {
 }
 
 void MainWindow::onDynoCheck() {
-  static const QString tabDynoLabel =
-      ui->control->tabText(ui->control->indexOf(ui->tabDyno));
-  if (ui->stepAndShotMode->isChecked() && ui->checkDyno->isChecked()) {
-    int idx = qMax( ui->control->indexOf(ui->tabFF), ui->control->indexOf(ui->tabScan) );
-    ui->control->insertTab(idx+1, ui->tabDyno, tabDynoLabel);
-  } else
-    ui->control->removeTab(ui->control->indexOf(ui->tabDyno));
+  ui->control->setTabVisible(ui->tabDyno, ui->checkDyno->isChecked());
   onDynoMotor();
   onDyno2();
 }
 
 void MainWindow::onMultiCheck() {
-  static const QString tabMultiLabel =
-      ui->control->tabText(ui->control->indexOf(ui->tabMulti));
-  if (ui->stepAndShotMode->isChecked() && ui->checkMulti->isChecked())
-    ui->control->insertTab(ui->control->indexOf(ui->tabDetector), ui->tabMulti, tabMultiLabel);
-  else
-    ui->control->removeTab(ui->control->indexOf(ui->tabMulti));
+  ui->control->setTabVisible(ui->tabMulti, ui->checkMulti->isChecked());
   onLoopMotor();
   onSubLoop();
 }
@@ -1128,7 +1065,7 @@ void MainWindow::onNofBG() {
 
 void MainWindow::onBGmotor() {
 
-  if (inCT)
+  if (inCT || inFF)
     return;
 
   setEnv("BGMOTORPV", bgMotor->motor()->getPv());
@@ -1189,6 +1126,28 @@ void MainWindow::onShutterStatus() {
   onNofDF();
 
 }
+
+void MainWindow::onFFtest() {
+  if (inFF) {
+    stopMe=true;
+    bgMotor->motor()->stop();
+    det->stop();
+  } else {
+    ui->testFF->setText("Stop");
+    inFF=true;
+    stopMe=false;
+    ui->ffWidget->setEnabled(false);
+    check(ui->testFF, false);
+    acquireBG(".test");
+    acquireDF(".test");
+    check(ui->testFF, true);
+    ui->ffWidget->setEnabled(true);
+    inFF=false;
+    ui->testFF->setText("Test");
+    onBGmotor();
+  }
+}
+
 
 
 
@@ -1314,11 +1273,14 @@ void MainWindow::onLoopTest() {
   } else {
     ui->testMulti->setText("Stop");
     inMulti=true;
+    stopMe=false;
     check(ui->testMulti, false);
     acquireMulti(".test");
     check(ui->testMulti, true);
     inMulti=false;
     ui->testMulti->setText("Test");
+    onLoopMotor();
+    onSubLoopMotor();
   }
 }
 
@@ -1340,9 +1302,8 @@ void MainWindow::onDynoMotor() {
     return;
 
   setEnv("DYNOMOTORPV", dynoMotor->motor()->getPv());
-  check(dynoMotor->setupButton(),
-        ! ui->checkDyno->isChecked() || dynoMotor->motor()->isConnected() );
   check(ui->dynoNormalSpeed,
+        ! ui->checkDyno->isChecked() ||
         ! dynoMotor->motor()->isConnected() ||
         dynoMotor->motor()->getNormalSpeed()>=0.0);
 
@@ -1410,11 +1371,9 @@ void MainWindow::onDyno2Motor() {
     return;
 
   setEnv("DYNO2MOTORPV", dyno2Motor->motor()->getPv());
-  check(dyno2Motor->setupButton(),
+  check(ui->dyno2NormalSpeed,
         ! ui->checkDyno->isChecked() ||
         ! ui->dyno2->isChecked() ||
-        dyno2Motor->motor()->isConnected() );
-  check(ui->dyno2NormalSpeed,
         ! dyno2Motor->motor()->isConnected() ||
         dyno2Motor->motor()->getNormalSpeed()>=0.0);
 
@@ -1481,12 +1440,15 @@ void MainWindow::onDynoTest() {
     stopDyno();
   } else {
     ui->testDyno->setText("Stop");
+    stopMe=false;
     inDyno=true;
     check(ui->testDyno, false);
-    acquireDyno(".test.tif");
+    acquireDyno(".test");
     check(ui->testDyno, true);
     inDyno=false;
     ui->testDyno->setText("Test");
+    onDynoMotor();
+    onDyno2Motor();
   }
 }
 
@@ -1529,10 +1491,10 @@ void MainWindow::onDetectorUpdate() {
     ui->detImageMode->setText(det->imageModeString());
     ui->detTotalImages->setValue(det->number());
     ui->detProgress->setMaximum(det->number());
-    ui->detPath->setText(det->filePath());
+    ui->detPath->setText(det->path());
     ui->detPath->setStyleSheet( det->pathExists() ? "" : "color: rgb(255, 0, 0);");
-    ui->detFileTemplate->setText(det->fileTemplate());
-    ui->detFileName->setText(det->fileName());
+    ui->detFileTemplate->setText(det->nameTemplate());
+    ui->detFileName->setText(det->name());
   } else {
     ui->exposureInfo->setText("");
     ui->detExposure->setText("");
@@ -1566,8 +1528,9 @@ void MainWindow::onDetectorTest() {
   } else {
     ui->testDetector->setText("Stop");
     inAcquisition=true;
+    stopMe=false;
     check(ui->testDetector, false);
-    acquireDetector(".test.tif");
+    acquireDetector(".test");
     check(ui->testDetector, true);
     inAcquisition=false;
     ui->testDetector->setText("Test");
@@ -1624,11 +1587,11 @@ void MainWindow::check(QWidget * obj, bool status) {
   QWidget * tab = 0;
   if ( ! preReq.contains(obj) ) {
 
-    int index=0;
-    QWidget *t;
-    while ( ! tab && (t = ui->control->widget(index++)) )
-      if ( t->findChildren<const QObject*>().indexOf(obj) != -1 )
-        tab = t;
+    foreach( QWidget * wdg, ui->control->tabs() )
+      if ( wdg->findChildren< const QWidget* >().contains(obj) ) {
+        tab = wdg;
+        break;
+      }
 
     if (tab)
       preReq[obj] = qMakePair(status, (const QWidget*) tab);
@@ -1649,17 +1612,23 @@ void MainWindow::check(QWidget * obj, bool status) {
   if (tab) {
 
     tabOK |= ui->control->indexOf(tab) == -1;
+    preReq[tab] = qMakePair( tabOK, (const QWidget*) 0 );
+    ui->control->setTabTextColor(tab, tabOK ? QColor() : QColor(Qt::red));
 
-    if (tab==ui->tabDyno)
-      ui->testDyno->setEnabled( tabOK || inDyno );
-    if (tab==ui->tabMulti)
-      ui->testMulti->setEnabled( tabOK || inMulti);
-    if (tab==ui->tabDetector)
-      ui->testDetector->setEnabled( tabOK || inAcquisition );
-
-    preReq[tab] = qMakePair(tabOK, (const QWidget*)0);
-    ui->control->setTabIcon(ui->control->indexOf(tab),
-                            tabOK ? goodIcon : badIcon);
+    ui->testDetector->setEnabled( inAcquisition ||
+                                  preReq[ui->tabDetector].first );
+    ui->testDyno->setEnabled ( inDyno ||
+                               (  preReq[ui->tabDetector].first &&
+                                  preReq[ui->tabDyno].first ) );
+    ui->testMulti->setEnabled ( inMulti ||
+                                ( preReq[ui->tabDetector].first &&
+                                  preReq[ui->tabDyno].first &&
+                                  preReq[ui->tabMulti].first) );
+    ui->testFF->setEnabled ( inFF ||
+                             ( preReq[ui->tabDetector].first &&
+                               preReq[ui->tabDyno].first &&
+                               preReq[ui->tabMulti].first &&
+                               preReq[ui->tabFF].first) );
 
   }
 
@@ -1686,15 +1655,6 @@ void MainWindow::check(QWidget * obj, bool status) {
 
 
 
-bool MainWindow::prepareDetector(const QString & filename) {
-  return
-      ! filename.isEmpty() &&
-      det->isConnected() &&
-      det->setNumber(1) &&
-      det->setName(filename) &&
-      det->prepareForAcq() ;
-}
-
 
 void MainWindow::stopDetector() {
   stopMe=true;
@@ -1703,17 +1663,33 @@ void MainWindow::stopDetector() {
   ui->postAqScript->stop();
 }
 
-int MainWindow::acquireDetector(const QString & filename) {
+bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
+  QString fileT = "%s%s";
+  if (count>1)
+    fileT += "_%0" + QString::number(QString::number(count).length()) + "d";
+  fileT+= ".tif";
+  qDebug() << "DET PRE" << filetemplate << fileT << count;
+  return true;
+  /*
+  return
+      ! filename.isEmpty() &&
+      det->setNameTemplate(fileT) &&
+      det->isConnected() &&
+      det->setNumber(count) &&
+      det->setName(filename) &&
+      det->prepareForAcq() ;
+      */
+}
+
+int MainWindow::acquireDetector() {
+
   inAcquisition=true;
-  stopMe=false;
   int execStatus = -1;
-  if ( ! prepareDetector(filename) || stopMe )
-    goto acquireDetectorExit;
   updateDetectorProgress();
   execStatus = ui->preAqScript->execute();
   if ( execStatus || stopMe )
     goto acquireDetectorExit;
-  det->acquire();
+  //det->acquire();
   if ( ! stopMe )
     execStatus = ui->postAqScript->execute();
 
@@ -1724,6 +1700,11 @@ acquireDetectorExit:
 
 }
 
+int MainWindow::acquireDetector(const QString & filetemplate, int count) {
+  if ( ! prepareDetector(filetemplate, count) || stopMe )
+    return -1;
+  return acquireDetector();
+}
 
 void MainWindow::stopDyno() {
   stopMe=true;
@@ -1732,59 +1713,114 @@ void MainWindow::stopDyno() {
   stopDetector();
 }
 
-int MainWindow::acquireDyno(const QString & filename) {
 
-  if ( ! ui->checkDyno->isChecked() )
-    return -1;
+static void setMotorSpeed(QCaMotorGUI* mot, double speed) {
+  if ( ! mot->motor() || ! mot->motor()->isConnected() )
+    return;
+  if ( speed >= 0.0  &&  mot->motor()->getNormalSpeed() != speed ) {
+    mot->motor()->setNormalSpeed(speed);
+    mot->motor()->waitUpdated<double>
+        (".VELO", speed, &QCaMotor::getNormalSpeed, 200);
+  }
+}
+
+
+int MainWindow::acquireDyno(const QString & filetemplate, int count) {
 
   int ret=-1;
-  stopMe=false;
-  inDyno=true;
-  ui->dynoWidget->setEnabled(false);
+
+  if ( ! ui->checkDyno->isChecked()  || count < 1)
+    return ret;
 
   dynoMotor->motor()->wait_stop();
-  if ( ui->dyno2->isChecked() )
+  if (stopMe) return ret;
+  if ( ui->dyno2->isChecked() ) {
     dyno2Motor->motor()->wait_stop();
+    if (stopMe) return ret;
+  }
+
+  inDyno=true;
+  ui->dynoWidget->setEnabled(false);
 
   const double
       dStart = dynoMotor->motor()->getUserPosition(),
       d2Start = dyno2Motor->motor()->getUserPosition(),
-      dSpeed = dynoMotor->motor()->getNormalSpeed(),
-      d2Speed = dyno2Motor->motor()->getNormalSpeed();
+      dnSpeed = dynoMotor->motor()->getNormalSpeed(),
+      d2nSpeed = dyno2Motor->motor()->getNormalSpeed(),
+      daSpeed = ui->dynoSpeed->value(),
+      d2aSpeed = ui->dyno2Speed->value();
 
-  // two stopMes below are reqiuired for the case it changes while the detector is being prepared
-  if ( stopMe || ! prepareDetector(filename) || stopMe )
-    goto acquireDynoExit;
+  if (count>1) {
+    ui->dynoProgress->setMaximum(count);
+    ui->dynoProgress->setValue(0);
+    ui->dynoProgress->setVisible(true);
+  }
 
-  restoreMotor( dynoMotor->motor(), dStart, ui->dynoSpeed->value() );
-  if ( ui->dyno2->isChecked() )
-    restoreMotor( dyno2Motor->motor(), d2Start, ui->dyno2Speed->value() );
 
-  if (stopMe)
-    goto acquireDynoExit;
+  for (int curr=0 ; curr < count ; curr++) {
 
-  dynoMotor->motor()->goLimit( ui->dynoPos->isChecked() ? 1 : -1 );
-  if ( ui->dyno2->isChecked() )
-    dyno2Motor->motor()->goLimit( ui->dyno2Pos->isChecked() ? 1 : -1 );
-  dynoMotor->motor()->wait_start();
-  if ( ui->dyno2->isChecked() )
-    dyno2Motor->motor()->wait_start();
+    if ( dynoMotor->motor()->getUserGoal() != dStart ) {
+      setMotorSpeed(dynoMotor, dnSpeed);
+      dynoMotor->motor()->goUserPosition(dStart, QCaMotor::STARTED);
+      if (stopMe) goto acquireDynoExit;
+    }
+    if ( ui->dyno2->isChecked() &&
+         dyno2Motor->motor()->getUserGoal() != d2Start ) {
+      setMotorSpeed(dyno2Motor, d2nSpeed);
+      dyno2Motor->motor()->goUserPosition(d2Start, QCaMotor::STARTED);
+      if (stopMe) goto acquireDynoExit;
+    }
+    dynoMotor->motor()->wait_stop();
+    if (stopMe) goto acquireDynoExit;
+    if ( ui->dyno2->isChecked() ) {
+      dyno2Motor->motor()->wait_stop();
+      if (stopMe) goto acquireDynoExit;
+    }
 
-  if (stopMe)
-    goto acquireDynoExit;
+    QString ftemplate = filetemplate;
+    if (count>1)
+      ftemplate += QString("_N%1").arg(curr, QString::number(count).length(), 10, QChar('0'));
+    // two stopMes below are reqiuired for the case it changes while the detector is being prepared
+    if ( stopMe || ! prepareDetector(ftemplate) || stopMe )
+      goto acquireDynoExit;
 
-  ret = acquireDetector();
+    setMotorSpeed(dynoMotor, daSpeed);
+    if ( ui->dyno2->isChecked()  )
+      setMotorSpeed(dyno2Motor, d2aSpeed);
+    if (stopMe) goto acquireDynoExit;
 
-  if ( dynoMotor->motor()->getLimitStatus() ||
-       ( ui->dyno2->isChecked() && dyno2Motor->motor()->getLimitStatus() ) )
-    ret = 1;
+    dynoMotor->motor()->goLimit( ui->dynoPos->isChecked() ? 1 : -1 );
+    if ( ui->dyno2->isChecked() )
+      dyno2Motor->motor()->goLimit( ui->dyno2Pos->isChecked() ? 1 : -1 );
+    dynoMotor->motor()->wait_start();
+    if ( ui->dyno2->isChecked() )
+      dyno2Motor->motor()->wait_start();
+    if (stopMe) goto acquireDynoExit;
+
+    ret = acquireDetector();
+
+    if (count>1)
+      ui->dynoProgress->setValue(curr+1);
+
+    if ( dynoMotor->motor()->getLimitStatus() ||
+         ( ui->dyno2->isChecked() && dyno2Motor->motor()->getLimitStatus() ) )
+      ret = 1;
+    if (stopMe) goto acquireDynoExit;
+
+  }
 
 acquireDynoExit:
 
-  restoreMotor( dynoMotor->motor(), dStart, dSpeed );
-  if ( ui->dyno2->isChecked() )
-    restoreMotor( dyno2Motor->motor(), d2Start, d2Speed ) ;
+  setMotorSpeed(dynoMotor, dnSpeed);
+  if ( dynoMotor->motor()->getUserGoal() != dStart )
+    dynoMotor->motor()->goUserPosition(dStart, QCaMotor::STARTED);
+  if ( ui->dyno2->isChecked() ) {
+    setMotorSpeed(dyno2Motor, d2nSpeed);
+    if ( dyno2Motor->motor()->getUserGoal() != d2Start )
+      dyno2Motor->motor()->goUserPosition(d2Start, QCaMotor::STARTED);
+  }
 
+  ui->dynoProgress->setVisible(false);
   ui->dynoWidget->setEnabled(true);
   inDyno=false;
 
@@ -1803,48 +1839,20 @@ void MainWindow::stopMulti() {
   ui->checkDyno->isChecked() ? stopDyno() : stopDetector();
 }
 
-int MainWindow::acquireMulti(const QString &filetemplate) {
+
+int MainWindow::acquireMulti(const QString & filetemplate, int count) {
+
+  if ( ! ui->checkMulti->isChecked() )
+    return -1;
 
   const int
       loopNumber = ui->loopNumber->value(),
       subLoopNumber = ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1,
       loopDigs = QString::number(loopNumber).size(),
       subLoopDigs = QString::number(subLoopNumber).size();
-
-  QStringList filelist;
-  for ( int x = 0; x < loopNumber; x++)
-    for ( int y = 0; y < subLoopNumber; y++)
-      filelist << filetemplate +
-                  QString(".%1").arg(x, loopDigs, 10, QChar('0')) +
-                  ( ui->subLoop->isChecked()  ?
-                      QString(".%1").arg(y, subLoopDigs, 10, QChar('0')) : "") +
-                  ".tif";
-
-  return acquireMulti(filelist);
-
-}
-
-
-int MainWindow::acquireMulti(const QStringList & filelist) {
-
-  stopMe=false;
-
-  if ( ! ui->checkMulti->isEnabled() ) {
-    appendMessage(ERROR, "Images in the multi-shot mode cannot be acquired now.");
-    return -1;
-  }
-
-  const int
-      loopNumber = ui->loopNumber->value(),
-      subLoopNumber = ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1;
   const bool
       moveLoop = loopMotor->motor()->isConnected(),
       moveSubLoop = ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected();
-
-  if ( filelist.size() < loopNumber * subLoopNumber ) {
-    appendMessage(ERROR, "Names for the images in the loop are not provided.");
-    return -1;
-  }
 
   if (moveLoop)
     loopMotor->motor()->wait_stop();
@@ -1861,7 +1869,7 @@ int MainWindow::acquireMulti(const QStringList & filelist) {
   ui->multiWidget->setEnabled(false);
 
   const QString progressFormat = QString("Multishot progress: %p% ; %v of %m") +
-      ( ui->subLoop->isChecked() ? "(%1,%2 of %3,%4)" : "" );
+      ( ui->subLoop->isChecked() ? " (%1,%2 of %3,%4)" : "" );
   if ( ! ui->subLoop->isChecked() )
     ui->multiProgress->setFormat(progressFormat);
   ui->multiProgress->setMaximum(loopNumber*subLoopNumber);
@@ -1888,9 +1896,12 @@ int MainWindow::acquireMulti(const QStringList & filelist) {
         goto acquireMultiExit;
       }
 
-      QString filename = filelist[y+x*subLoopNumber];
+      QString filename = filetemplate +
+          QString("_L%1").arg(x, loopDigs, 10, QChar('0')) +
+          ( ui->subLoop->isChecked()  ?
+              QString("_S%1").arg(y, subLoopDigs, 10, QChar('0')) : "");
       execStatus = ui->checkDyno->isChecked() ?
-            acquireDyno(filename) : acquireDetector(filename);
+            acquireDyno(filename, count) : acquireDetector(filename, count);
 
       if (ui->subLoop->isChecked())
         ui->multiProgress->setFormat( progressFormat
@@ -1915,9 +1926,8 @@ int MainWindow::acquireMulti(const QStringList & filelist) {
     if (moveLoop && x < loopNumber-1)
       loopMotor->motor()->goUserPosition
           ( lStart + x * ui->loopStep->value(), QCaMotor::STARTED);
-    if (moveSubLoop && x < loopNumber-1)
-      subLoopMotor->motor()->goUserPosition
-          ( slStart, QCaMotor::STARTED );
+    if (moveSubLoop)
+      subLoopMotor->motor()->goUserPosition( slStart, QCaMotor::STARTED);
     if (stopMe) {
       execStatus = -1;
       goto acquireMultiExit;
@@ -1927,10 +1937,16 @@ int MainWindow::acquireMulti(const QStringList & filelist) {
 
 acquireMultiExit:
 
-  if (moveLoop)
-    restoreMotor(loopMotor->motor(), lStart);
-  if (moveSubLoop)
-    restoreMotor(subLoopMotor->motor(), slStart);
+  if (moveLoop) {
+    loopMotor->motor()->goUserPosition(lStart, QCaMotor::STARTED);
+    if (!stopMe)
+      loopMotor->motor()->wait_stop();
+  }
+  if (moveSubLoop) {
+    subLoopMotor->motor()->goUserPosition(slStart, QCaMotor::STARTED);
+    if (!stopMe)
+      subLoopMotor->motor()->wait_stop();
+  }
   ui->multiWidget->setEnabled(true);
   ui->multiProgress->setVisible(false);
   inMulti=false;
@@ -1974,6 +1990,7 @@ void MainWindow::onStartStop() {
     emit requestToStopAcquisition();
   } else {
     ui->startStop->setText("Stop CT");
+    stopMe=false;
     engine();
     ui->startStop->setText("Start CT");
   }
@@ -2089,6 +2106,85 @@ void MainWindow::updateSeriesProgress(bool onTimer) {
   }
 }
 
+
+int MainWindow::acquireProjection(const QString &filetemplate) {
+  QString ftemplate = "SAMPLE" + filetemplate;
+  if (ui->checkMulti->isChecked())
+    return acquireMulti(ftemplate);
+  else if (ui->checkDyno->isChecked())
+    return acquireDyno(ftemplate);
+  else
+    return acquireDetector(ftemplate);
+}
+
+
+int MainWindow::acquireBG(const QString &filetemplate) {
+
+  int ret = -1;
+  const int bgs = ui->nofBGs->value();
+  const double bgTravel = ui->bgTravel->value();
+
+  if ( ! bgMotor->motor()->isConnected() || bgs <1 || bgTravel == 0.0 )
+    return ret;
+
+  QString ftemplate = "BG"+filetemplate;
+
+  bgMotor->motor()->wait_stop();
+  const double bgStart = bgMotor->motor()->getUserPosition();
+
+  bgMotor->motor()->goUserPosition
+      ( bgStart + bgTravel, QCaMotor::STOPPED );
+  if (stopMe) goto onBgExit;
+
+  if (ui->checkMulti->isChecked() && ! ui->singleBg->isChecked() )
+    ret = acquireMulti(ftemplate, bgs);
+  else if (ui->checkDyno->isChecked())
+    ret = acquireDyno(ftemplate, bgs);
+  else
+    ret = acquireDetector(ftemplate, bgs);
+
+onBgExit:
+
+  bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
+  if (!stopMe)
+    bgMotor->motor()->wait_stop();
+  return ret;
+
+}
+
+
+
+int MainWindow::acquireDF(const QString &filetemplate) {
+
+  int ret = -1;
+  const int dfs = ui->nofDFs->value();
+  const Shutter1A::State shState = sh1A->state();
+
+  if ( dfs<1 )
+    return 0;
+  if ( ! sh1A->isEnabled() && shState != Shutter1A::CLOSED )
+    return -1 ;
+
+  if (shState != Shutter1A::CLOSED)
+    //sh1A->close(true);
+    qDebug() << "SH CLOSE";
+  if (stopMe) goto onDfExit;
+
+  ret = acquireDetector("DF"+filetemplate, dfs);
+
+onDfExit:
+
+  if (shState == Shutter1A::OPENED)
+    //sh1A->open(!stopMe);
+    qDebug() << "SH OPEN";
+  return ret;
+
+}
+
+
+
+
+
 void MainWindow::engine () {
 
   if ( ! readyToStartCT || inCT )
@@ -2117,10 +2213,10 @@ void MainWindow::engine () {
       totalProjections = ui->scanProjections->value(),
       bgInterval = ui->bgInterval->value(),
       dfInterval = ui->dfInterval->value(),
-      bgs = ui->nofBGs->value(),
-      dfs = ui->nofDFs->value(),
       scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
-      scanTime = QTime(0, 0, 0, 0).msecsTo( ui->scanTime->time() );
+      scanTime = QTime(0, 0, 0, 0).msecsTo( ui->scanTime->time() ),
+      projectionDigs = QString::number(totalProjections).size(),
+      seriesDigs = QString::number(totalScans).size();
 
   ui->scanProgress->setMaximum(totalProjections + ( doAdd ? 1 : 0 ));
   if ( totalScans ) {
@@ -2156,6 +2252,14 @@ void MainWindow::engine () {
 
     if (stopMe) goto onEngineExit;
 
+    QString seriesName;
+    if (totalScans==1)
+      seriesName = "";
+    else if (totalScans>1)
+      seriesName = QString("_Z%1").arg(currentScan, seriesDigs, 10, QChar('0') );
+    else
+      seriesName = "_Z" + QString::number(currentScan);
+
     if (ui->stepAndShotMode->isChecked()) {
 
       int
@@ -2167,20 +2271,18 @@ void MainWindow::engine () {
       ui->scanProgress->setVisible(true);
       do {
 
+        QString projectionName = seriesName +
+            QString("_T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
+
         if (doDF && ! beforeDF) {
-          qDebug() << "  DO DF";
+          acquireDF(projectionName);
           beforeDF = dfInterval-1;
           if (stopMe) goto onEngineExit;
         } else
           beforeDF--;
-
+        // sh1A->open(true);
         if (doBG && ! beforeBG) {
-          bgMotor->motor()->goUserPosition
-              ( bgStart + ui->bgTravel->value(), QCaMotor::STOPPED);
-          if (stopMe) goto onEngineExit;
-          qDebug() << "  DO BG";
-          if (stopMe) goto onEngineExit;
-          bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STOPPED);
+          acquireBG(projectionName);
           beforeBG = bgInterval-1;
           if (stopMe) goto onEngineExit;
         } else
@@ -2194,7 +2296,7 @@ void MainWindow::engine () {
 
         if (stopMe) goto onEngineExit;
 
-        qDebug() << "  AQ PROJECTION" << currentProjection << thetaMotor->motor()->getUserPosition();
+        acquireProjection(projectionName);
         if (stopMe) goto onEngineExit;
 
         ui->scanProgress->setValue(currentProjection+1);
@@ -2209,25 +2311,23 @@ void MainWindow::engine () {
 
       } while ( currentProjection < totalProjections );
 
-      if ( doBG && ! beforeBG ) {
-        bgMotor->motor()->goUserPosition
-            ( bgStart + ui->bgTravel->value(), QCaMotor::STOPPED);
-        if (stopMe) goto onEngineExit;
-        qDebug() << "  DO LAST BG";
-        if (stopMe) goto onEngineExit;
-        bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
+      QString projectionName = seriesName +
+          QString("_T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
+
+      if (doBG && ! beforeBG) {
+        acquireBG(projectionName);
         if (stopMe) goto onEngineExit;
       }
       if ( doDF && ! beforeDF ) {
-        qDebug() << "  AQ LAST DF";
+        acquireDF(projectionName);
         if (stopMe) goto onEngineExit;
       }
       if ( doAdd ) {
         thetaMotor->motor()->wait_stop();
         if (stopMe) goto onEngineExit;
-        qDebug() << "  AQ LAST PROJECTION" << thetaMotor->motor()->getUserPosition();
-        ui->scanProgress->setValue(currentProjection+1);
+        acquireProjection(projectionName);
         if (stopMe) goto onEngineExit;
+        ui->scanProgress->setValue(currentProjection+1);
         if ( ! ongoingSeries )
           thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
       }
