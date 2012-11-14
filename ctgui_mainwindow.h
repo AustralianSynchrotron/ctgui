@@ -80,8 +80,7 @@ private:
   }
 
   void engine();
-  //void doDF(int num, const QString & template);
-  //void doBG();
+
 
   bool inAcquisitionTest;
   bool inDynoTest;
@@ -92,6 +91,8 @@ private:
   int currentScan;
   bool readyToStartCT;
   bool stopMe;
+
+
 
   enum MsgType {
     LOG,
@@ -117,18 +118,16 @@ private:
 
   QWidget * insertVariableIntoMe;
 
-  //void stopDetector();
   bool prepareDetector(const QString & filetemplate, int count=1);
   int acquireDetector();
   int acquireDetector(const QString & filetemplate, int count=1);
-  //void stopDyno();
   int acquireDyno(const QString & filetemplate, int count=1);
-  //void stopMulti();
   int acquireMulti(const QString & filetemplate, int count=1);
-
   int acquireBG(const QString &filetemplate);
   int acquireDF(const QString &filetemplate);
   int acquireProjection(const QString &filetemplate);
+
+  QFile * logFile;
 
   void stopAll();
 
@@ -186,6 +185,13 @@ private slots:
 
   void onStartStop();
   void updateSeriesProgress(bool onTimer=true);
+
+  void recordLog(const QString & message=QString());
+
+signals:
+
+  void requestToStopAcquisition();
+
 
 
 };

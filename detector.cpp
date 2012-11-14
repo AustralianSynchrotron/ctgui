@@ -39,7 +39,8 @@ Detector::Detector(QObject * parent) :
   writeStatusPv( new QEpicsPv(this) ),
   _con(false),
 //  _counter(0),
-  _name(QString())
+  _name(QString()),
+  writeExpected(false)
 {
 
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -51,6 +52,7 @@ Detector::Detector(QObject * parent) :
   connect(namePv, SIGNAL(valueChanged(QVariant)), SLOT(updateName()));
   connect(lastNamePv, SIGNAL(valueChanged(QVariant)), SLOT(updateLastName()));
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SLOT(updateAcq()));
+  connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
 
   connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
@@ -169,6 +171,13 @@ void Detector::updateAcq() {
     emit done();
 }
 
+void Detector::updateWriting() {
+  if (!isWriting())
+    emit writingFinished();
+  else
+    writeExpected=false;
+}
+
 bool Detector::setInterval(double val) {
   if ( ! periodPv->isConnected() || isAcquiring() )
     return false;
@@ -203,7 +212,7 @@ bool Detector::setNameTemplate(const QString & ntemp) {
   if ( ! nameTemplatePv->isConnected() || isAcquiring() )
     return false;
   if ( nameTemplate() != ntemp ) {
-    nameTemplatePv->set(ntemp.toAscii());
+    nameTemplatePv->set(ntemp.toAscii().append(char(0)));
     qtWait(nameTemplatePv, SIGNAL(valueUpdated(QVariant)), 500);
   }
   return nameTemplate() == ntemp ;
@@ -213,7 +222,7 @@ bool Detector::setName(const QString & fname) {
   if ( ! namePv->isConnected() || isAcquiring() )
     return false;
   if ( name() != fname ) {
-    namePv->set(fname.toAscii());
+      namePv->set(fname.toAscii().append(char(0)));
     qtWait(namePv, SIGNAL(valueUpdated(QVariant)), 500);
   }
   return name() == fname ;
@@ -247,6 +256,7 @@ bool Detector::prepareForAcq() {
 bool Detector::start() {
   if ( ! aqPv->isConnected() || ! writeStatusPv->isConnected() || isAcquiring() )
     return false;
+  writeExpected=true;
   aqPv->set(1);
   qtWait(aqPv, SIGNAL(valueUpdated(QVariant)), 2000);
   return aqPv->get().toInt();
@@ -268,6 +278,14 @@ void Detector::waitDone() {
   if (isAcquiring())
     qtWait(this, SIGNAL(done()));
 }
+
+void Detector::waitWritten() {
+  if ( writeExpected && ! isWriting() )
+    qtWait(writeStatusPv, SIGNAL(valueChanged(QVariant)), 500);
+  if (isWriting())
+    qtWait(this, SIGNAL(writingFinished()));
+}
+
 
 
 

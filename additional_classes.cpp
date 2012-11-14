@@ -199,7 +199,6 @@ void CTprogressBar::setTextVisible(bool visible) {
 
 void CTprogressBar::setValue(int value) {
   QProgressBar::setValue(value);
-  qDebug() << value << minimum() << maximum() << isTextVisible() << format() << label->isVisible();
   if ( ! minimum() && ! maximum() && isTextVisible() ) {
     QString fmt = format();
     label->setText(fmt.replace("%v", QString::number(value)));

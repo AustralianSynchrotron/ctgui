@@ -31,7 +31,8 @@ MainWindow::MainWindow(QWidget *parent) :
   inFFTest(false),
   inCT(false),
   readyToStartCT(false),
-  stopMe(true)
+  stopMe(true),
+  logFile(0)
 {
 
   ui->setupUi(this);
@@ -234,6 +235,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(det, SIGNAL(nameChanged(QString)), ui->detFileName, SLOT(setText(QString)));
   connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
   connect(det, SIGNAL(templateChanged(QString)), ui->detFileTemplate, SLOT(setText(QString)));
+  connect(det, SIGNAL(counterChanged(int)), SLOT(recordLog()));
 
   connect(ui->startStop, SIGNAL(clicked()), SLOT(onStartStop()));
 
@@ -1101,7 +1103,7 @@ void MainWindow::onBGtravel() {
 void MainWindow::onNofDF() {
   const int nofdfs = ui->nofDFs->value();
   ui->dfInterval->setEnabled(nofdfs);
-  check( ui->nofDFs, ! nofdfs || sh1A->isEnabled() );
+  //check( ui->nofDFs, ! nofdfs || sh1A->isEnabled() );
 }
 
 void MainWindow::onShutterStatus() {
@@ -1477,11 +1479,10 @@ void MainWindow::onDetectorUpdate() {
     ui->detStatus->setText("no link");
   else if ( det->isAcquiring() )
     ui->detStatus->setText("acquiring");
+  else if ( det->isWriting() )
+    ui->detStatus->setText("writing");
   else
     ui->detStatus->setText("idle");
-
-  check (ui->detStatus, det->isConnected() &&
-         ! det->isAcquiring() );
 
   if (  det->isConnected() ) {
     onRotSpeed(); // to update exp/step
@@ -1508,6 +1509,9 @@ void MainWindow::onDetectorUpdate() {
     ui->detFileTemplate->setText("");
     ui->detFileName->setText("");
   }
+
+  check (ui->detStatus, det->isConnected() &&
+         ( inCT || ( ! det->isAcquiring() && ! det->isWriting() ) ) );
 
   updateDetectorProgress();
 
@@ -1665,17 +1669,13 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
   if (count>1)
     fileT += "_%0" + QString::number(QString::number(count).length()) + "d";
   fileT+= ".tif";
-  qDebug() << "DET PRE" << filetemplate << fileT << count;
-  return true;
-  /*
+  det->waitWritten();
   return
-      ! filename.isEmpty() &&
       det->setNameTemplate(fileT) &&
       det->isConnected() &&
       det->setNumber(count) &&
-      det->setName(filename) &&
+      det->setName(filetemplate) &&
       det->prepareForAcq() ;
-      */
 }
 
 int MainWindow::acquireDetector() {
@@ -1685,7 +1685,7 @@ int MainWindow::acquireDetector() {
   execStatus = ui->preAqScript->execute();
   if ( execStatus || stopMe )
     goto acquireDetectorExit;
-  //det->acquire();
+  det->acquire();
   if ( ! stopMe )
     execStatus = ui->postAqScript->execute();
 
@@ -1894,7 +1894,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
 
       if (moveSubLoop && y < subLoopNumber-1 )
         subLoopMotor->motor()->goUserPosition
-            ( slStart + y * ui->subLoopStep->value(), QCaMotor::STARTED);
+            ( slStart + (y+1) * ui->subLoopStep->value(), QCaMotor::STARTED);
 
       if (stopMe) {
         execStatus = -1;
@@ -1905,7 +1905,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
 
     if (moveLoop && x < loopNumber-1)
       loopMotor->motor()->goUserPosition
-          ( lStart + x * ui->loopStep->value(), QCaMotor::STARTED);
+          ( lStart + (x+1) * ui->loopStep->value(), QCaMotor::STARTED);
     if (moveSubLoop)
       subLoopMotor->motor()->goUserPosition( slStart, QCaMotor::STARTED);
     if (stopMe) {
@@ -1959,6 +1959,7 @@ void MainWindow::logMessage(const QString &msg) {
 
 void MainWindow::stopAll() {
   stopMe=true;
+  emit requestToStopAcquisition();
   det->stop();
   serialMotor->motor()->stop();
   thetaMotor->motor()->stop();
@@ -2168,6 +2169,84 @@ onDfExit:
 }
 
 
+void MainWindow::recordLog(const QString & message) {
+
+  if ( ! logFile || ! logFile->isWritable())
+    return;
+
+  static bool  recSerial, recBG, recLoop, recSubLoop;
+  static const QString timeFormat="dd/MM/yyyy_hh:mm:ss.zzz";
+  QString wrt;
+
+  if (!inCT) {
+
+    recSerial = ui->checkSerial->isChecked() && serialMotor->motor()->isConnected();
+    recBG = ui->checkFF->isChecked() && ui->nofBGs->value() && bgMotor->motor()->isConnected();
+    recLoop = ui->checkMulti->isChecked() && loopMotor->motor()->isConnected();
+    recSubLoop = ui->checkMulti->isChecked() &&
+        ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected();
+
+    wrt = "# Starting acquisition. " + QDateTime::currentDateTime().toString(timeFormat);
+    logFile->write((wrt+"\n").toAscii());
+    logFile->write("# Initial values:\n");
+    wrt = "#   Working directory: " + QDir::currentPath();
+    logFile->write((wrt+"\n").toAscii());
+    wrt = "#   Detector saving path: " + det->path();
+    logFile->write((wrt+"\n").toAscii());
+    if (recSerial) {
+      wrt = "#   Serial motor position: " + QString::number(serialMotor->motor()->getUserPosition());
+      logFile->write((wrt+"\n").toAscii());
+    }
+    wrt = "#   Theta motor position: " + QString::number(thetaMotor->motor()->getUserPosition());
+    logFile->write((wrt+"\n").toAscii());
+    if (recBG) {
+      wrt = "#   Background motor position: " + QString::number(bgMotor->motor()->getUserPosition());
+      logFile->write((wrt+"\n").toAscii());
+    }
+    if (recLoop) {
+      wrt = "#   Loop motor position: " + QString::number(loopMotor->motor()->getUserPosition());
+      logFile->write((wrt+"\n").toAscii());
+    }
+    if (recSubLoop) {
+      wrt = "#   Sub-loop motor position: " + QString::number(subLoopMotor->motor()->getUserPosition());
+      logFile->write((wrt+"\n").toAscii());
+    }
+    if (ui->checkDyno->isChecked() && dynoMotor->motor()->isConnected()) {
+      wrt = "#   Dyno motor position: " + QString::number(dynoMotor->motor()->getUserPosition());
+      logFile->write((wrt+"\n").toAscii());
+    }
+    if (ui->checkDyno->isChecked() && ui->dyno2->isChecked() && dyno2Motor->motor()->isConnected()) {
+      wrt = "#   Dyno 2 motor position: " + QString::number(dyno2Motor->motor()->getUserPosition());
+      logFile->write((wrt+"\n").toAscii());
+    }
+
+  } else if ( ! message.isEmpty() ) {
+
+    wrt = "# " + QDateTime::currentDateTime().toString(timeFormat) + " " + message;
+    logFile->write((wrt+"\n").toAscii());
+    return;
+
+  } else if (det->counter()) {
+
+    wrt = QDateTime::currentDateTime().toString(timeFormat);
+    if (recSerial)
+      wrt += " " + QString::number(serialMotor->motor()->getUserPosition());
+    wrt += " " + QString::number(thetaMotor->motor()->getUserPosition());
+    if (recBG)
+      wrt += " " + QString::number(bgMotor->motor()->getUserPosition());
+    if (recLoop)
+      wrt += " " + QString::number(loopMotor->motor()->getUserPosition());
+    if (recSubLoop)
+      wrt += " " + QString::number(subLoopMotor->motor()->getUserPosition());
+    qtWait(det, SIGNAL(lastNameChanged(QString)), 500);
+    if (logFile) // could be closed if the ct quits while waiting for the write.
+        logFile->write((wrt+ " " + det->lastName() + "\n").toAscii());
+
+  }
+
+}
+
+
 
 
 
@@ -2176,10 +2255,21 @@ void MainWindow::engine () {
   if ( ! readyToStartCT || inCT )
     return;
 
-  stopMe = false;
-  inCT = true;
-  for (int idx=0; idx<ui->control->count() ; idx++)
-    ui->control->widget(idx)->setEnabled(false);
+  if (logFile) {
+    qDebug() << "Log file is unexpectedly opened. Must be a bug. Will not proceed.";
+    return;
+  }
+  logFile = new QFile("acquisition.log");
+  if ( ! logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text) ) {
+    qDebug() << "Could not open log file for writing. Will not proceed.";
+    logFile = 0;
+    return;
+  }
+  QString configName = "acquisition.configuration";
+  int attempt=0;
+  while (QFile::exists(configName))
+      configName = "acquisition." + QString::number(++attempt) + ".configuration";
+  saveConfiguration(configName);
 
   const double
       serialStart =  serialMotor->motor()->getUserPosition(),
@@ -2203,6 +2293,15 @@ void MainWindow::engine () {
       scanTime = QTime(0, 0, 0, 0).msecsTo( ui->scanTime->time() ),
       projectionDigs = QString::number(totalProjections).size(),
       seriesDigs = QString::number(totalScans).size();
+
+  recordLog();
+
+  stopMe = false;
+  inCT = true;
+  foreach(QWidget * tab, ui->control->tabs())
+        tab->setEnabled(false);
+
+
 
   ui->scanProgress->setMaximum(totalProjections + ( doAdd ? 1 : 0 ));
   if ( totalScans ) {
@@ -2366,8 +2465,13 @@ onEngineExit:
     thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
   if ( doBG )
     bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
-  for (int idx=0; idx<ui->control->count() ; idx++)
-    ui->control->widget(idx)->setEnabled(true);
+  while ( ! stopMe && ( qtWait(det, SIGNAL(writingFinished()), 500) || det->isWriting() ) )
+      continue;
+  recordLog( ( stopMe ? "Interrupting" : "Finishing ") + QString(" acquisition.\n") );
+  logFile->close();
+  logFile=0;
+  foreach(QWidget * tab, ui->control->tabs())
+        tab->setEnabled(true);
   inCT = false;
 
   QTimer::singleShot(0, this, SLOT(onThetaMotor()));
@@ -2381,320 +2485,6 @@ onEngineExit:
   QTimer::singleShot(0, this, SLOT(onShutterStatus()));
 
 
-
-
-
-
-  /*
-
-  stopMe = false;
-
-  if ( ! dryRun )
-    setEngineStatus(Running);
-  else
-    setEngineStatus(Filling);
-
-  motorsInitials.clear();
-  if ( thetaMotor->motor()->isConnected() )
-    motorsInitials[thetaMotor] = thetaMotor->motor()->getUserPosition();
-  if ( bgMotor->motor()->isConnected() )
-    motorsInitials[bgMotor] = bgMotor->motor()->getUserPosition();
-  if ( loopMotor->motor()->isConnected() )
-    motorsInitials[loopMotor] = loopMotor->motor()->getUserPosition();
-  if ( subLoopMotor->motor()->isConnected() )
-    motorsInitials[subLoopMotor] = subLoopMotor->motor()->getUserPosition();
-  if ( dynoMotor->motor()->isConnected() )
-    motorsInitials[dynoMotor] = dynoMotor->motor()->getUserPosition();
-  if ( dyno2Motor->motor()->isConnected() )
-    motorsInitials[dyno2Motor] = dyno2Motor->motor()->getUserPosition();
-
-  const bool
-      scanAdd = ui->scanAdd->isChecked(),
-      doBg = transQty,
-      doL = ui->checkMulti->isChecked(),
-      doSL = doL && ui->subLoop->isChecked(),
-      multiBg = doL && ! ui->multiBg->isChecked();
-  const double
-      start=ui->scanStart->value(),
-      end=ui->scanEnd->value(),
-      transIn = ui->transIn->value(),
-      transOut = ui->bgOut->value(),
-      lStart = ui->loopStart->value(),
-      lEnd = ui->loopEnd->value(),
-      slStart = ui->subLoopStart->value(),
-      slEnd = ui->subLoopEnd->value();
-  const int
-      projs=ui->scanProjections->value(),
-      tProjs = projs + ( scanAdd ? 1 : 0 ),
-      bgInterval = ui->transInterval->value(),
-      lN = doL ? ui->loopNumber->value() : 1,
-      slN = doSL ? ui->subLoopNumber->value() : 1,
-      expCount = ui->dfAfter->value() + ui->dfBefore->value() +
-      tProjs * lN * slN  +
-      ( doBg  ?  transQty * ( multiBg ? lN * slN : 1 )  :  0 );
-
-  if (dryRun) {
-    scanList->clear();
-    QStringList listHeader;
-    listHeader  << "Scheduled" << "Role" << "Position" << "File name";
-    scanList->setHorizontalHeaderLabels ( listHeader );
-  }
-
-  ui->progressBar->setRange(0,expCount);
-  ui->progressBar->reset();
-
-
-  QString filename, aqErr, aqOut;;
-  int
-      count = 0,
-      dfCount = 0,
-      smCount = 0;
-
-  if ( ! dryRun ) {
-    onPreExec();
-    if (ui->remoteCT->isChecked())
-      createXLIfile("xli.config");
-  }
-
-
-  // Set starting environment to fake values - just for a case.
-
-  setEnv("COUNT", 0);
-  setEnv("DFCOUNT", 0);
-  setEnv("DFBEFORECOUNT", 0);
-  setEnv("GSCANPOS", start);
-  setEnv("BGCOUNT", 0);
-  setEnv("PCOUNT", 0);
-  setEnv("GTRANSPOS", transIn);
-  setEnv("LOOPCOUNT", 0);
-  setEnv("GLOOPPOS", lStart);
-  setEnv("SUBLOOPCOUNT", 0);
-  setEnv("GSUBLOOPPOS", slStart);
-  setEnv("DFAFTERCOUNT", 0);
-
-
-
-  //
-  // Dark current images before the scan
-  //
-
-  setEnv("AQTYPE", "DARKCURRENT");
-  setEnv("DFTYPE", "BEFORE");
-
-
-  if ( ! dryRun && ui->dfBefore->value() )
-    sh1A->close(true);
-
-  for ( int j = 0 ; j < ui->dfBefore->value() ; ++j )  {
-
-    setEnv("DFBEFORECOUNT", j+1);
-    setEnv("DFCOUNT", dfCount+1);
-
-    if ( dryRun ) {
-      filename = setAqFileEnv(ui->dfFile, "DFFILE");
-      appendScanListRow(DF, 0, filename );
-    } else if ( doIt(count) ) {
-      filename = scanList->item(count,3)->text() ;
-      setEnv("DFFILE", filename);
-      if ( ! acquireDetector(filename) )
-        scanList->item(count,0)->setCheckState(Qt::Unchecked);
-    }
-
-    QCoreApplication::processEvents();
-    count++;
-    dfCount++;
-    ui->progressBar->setValue(count);
-    if (stopMe) {
-      setEngineStatus(Paused);
-      return;
-    }
-
-  }
-
-
-
-  //
-  // Main scan
-  //
-
-  if (!dryRun)
-    sh1A->open(true);
-
-  int bgBeforeNext=0, bgCount=0;
-  bool isBg, wasBg = false;
-  double
-      lastScan = thetaMotor->motor()->get(),
-      lastTrans = bgMotor->motor()->get(),
-      lastLoop = loopMotor->motor()->get(),
-      lastSubLoop = subLoopMotor->motor()->get();
-
-  // here ( doBg && scanAdd && ! wasBg ) needed to take last background
-  // if ui->scanAdd->isChecked()
-  while ( smCount < tProjs || ( doBg && scanAdd && ! wasBg ) ) {
-
-    // here "cProj == tProj" needed to take last background if ui->scanAdd->isChecked()
-    isBg  =  doBg && ( ! bgBeforeNext  ||  smCount == tProjs );
-
-    double cPos = start + smCount * (end - start) / projs;
-    setEnv("GSCANPOS", cPos);
-
-    double transGoal;
-    if ( isBg ) {
-      transGoal = transOut;
-      bgBeforeNext = bgInterval;
-      wasBg = true;
-      setEnv("AQTYPE", "BACKGROUND");
-      setEnv("BGCOUNT", bgCount+1);
-    } else {
-      transGoal = transIn;
-      bgBeforeNext--;
-      wasBg = false;
-      setEnv("AQTYPE", "SAMPLE");
-      setEnv("PCOUNT", smCount+1);
-    }
-    setEnv("GTRANSPOS", transGoal);
-
-    int loopN =  ( ! doL || (isBg && ! multiBg) )  ?  1  :  lN;
-    int subLoopN = ( loopN <= 1 || ! doSL )  ?  1  :  slN;
-
-    //
-    // In loop
-    //
-
-    for ( int x = 0; x < loopN; x++) {
-
-      setEnv("LOOPCOUNT", x+1);
-
-      double loopPos = lStart   +  ( (loopN==1)  ?  0  :  x * (lEnd-lStart) / (loopN-1) );
-      setEnv("GLOOPPOS", loopPos);
-
-      //
-      // In sub-loop
-      //
-
-      for ( int y = 0; y < subLoopN; y++) {
-
-        setEnv("COUNT", count+1);
-        setEnv("SUBLOOPCOUNT", y+1);
-
-        double subLoopPos = slStart +  ( ( subLoopN == 1 )  ?
-                                           0  :  y * (slEnd - slStart) / (subLoopN-1) );
-        setEnv("GSUBLOOPPOS", subLoopPos);
-
-        if ( dryRun ) {
-
-          filename =  isBg  ?
-                setAqFileEnv(ui->bgFile,     "BGFILE")  :
-                setAqFileEnv(ui->sampleFile, "SAMPLEFILE");
-
-          if (y)
-            appendScanListRow(SLOOP, subLoopPos, filename);
-          else if (x)
-            appendScanListRow(LOOP, loopPos, filename);
-          else if (isBg)
-            appendScanListRow(BG, transOut, filename);
-          else
-            appendScanListRow(SAMPLE, cPos, filename);
-
-        } else if ( doIt(count) ) {
-
-          filename = scanList->item(count,3)->text();
-          setEnv( isBg ? "BGFILE" : "SAMPLEFILE" , filename);
-
-          if ( lastTrans != transGoal ) {
-            appendMessage(CONTROL, "Moving translation motor to " + QString::number(transGoal) + ".");
-            bgMotor->motor()->goUserPosition(transGoal, QCaMotor::STARTED);
-            lastTrans = transGoal;
-          }
-          if ( ! isBg && lastScan != cPos) {
-            appendMessage(CONTROL, "Moving scan motor to " + QString::number(cPos) + ".");
-            thetaMotor->motor()->goUserPosition(cPos, QCaMotor::STARTED);
-            lastScan=cPos;
-          }
-          if ( doL  &&  lastLoop != loopPos ) {
-            appendMessage(CONTROL, "Moving loop motor to " + QString::number(loopPos) + ".");
-            loopMotor->motor()->goUserPosition(loopPos, QCaMotor::STARTED);
-            lastLoop = loopPos;
-          }
-          if ( doSL  &&  lastSubLoop != subLoopPos ) {
-            appendMessage(CONTROL, "Moving sub-loop motor to " + QString::number(subLoopPos) + ".");
-            subLoopMotor->motor()->goUserPosition(subLoopPos, QCaMotor::STARTED);
-            lastSubLoop = subLoopPos;
-          }
-
-          //// qtWait(100);
-
-          bgMotor->motor()->wait_stop();
-          thetaMotor->motor()->wait_stop();
-          loopMotor->motor()->wait_stop();
-          subLoopMotor->motor()->wait_stop();
-
-          if ( ! acquireDyno(filename) )
-            scanList->item(count,0)->setCheckState(Qt::Unchecked);
-
-        }
-
-        QCoreApplication::processEvents();
-        count++;
-        ui->progressBar->setValue(count);
-        if (stopMe) {
-          setEngineStatus(Paused);
-          return;
-        }
-
-      }
-
-    }
-
-    if ( ! isBg ) smCount++;
-    else bgCount++;
-
-  }
-
-
-  //
-  // Dark current images after the scan
-  //
-
-  setEnv("AQTYPE", "DARKCURRENT");
-  setEnv("DFTYPE", "AFTER");
-
-  if (!dryRun)
-    sh1A->close(true);
-
-  for ( int j = 0 ; j < ui->dfAfter->value() ; ++j ) {
-
-    setEnv("DFAFTERCOUNT", j+1);
-    setEnv("DFCOUNT", dfCount+1);
-
-    if ( dryRun ) {
-      filename = setAqFileEnv(ui->dfFile, "DFFILE");
-      appendScanListRow(DF, 0, filename );
-    } else if ( doIt(count) ) {
-      filename = scanList->item(count,3)->text() ;
-      setEnv("DFFILE", filename);
-      if ( ! acquireDetector(filename) )
-        scanList->item(count,0)->setCheckState(Qt::Unchecked);
-    }
-
-    QCoreApplication::processEvents();
-    count++;
-    dfCount++;
-    ui->progressBar->setValue(count);
-    if (stopMe) {
-      setEngineStatus(Paused);
-      return;
-    }
-
-  }
-
-  if ( ! dryRun ) {
-    onPostExec();
-    appendMessage(CONTROL, "Scan is finished.");
-  }
-  setEngineStatus(Stopped);
-
-  */
 
 }
 

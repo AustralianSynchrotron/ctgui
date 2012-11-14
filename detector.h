@@ -49,6 +49,7 @@ private:
   QString _nameTemplate;
   QString _lastName;
   QString _path;
+  bool writeExpected;
 
 public:
 
@@ -72,9 +73,11 @@ public:
   inline const QString & lastName() const {return _lastName;}
   inline bool pathExists() { return pathExistsPv->get().toBool();}
   inline bool isAcquiring() const {return aqPv->get().toInt();}
+  inline bool isWriting() const {return writeStatusPv->get().toInt();}
   inline bool isConnected() const {return _con;}
 
   void waitDone();
+  void waitWritten();
 
 public slots:
 
@@ -95,6 +98,7 @@ signals:
   void templateChanged(const QString &);
   void nameChanged(const QString &);
   void lastNameChanged(const QString &);
+  void writingFinished();
   void done();
 
 private slots:
@@ -106,6 +110,7 @@ private slots:
   void updateNameTemplate();
   void updateLastName();
   void updateAcq();
+  void updateWriting();
 
 };
 
