@@ -138,9 +138,10 @@ private slots:
 
   void storeCurrentState();
 
-  //void onHelpClecked(int row);
+  void updateUi_expPath();
 
-  void onWorkingDirChange();
+  void updateUi_checkDyno();
+  void updateUi_checkMulti();
   void onWorkingDirBrowse();
   void onAcquisitionMode();
   void onSerialCheck();
@@ -148,40 +149,52 @@ private slots:
   void onDynoCheck();
   void onMultiCheck();
 
-  void onEndCondition();
-  void onSerialMotor();
-  void onSerialStep();
+  void updateUi_nofScans();
+  void updateUi_scanTime();
+  void updateUi_condtitionScript();
+  void updateUi_serialStep();
+  void updateUi_serialMotor();
 
-  void onScanRange();
-  void onThetaMotor();
-  void onProjections();
-  void onRotSpeed();
+  void updateUi_scanRange();
+  void updateUi_scanStep();
+  void updateUi_rotSpeed();
+  void updateUi_stepTime();
+  void updateUi_thetaMotor();
 
-  void onBGmotor();
-  void onNofBG();
-  void onBGtravel();
-  void onNofDF();
-  void onShutterStatus();
+  void updateUi_bgTravel();
+  void updateUi_bgInterval();
+  void updateUi_dfInterval();
+  void updateUi_bgMotor();
+  void updateUi_shutterStatus();
   void onFFtest();
 
-  void onLoopMotor();
-  void onLoopStep();
+  void updateUi_loopStep();
+  void updateUi_loopMotor();
+  void updateUi_subLoopStep();
+  void updateUi_subLoopMotor();
   void onSubLoop();
-  void onSubLoopMotor();
-  void onSubLoopStep();
   void onLoopTest();
 
-  void onDynoMotor();
+  void updateUi_dynoSpeed();
+  void updateUi_dynoMotor();
+  void updateUi_dyno2Speed();
+  void updateUi_dyno2Motor();
   void onDyno2();
-  void onDyno2Motor();
   void onDynoSpeedLock();
   void onDynoDirectionLock();
   void onDynoTest();
 
+  void updateUi_detector();
   void onDetectorSelection();
-  void onDetectorUpdate();
   void onDetectorTest();
   void updateDetectorProgress();
+
+
+
+
+
+  //void onHelpClecked(int row);
+
 
   void onStartStop();
   void updateSeriesProgress(bool onTimer=true);

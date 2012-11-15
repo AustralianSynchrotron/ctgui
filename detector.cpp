@@ -53,6 +53,7 @@ Detector::Detector(QObject * parent) :
   connect(lastNamePv, SIGNAL(valueChanged(QVariant)), SLOT(updateLastName()));
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SLOT(updateAcq()));
   connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
+  connect(exposurePv, SIGNAL(valueChanged(QVariant)), SLOT(updateExposure()));
 
   connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
@@ -145,6 +146,11 @@ void Detector::updatePath() {
   emit parameterChanged();
 }
 
+void Detector::updateExposure() {
+  if ( exposurePv->isConnected() )
+    emit exposureChanged(exposurePv->get().toInt());
+}
+
 void Detector::updateName() {
   _name = fromVList(namePv->get());
   emit nameChanged(_name);
@@ -201,6 +207,9 @@ bool Detector::setNumber(int val) {
     imageModePv->set(reqIM);
     qtWait(imageModePv, SIGNAL(valueUpdated(QVariant)), 500);
   }
+
+  if (val == 1)
+    setInterval(0);
 
   return
       number() == val &&

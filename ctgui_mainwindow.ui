@@ -25,7 +25,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>6</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -1255,6 +1255,13 @@
         <item>
          <widget class="QWidget" name="dynoWidget" native="true">
           <layout class="QGridLayout" name="gridLayout_5">
+           <item row="6" column="1" colspan="2">
+            <widget class="QVariantLabel" name="dyno2Current">
+             <property name="text">
+              <string>dyno2Current</string>
+             </property>
+            </widget>
+           </item>
            <item row="0" column="0">
             <widget class="QWidget" name="placeDynoMotor" native="true">
              <layout class="QHBoxLayout" name="horizontalLayout_22">
@@ -1365,25 +1372,6 @@
              </property>
             </widget>
            </item>
-           <item row="6" column="0">
-            <widget class="QWidget" name="placeDyno2Motor" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout_23">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="margin">
-               <number>0</number>
-              </property>
-             </layout>
-            </widget>
-           </item>
-           <item row="6" column="1" colspan="2">
-            <widget class="QVariantLabel" name="dyno2Current">
-             <property name="text">
-              <string>dyno2Current</string>
-             </property>
-            </widget>
-           </item>
            <item row="7" column="0">
             <widget class="QLabel" name="dyno2NormalSpeedLabel">
              <property name="text">
@@ -1474,6 +1462,18 @@
               </widget>
              </item>
             </layout>
+           </item>
+           <item row="6" column="0">
+            <widget class="QWidget" name="placeDyno2Motor" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_23">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="margin">
+               <number>0</number>
+              </property>
+             </layout>
+            </widget>
            </item>
           </layout>
           <zorder>placeDyno2Motor</zorder>
@@ -1831,11 +1831,6 @@
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
   <customwidget>
-   <class>QPTEext</class>
-   <extends>QPlainTextEdit</extends>
-   <header>additional_classes.h</header>
-  </customwidget>
-  <customwidget>
    <class>QMDoubleSpinBox</class>
    <extends>QDoubleSpinBox</extends>
    <header location="global">qtpvwidgets.h</header>
@@ -1848,6 +1843,11 @@
    <class>QMSpinBox</class>
    <extends>QSpinBox</extends>
    <header location="global">qtpvwidgets.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QPTEext</class>
+   <extends>QPlainTextEdit</extends>
+   <header>additional_classes.h</header>
   </customwidget>
   <customwidget>
    <class>Script</class>

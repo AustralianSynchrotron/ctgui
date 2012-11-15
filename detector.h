@@ -92,6 +92,7 @@ public slots:
 
 signals:
 
+  void exposureChanged(double);
   void connectionChanged(bool);
   void parameterChanged(); // exp int num trigM imagM path writeSt
   void counterChanged(int);
@@ -103,6 +104,7 @@ signals:
 
 private slots:
 
+  void updateExposure();
   void updateConnection();
   void updateCounter();
   void updatePath();
