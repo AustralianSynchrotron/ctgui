@@ -14,12 +14,15 @@
 #include "ui_ctgui_variables.h"
 
 
+
+
 QHash<QString,QString> MainWindow::envDesc;
 const QString MainWindow::storedState=QDir::homePath()+"/.ctgui";
 const bool MainWindow::inited = MainWindow::init();
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
+  //engine (new Engine(this)),
   isLoadingState(false),
   ui(new Ui::MainWindow),
   hui(new Ui::HelpDialog),
@@ -32,6 +35,16 @@ MainWindow::MainWindow(QWidget *parent) :
   inCT(false),
   readyToStartCT(false),
   stopMe(true),
+  totalScans(-1),
+  currentScan(-1),
+  totalProjections(-1),
+  currentProjection(-1),
+  totalLoops(-1),
+  currentLoop(-1),
+  totalSubLoops(-1),
+  currentSubLoop(-1),
+  totalShots(-1),
+  currentShot(-1),
   logFile(0)
 {
 
@@ -76,11 +89,6 @@ MainWindow::MainWindow(QWidget *parent) :
   showVariables->setCheckState(Qt::Unchecked);
   ui->statusBar->addPermanentWidget(showVariables);
 
-  // FilterFileTemplateEvent * fileTemplateEventFilter = new FilterFileTemplateEvent(this);
-  // ui->sampleFile->installEventFilter(fileTemplateEventFilter);
-  // ui->bgFile->installEventFilter(fileTemplateEventFilter);
-  // ui->dfFile->installEventFilter(fileTemplateEventFilter);
-
   ui->startStop->setText("Start CT");
   ui->scanProgress->hide();
   ui->dynoProgress->hide();
@@ -115,10 +123,11 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_checkMulti();
   updateUi_expPath();
   updateUi_nofScans();
-  updateUi_scanTime();
+  updateUi_acquisitionTime();
   updateUi_condtitionScript();
   updateUi_serialStep();
   updateUi_serialMotor();
+  updateUi_ffOnEachScan();
   updateUi_scanRange();
   updateUi_scanStep();
   updateUi_rotSpeed();
@@ -176,7 +185,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->postRunScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->endConditionButtonGroup, SIGNAL(buttonClicked(int)), SLOT(storeCurrentState()));
   connect( ui->nofScans, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
-  connect( ui->scanTime, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->acquisitionTime, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->conditionScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->ongoingSeries, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->ffOnEachScan, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
@@ -192,10 +201,14 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->postScanScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->nofBGs, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->bgInterval, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->bgIntervalBefore, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->bgIntervalAfter, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( bgMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->bgTravel, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->nofDFs, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->dfInterval, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->dfIntervalBefore, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->dfIntervalAfter, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->singleBg, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( loopMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->loopNumber, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -220,6 +233,10 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(storeCurrentState()));
   connect( ui->preAqScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->postAqScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+
+
+  updateProgress();
+
 
 }
 
@@ -419,7 +436,7 @@ void MainWindow::saveConfiguration(QString fileName) {
     else if (ui->endCondition->isChecked())
       config.setValue("endCondition", "script");
     setInConfig(config, "number", ui->nofScans);
-    setInConfig(config, "time", ui->scanTime);
+    setInConfig(config, "time", ui->acquisitionTime);
     setInConfig(config, "script", ui->conditionScript);
     setInConfig(config, "ongoingseries",ui->ongoingSeries);
     setInConfig(config, "ffoneachscan",ui->ffOnEachScan);
@@ -443,10 +460,14 @@ void MainWindow::saveConfiguration(QString fileName) {
     config.beginGroup("flatfield");
     setInConfig(config, "bgs", ui->nofBGs);
     setInConfig(config, "bginterval", ui->bgInterval);
+    setInConfig(config, "bgBefore", ui->bgIntervalBefore);
+    setInConfig(config, "bgAfter", ui->bgIntervalAfter);
     setInConfig(config, "motor", bgMotor);
     setInConfig(config, "bgtravel", ui->bgTravel);
     setInConfig(config, "dfs", ui->nofDFs);
     setInConfig(config, "dfinterval", ui->dfInterval);
+    setInConfig(config, "dfBefore", ui->dfIntervalBefore);
+    setInConfig(config, "dfAfter", ui->dfIntervalAfter);
     config.endGroup();
   }
 
@@ -526,9 +547,6 @@ void MainWindow::loadConfiguration(QString fileName) {
   restoreFromConfig(config, "doflatfield", ui->checkFF);
   restoreFromConfig(config, "dodyno", ui->checkDyno);
   restoreFromConfig(config, "domulti", ui->checkMulti);
-  // restoreFromConfig(config, "sampleFile", ui->sampleFile);
-  // restoreFromConfig(config, "backgroundFile", ui->bgFile);
-  // restoreFromConfig(config, "darkfieldFile", ui->dfFile);
   restoreFromConfig(config, "prerun", ui->preRunScript);
   restoreFromConfig(config, "postrun", ui->postRunScript);
 
@@ -544,7 +562,7 @@ void MainWindow::loadConfiguration(QString fileName) {
         ui->endCondition->setChecked(true);
     }
     restoreFromConfig(config, "number", ui->nofScans);
-    restoreFromConfig(config, "time", ui->scanTime);
+    restoreFromConfig(config, "time", ui->acquisitionTime);
     restoreFromConfig(config, "script", ui->conditionScript);
     restoreFromConfig(config, "ongoingseries",ui->ongoingSeries);
     restoreFromConfig(config, "ffoneachscan",ui->ffOnEachScan);
@@ -571,10 +589,14 @@ void MainWindow::loadConfiguration(QString fileName) {
     config.beginGroup("flatfield");
     restoreFromConfig(config, "bgs", ui->nofBGs);
     restoreFromConfig(config, "bginterval", ui->bgInterval);
+    restoreFromConfig(config, "bgBefore", ui->bgIntervalBefore);
+    restoreFromConfig(config, "bgAfter", ui->bgIntervalAfter);
     restoreFromConfig(config, "motor", bgMotor);
     restoreFromConfig(config, "bgtravel", ui->bgTravel);
     restoreFromConfig(config, "dfs", ui->nofDFs);
     restoreFromConfig(config, "dfinterval", ui->dfInterval);
+    restoreFromConfig(config, "dfBefore", ui->dfIntervalBefore);
+    restoreFromConfig(config, "dfAfter", ui->dfIntervalAfter);
     config.endGroup();
   }
 
@@ -714,12 +736,12 @@ void MainWindow::updateUi_nofScans() {
   ui->nofScansLabel->setVisible(visible);
 }
 
-void MainWindow::updateUi_scanTime() {
+void MainWindow::updateUi_acquisitionTime() {
   if ( ! sender() ) // called from the constructor;
-    connect(ui->endTime, SIGNAL(toggled(bool)), SLOT(updateUi_scanTime()));
+    connect(ui->endTime, SIGNAL(toggled(bool)), SLOT(updateUi_acquisitionTime()));
   const bool visible = ui->endTime->isChecked();
-  ui->scanTimeWdg->setVisible(visible);
-  ui->scanTimeLabel->setVisible(visible);
+  ui->acquisitionTimeWdg->setVisible(visible);
+  ui->acquisitionTimeLabel->setVisible(visible);
 }
 
 void MainWindow::updateUi_condtitionScript() {
@@ -771,8 +793,6 @@ void MainWindow::updateUi_serialMotor() {
              ui->serialCurrent, SLOT(setValue(double)));
   }
 
-  if (inCT)
-    return;
 
   check(serialMotor->setupButton(),
         ! ui->checkSerial->isChecked() ||
@@ -792,6 +812,15 @@ void MainWindow::updateUi_serialMotor() {
   ui->serialCurrent->setSuffix(serialMotor->motor()->getUnits());
   ui->serialCurrent->setDecimals(serialMotor->motor()->getPrecision());
 
+}
+
+
+void MainWindow::updateUi_ffOnEachScan() {
+    if ( ! sender() ) // called from the constructor;
+        connect( ui->ongoingSeries, SIGNAL(toggled(bool)), SLOT(updateUi_ffOnEachScan()));
+    ui->ffOnEachScan->setEnabled( ! ui->ongoingSeries->isChecked() );
+    if ( ui->ongoingSeries->isChecked() )
+        ui->ffOnEachScan->setChecked(false);
 }
 
 
@@ -850,9 +879,7 @@ void MainWindow::updateUi_rotSpeed() {
 
   const bool motIsConnected = thetaMotor->motor()->isConnected();
 
-  if ( ! motIsConnected )
-    ui->rotSpeed->setValue(0.0);
-  else if ( ui->rotSpeed->value()==0.0 )
+  if ( ui->rotSpeed->value()==0.0 )
     ui->rotSpeed->setValue(thetaMotor->motor()->getNormalSpeed());
 
   if ( motIsConnected ) {
@@ -875,10 +902,10 @@ void MainWindow::updateUi_stepTime() {
   }
 
   if ( ui->rotSpeed->value() > 0 && ui->scanRange->value() != 0.0 ) {
-    const double step = ui->scanRange->value() /
+    const double stepTime = qAbs(ui->scanRange->value()) /
         (ui->scanProjections->value() * ui->rotSpeed->value());
-    ui->stepTime->setValue(step);
-    ui->expOverStep->setValue( det->exposure() / step );
+    ui->stepTime->setValue(stepTime);
+    ui->expOverStep->setValue( det->exposure() / stepTime );
   } else {
     ui->stepTime->setText("");
     ui->expOverStep->setText("");
@@ -900,9 +927,6 @@ void MainWindow::updateUi_thetaMotor() {
     connect(thetaMotor->motor(), SIGNAL(changedUserPosition(double)),
             ui->scanCurrent, SLOT(setValue(double)));
   }
-
-  if (inCT)
-    return;
 
   check(thetaMotor->setupButton(),
         thetaMotor->motor()->isConnected() &&
@@ -937,13 +961,23 @@ void MainWindow::updateUi_bgInterval() {
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->nofBGs, SIGNAL(valueChanged(int)), thisSlot);
+    connect( ui->bgInterval, SIGNAL(valueChanged(int)), thisSlot);
+    connect( ui->bgIntervalAfter, SIGNAL(toggled(bool)), thisSlot);
+    connect( ui->bgIntervalBefore, SIGNAL(toggled(bool)), thisSlot);
   }
 
-  const int projs =  ui->scanProjections->value();
-  const int minInterval = ui->stepAndShotMode->isChecked() ?
-        0 : projs - 1;
-  ui->bgInterval->setRange(minInterval, projs);
-  ui->bgInterval->setEnabled(ui->nofBGs->value());
+  ui->bgIntervalWdg->setEnabled(ui->nofBGs->value());
+  if (ui->stepAndShotMode->isChecked()) {
+    ui->bgIntervalWdg->setCurrentWidget(ui->bgIntervalSAS);
+    ui->bgInterval->setMaximum(ui->scanProjections->value());
+  } else
+    ui->bgIntervalWdg->setCurrentWidget(ui->bgIntervalContinious);
+
+  bool itemOK = ! ui->continiousMode->isChecked()  ||
+      ! ui->nofBGs->value() ||
+      ( ui->bgIntervalAfter->isChecked() || ui->bgIntervalBefore->isChecked() );
+  check(ui->bgIntervalAfter, itemOK );
+  check(ui->bgIntervalBefore, itemOK );
 
 }
 
@@ -953,13 +987,23 @@ void MainWindow::updateUi_dfInterval() {
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->nofDFs, SIGNAL(valueChanged(int)), thisSlot);
+    connect( ui->dfInterval, SIGNAL(valueChanged(int)), thisSlot);
+    connect( ui->dfIntervalAfter, SIGNAL(toggled(bool)), thisSlot);
+    connect( ui->dfIntervalBefore, SIGNAL(toggled(bool)), thisSlot);
   }
 
-  const int projs =  ui->scanProjections->value();
-  const int minInterval = ui->stepAndShotMode->isChecked() ?
-        0 : projs - 1;
-  ui->dfInterval->setRange(minInterval, projs);
-  ui->dfInterval->setEnabled(ui->nofBGs->value());
+  ui->dfIntervalWdg->setEnabled(ui->nofDFs->value());
+  if (ui->stepAndShotMode->isChecked()) {
+    ui->dfIntervalWdg->setCurrentWidget(ui->dfIntervalSAS);
+    ui->dfInterval->setMaximum(ui->scanProjections->value());
+  } else
+    ui->dfIntervalWdg->setCurrentWidget(ui->dfIntervalContinious);
+
+  bool itemOK = ! ui->continiousMode->isChecked()  ||
+      ! ui->nofDFs->value() ||
+      ( ui->dfIntervalAfter->isChecked() || ui->dfIntervalBefore->isChecked() );
+  check(ui->dfIntervalAfter, itemOK );
+  check(ui->dfIntervalBefore, itemOK );
 
 }
 
@@ -1003,9 +1047,6 @@ void MainWindow::updateUi_bgMotor() {
             ui->bgCurrent, SLOT(setValue(double)));
   }
 
-  if (inCT || inFFTest)
-    return;
-
   const int nofbgs = ui->nofBGs->value();
   const bool motIsConnected = bgMotor->motor()->isConnected();
   const bool doFF = ui->checkFF->isChecked();
@@ -1031,9 +1072,9 @@ void MainWindow::updateUi_shutterStatus() {
     const char* thisSlot = SLOT(updateUi_shutterStatus());
     connect( ui->checkFF, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->nofDFs, SIGNAL(valueChanged(int)), thisSlot);
-    connect(sh1A, SIGNAL(stateChanged(Shutter1A::State)), SLOT(thisSlot()));
-    connect(sh1A, SIGNAL(enabledChanged(bool)), SLOT(thisSlot()));
-    connect(sh1A, SIGNAL(connectionChanged(bool)), SLOT(thisSlot()));
+    connect(sh1A, SIGNAL(stateChanged(Shutter1A::State)), thisSlot);
+    connect(sh1A, SIGNAL(enabledChanged(bool)), thisSlot);
+    connect(sh1A, SIGNAL(connectionChanged(bool)), thisSlot);
   }
 
   if ( ! sh1A->isConnected() )
@@ -1093,9 +1134,6 @@ void MainWindow::updateUi_loopMotor() {
             ui->loopCurrent, SLOT(setValue(double)));
   }
 
-  if (inCT)
-    return;
-
   check(loopMotor->setupButton(),
         ! ui->checkMulti->isChecked() ||
         loopMotor->motor()->getPv().isEmpty() ||
@@ -1105,9 +1143,6 @@ void MainWindow::updateUi_loopMotor() {
         ! ui->checkMulti->isChecked() ||
         loopMotor->motor()->getPv().isEmpty() ||
         ! loopMotor->motor()->getLimitStatus() );
-
-  if (inMultiTest)
-    return;
 
   if ( ! loopMotor->motor()->isConnected() ) {
     ui->loopCurrent->setText("no link");
@@ -1158,9 +1193,6 @@ void MainWindow::updateUi_subLoopMotor() {
             ui->subLoopCurrent, SLOT(setValue(double)));
   }
 
-  if (inCT)
-    return;
-
   check(subLoopMotor->setupButton(),
         ! ui->checkMulti->isChecked() ||
         ! ui->subLoop->isChecked() ||
@@ -1172,9 +1204,6 @@ void MainWindow::updateUi_subLoopMotor() {
         ! ui->subLoop->isChecked() ||
         subLoopMotor->motor()->getPv().isEmpty() ||
         ! subLoopMotor->motor()->getLimitStatus() );
-
-  if (inMultiTest)
-    return;
 
   if ( ! subLoopMotor->motor()->isConnected() ) {
     ui->subLoopCurrent->setText("no link");
@@ -1235,9 +1264,6 @@ void MainWindow::updateUi_dynoMotor() {
 
   }
 
-  if ( inCT )
-    return;
-
   check(dynoMotor->setupButton(),
         ! ui->checkDyno->isChecked() ||
         ( dynoMotor->motor()->isConnected() &&
@@ -1245,9 +1271,6 @@ void MainWindow::updateUi_dynoMotor() {
   check(ui->dynoCurrent,
         ! ui->checkDyno->isChecked() ||
         ! dynoMotor->motor()->getLimitStatus() );
-
-  if ( inMultiTest || inDynoTest )
-    return;
 
   if ( ! dynoMotor->motor()->isConnected() ) {
     ui->dynoCurrent->setText("no link");
@@ -1304,9 +1327,6 @@ void MainWindow::updateUi_dyno2Motor() {
 
   }
 
-  if ( inCT )
-    return;
-
   check(dyno2Motor->setupButton(),
         ! ui->checkDyno->isChecked() ||
         ! ui->dyno2->isChecked() ||
@@ -1316,9 +1336,6 @@ void MainWindow::updateUi_dyno2Motor() {
         ! ui->checkDyno->isChecked() ||
         ! ui->dyno2->isChecked() ||
         ! dyno2Motor->motor()->getLimitStatus() );
-
-  if ( inMultiTest || inDynoTest )
-    return;
 
   if ( ! dyno2Motor->motor()->isConnected() ) {
     ui->dyno2Current->setText("no link");
@@ -1335,15 +1352,19 @@ void MainWindow::updateUi_dyno2Motor() {
 
 void MainWindow::updateUi_detector() {
   if ( ! sender() ) {
+    const char* thisSlot = SLOT(updateUi_detector());
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
-    connect(det, SIGNAL(connectionChanged(bool)), SLOT(updateUi_detector()));
-    connect(det, SIGNAL(parameterChanged()), SLOT(updateUi_detector()));
-    connect(det, SIGNAL(counterChanged(int)), ui->detProgress, SLOT(setValue(int)));
+    connect(det, SIGNAL(connectionChanged(bool)), thisSlot);
+    connect(det, SIGNAL(parameterChanged()), thisSlot);
+    connect(det, SIGNAL(counterChanged(int)), thisSlot);
     connect(det, SIGNAL(nameChanged(QString)), ui->detFileName, SLOT(setText(QString)));
     connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
     connect(det, SIGNAL(templateChanged(QString)), ui->detFileTemplate, SLOT(setText(QString)));
     connect(det, SIGNAL(counterChanged(int)), SLOT(recordLog()));
   }
+
+  totalShots = det->number();
+  currentShot  =  det->isAcquiring() ? det->counter() : -1;
 
   if ( ! det->isConnected() )
     ui->detStatus->setText("no link");
@@ -1361,7 +1382,6 @@ void MainWindow::updateUi_detector() {
     ui->detTriggerMode->setText(det->triggerModeString());
     ui->detImageMode->setText(det->imageModeString());
     ui->detTotalImages->setValue(det->number());
-    ui->detProgress->setMaximum(det->number());
     ui->detPath->setText(det->path());
     ui->detPath->setStyleSheet( det->pathExists() ? "" : "color: rgb(255, 0, 0);");
     ui->detFileTemplate->setText(det->nameTemplate());
@@ -1382,7 +1402,7 @@ void MainWindow::updateUi_detector() {
   check (ui->detStatus, det->isConnected() &&
          ( inCT || ( ! det->isAcquiring() && ! det->isWriting() ) ) );
 
-  updateDetectorProgress();
+  //updateDetectorProgress();
 
 }
 
@@ -1572,12 +1592,14 @@ void MainWindow::onDetectorSelection() {
   det->setCamera(currentText);
 }
 
+/*
 void MainWindow::updateDetectorProgress() {
   ui->detProgress->setVisible
       ( ( inAcquisitionTest || det->isAcquiring() )  &&
         det->number() > 1 &&
         det->imageMode() == 1 );
 }
+*/
 
 
 void MainWindow::onDetectorTest() {
@@ -1653,6 +1675,7 @@ void MainWindow::check(QWidget * obj, bool status) {
   if ( ! obj )
     return;
 
+
   static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
   obj->setStyleSheet( status  ?  ""  :  warnStyle );
 
@@ -1711,7 +1734,7 @@ void MainWindow::check(QWidget * obj, bool status) {
     foreach ( ReqP tabel, preReq)
       if ( ! tabel.second )
         readyToStartCT &= tabel.first;
-  ui->startStop->setEnabled(readyToStartCT);
+  ui->startStop->setEnabled(readyToStartCT || inCT);
 
 }
 
@@ -1747,7 +1770,6 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
 int MainWindow::acquireDetector() {
 
   int execStatus = -1;
-  updateDetectorProgress();
   execStatus = ui->preAqScript->execute();
   if ( execStatus || stopMe )
     goto acquireDetectorExit;
@@ -1756,9 +1778,7 @@ int MainWindow::acquireDetector() {
     execStatus = ui->postAqScript->execute();
 
 acquireDetectorExit:
-  updateDetectorProgress();
   return execStatus;
-
 }
 
 int MainWindow::acquireDetector(const QString & filetemplate, int count) {
@@ -1768,16 +1788,21 @@ int MainWindow::acquireDetector(const QString & filetemplate, int count) {
 }
 
 
-
-static void setMotorSpeed(QCaMotorGUI* mot, double speed) {
-  if ( ! mot->motor() || ! mot->motor()->isConnected() )
+static void setMotorSpeed(QCaMotor* mot, double speed) {
+  if ( ! mot || ! mot->isConnected() )
     return;
-  if ( speed >= 0.0  &&  mot->motor()->getNormalSpeed() != speed ) {
-    mot->motor()->setNormalSpeed(speed);
-    mot->motor()->waitUpdated<double>
+  if ( speed >= 0.0  &&  mot->getNormalSpeed() != speed ) {
+    mot->setNormalSpeed(speed);
+    mot->waitUpdated<double>
         (".VELO", speed, &QCaMotor::getNormalSpeed, 200);
   }
 }
+
+static void setMotorSpeed(QCaMotorGUI* mot, double speed) {
+  setMotorSpeed(mot->motor(), speed);
+}
+
+
 
 
 int MainWindow::acquireDyno(const QString & filetemplate, int count) {
@@ -1892,11 +1917,14 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
   if ( ! ui->checkMulti->isChecked() )
     return -1;
 
+  totalLoops = ui->loopNumber->value();
+  totalSubLoops = ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1;
+  currentLoop=0;
+  currentSubLoop=0;
+
   const int
-      loopNumber = ui->loopNumber->value(),
-      subLoopNumber = ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1,
-      loopDigs = QString::number(loopNumber).size(),
-      subLoopDigs = QString::number(subLoopNumber).size();
+      loopDigs = QString::number(totalLoops).size(),
+      subLoopDigs = QString::number(totalSubLoops).size();
   const bool
       moveLoop = loopMotor->motor()->isConnected(),
       moveSubLoop = ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected();
@@ -1914,21 +1942,13 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
   int execStatus=-1;
   ui->multiWidget->setEnabled(false);
 
-  const QString progressFormat = QString("Multishot progress: %p% ; %v of %m") +
-      ( ui->subLoop->isChecked() ? " (%1,%2 of %3,%4)" : "" );
-  if ( ! ui->subLoop->isChecked() )
-    ui->multiProgress->setFormat(progressFormat);
-  ui->multiProgress->setMaximum(loopNumber*subLoopNumber);
-  ui->multiProgress->setValue(0);
-  ui->multiProgress->setVisible(true);
-
   const double
       lStart = loopMotor->motor()->getUserPosition(),
       slStart = subLoopMotor->motor()->getUserPosition();
 
-  for ( int x = 0; x < loopNumber; x++) {
+  for ( currentLoop = 0; currentLoop < totalLoops; currentLoop++) {
 
-    for ( int y = 0; y < subLoopNumber; y++) {
+    for ( currentSubLoop = 0; currentSubLoop < totalSubLoops; currentSubLoop++) {
 
       if (moveLoop)
         loopMotor->motor()->wait_stop();
@@ -1943,24 +1963,18 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
       }
 
       QString filename = filetemplate +
-          QString("_L%1").arg(x, loopDigs, 10, QChar('0')) +
+          QString("_L%1").arg(currentLoop, loopDigs, 10, QChar('0')) +
           ( ui->subLoop->isChecked()  ?
-              QString("_S%1").arg(y, subLoopDigs, 10, QChar('0')) : "");
+              QString("_S%1").arg(currentSubLoop, subLoopDigs, 10, QChar('0')) : "");
       execStatus = ui->checkDyno->isChecked() ?
             acquireDyno(filename, count) : acquireDetector(filename, count);
-
-      if (ui->subLoop->isChecked())
-        ui->multiProgress->setFormat( progressFormat
-                                      .arg(x+1).arg(y+1)
-                                      .arg(loopNumber).arg(subLoopNumber)  );
-      ui->multiProgress->setValue( 1 + y + subLoopNumber * x );
 
       if (stopMe || execStatus )
         goto acquireMultiExit;
 
-      if (moveSubLoop && y < subLoopNumber-1 )
+      if (moveSubLoop && currentSubLoop < totalSubLoops-1 )
         subLoopMotor->motor()->goUserPosition
-            ( slStart + (y+1) * ui->subLoopStep->value(), QCaMotor::STARTED);
+            ( slStart + (currentSubLoop+1) * ui->subLoopStep->value(), QCaMotor::STARTED);
 
       if (stopMe) {
         execStatus = -1;
@@ -1969,9 +1983,9 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
 
     }
 
-    if (moveLoop && x < loopNumber-1)
+    if (moveLoop && currentLoop < totalLoops-1)
       loopMotor->motor()->goUserPosition
-          ( lStart + (x+1) * ui->loopStep->value(), QCaMotor::STARTED);
+          ( lStart + (currentLoop+1) * ui->loopStep->value(), QCaMotor::STARTED);
     if (moveSubLoop)
       subLoopMotor->motor()->goUserPosition( slStart, QCaMotor::STARTED);
     if (stopMe) {
@@ -1993,8 +2007,9 @@ acquireMultiExit:
     if (!stopMe)
       subLoopMotor->motor()->wait_stop();
   }
+  currentLoop=-1;
+  currentSubLoop=-1;
   ui->multiWidget->setEnabled(true);
-  ui->multiProgress->setVisible(false);
   return execStatus;
 
 }
@@ -2044,7 +2059,7 @@ void MainWindow::onStartStop() {
   } else {
     ui->startStop->setText("Stop CT");
     stopMe=false;
-    engine();
+    engineRun();
     ui->startStop->setText("Start CT");
   }
 }
@@ -2139,25 +2154,104 @@ bool MainWindow::doIt(int count) {
 
 
 
+void MainWindow::updateProgress () {
+
+  if (currentScan>=0) {
+
+    if ( ! ui->serialProgress->isVisible() ) {
+      if ( totalScans ) {
+        ui->serialProgress->setMaximum(totalScans);
+        ui->serialProgress->setFormat("Series progress. %p% (scans complete: %v of %m)");
+      } else if ( ui->endTime->isChecked() ) {
+        ui->serialProgress->setMaximum(QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ));
+      } else {
+        ui->serialProgress->setMaximum(0);
+        ui->serialProgress->setFormat("Series progress. Scans complete: %v.");
+      }
+      ui->serialProgress->setVisible(true);
+    }
+
+    if ( ui->endTime->isChecked() ) {
+      QString format = "Series progress: %p% "
+          + (QTime(0, 0, 0, 0).addMSecs(inCTtime.elapsed())).toString() + " of " + ui->acquisitionTime->time().toString()
+          + " (scans complete: " + QString::number(currentScan) + ")";
+      ui->serialProgress->setFormat(format);
+      ui->serialProgress->setValue(inCTtime.elapsed());
+    } else {
+      ui->serialProgress->setValue(currentScan);
+    }
+
+  } else
+    ui->serialProgress->setVisible(false);
 
 
 
 
 
+  if (currentProjection>=0) {
+    if ( ! ui->scanProgress->isVisible() ) {
+      ui->scanProgress->setMaximum(totalProjections + ( ui->scanAdd->isChecked() ? 1 : 0 ));\
+      ui->scanProgress->setVisible(true);
+    }
+    ui->scanProgress->setValue(currentProjection);
+  } else
+    ui->scanProgress->setVisible(false);
 
+
+
+  if (currentLoop>=0) {
+
+    const QString progressFormat = QString("Multishot progress: %p% ; %v of %m") +
+        ( ui->subLoop->isChecked() ? " (%1,%2 of %3,%4)" : "" );
+
+    if ( ! ui->multiProgress->isVisible() ) {
+      ui->multiProgress->setMaximum(totalLoops*totalSubLoops);
+      if ( ! ui->subLoop->isChecked() )
+        ui->multiProgress->setFormat(progressFormat);
+      ui->multiProgress->setVisible(true);
+    }
+
+    if ( ui->subLoop->isChecked() ) {
+      ui->multiProgress->setFormat( progressFormat
+                                    .arg(currentLoop+1).arg(currentSubLoop+1)
+                                    .arg(totalLoops).arg(totalSubLoops) );
+    }
+    ui->multiProgress->setValue( 1 + currentSubLoop + totalSubLoops * currentLoop );
+
+  } else
+    ui->multiProgress->setVisible(false);
+
+  if ( currentShot>=0 && totalShots>1 && det->imageMode() == 1 ) {
+    if ( ! ui->detProgress->isVisible() ) {
+      ui->detProgress->setMaximum(totalShots);
+      ui->detProgress->setVisible(true);
+    }
+    ui->detProgress->setValue(currentShot);
+  } else
+    ui->detProgress->setVisible(false);
+
+  QTimer::singleShot(50, this, SLOT(updateProgress()));
+
+}
+
+
+
+
+/*
 void MainWindow::updateSeriesProgress(bool onTimer) {
   if ( ui->endTime->isChecked() ) {
     QString format = "Series progress: %p% "
-        + (QTime(0, 0, 0, 0).addMSecs(inCTtime.elapsed())).toString() + " of " + ui->scanTime->time().toString()
-        + " (scans complete: " + QString::number(currentScan) + ")";
+        + (QTime(0, 0, 0, 0).addMSecs(inCTtime.elapsed())).toString() + " of " + ui->acquisitionTime->time().toString()
+        + " (scans complete: " + QString::number(currentSeries) + ")";
     ui->serialProgress->setFormat(format);
     ui->serialProgress->setValue(inCTtime.elapsed());
     if (onTimer && inCT)
       QTimer::singleShot(100, this, SLOT(updateSeriesProgress()));
   } else {
-    ui->serialProgress->setValue(currentScan);
+    ui->serialProgress->setValue(currentSeries);
   }
 }
+*/
 
 
 int MainWindow::acquireProjection(const QString &filetemplate) {
@@ -2189,7 +2283,7 @@ int MainWindow::acquireBG(const QString &filetemplate) {
       ( bgStart + bgTravel, QCaMotor::STOPPED );
   if (stopMe) goto onBgExit;
 
-  det->setInterval(0);
+  det->setPeriod(0);
   if (ui->checkMulti->isChecked() && ! ui->singleBg->isChecked() )
     ret = acquireMulti(ftemplate, bgs);
   else if (ui->checkDyno->isChecked())
@@ -2197,9 +2291,11 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   else
     ret = acquireDetector(ftemplate, bgs);
 
+  bgMotor->motor()->goUserPosition
+      ( bgStart, QCaMotor::STOPPED );
+
 onBgExit:
 
-  bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
   if (!stopMe)
     bgMotor->motor()->wait_stop();
   return ret;
@@ -2224,7 +2320,7 @@ int MainWindow::acquireDF(const QString &filetemplate) {
     qDebug() << "SH CLOSE";
   if (stopMe) goto onDfExit;
 
-  det->setInterval(0);
+  det->setPeriod(0);
   ret = acquireDetector("DF"+filetemplate, dfs);
 
 onDfExit:
@@ -2306,10 +2402,13 @@ void MainWindow::recordLog(const QString & message) {
       wrt += " " + QString::number(loopMotor->motor()->getUserPosition());
     if (recSubLoop)
       wrt += " " + QString::number(subLoopMotor->motor()->getUserPosition());
+    wrt += "\n";
+    logFile->write(wrt.toAscii());
+/*
     qtWait(det, SIGNAL(lastNameChanged(QString)), 500);
     if (logFile) // could be closed if the ct quits while waiting for the write.
         logFile->write((wrt+ " " + det->lastName() + "\n").toAscii());
-
+*/
   }
 
 }
@@ -2318,10 +2417,11 @@ void MainWindow::recordLog(const QString & message) {
 
 
 
-void MainWindow::engine () {
+void MainWindow::engineRun () {
 
   if ( ! readyToStartCT || inCT )
     return;
+
 
   if (logFile) {
     qDebug() << "Log file is unexpectedly opened. Must be a bug. Will not proceed.";
@@ -2339,6 +2439,15 @@ void MainWindow::engine () {
       configName = "acquisition." + QString::number(++attempt) + ".configuration";
   saveConfiguration(configName);
 
+  /*
+  qDebug() << "AA";
+  QFuture<void> res = QtConcurrent::run( this, &MainWindow::engineCore );
+  QFutureWatcher<void> watcher;
+  watcher.setFuture(res);
+  qtWait(&watcher, SIGNAL(finished()));
+  qDebug() << "BB";
+  */
+
   const double
       serialStart =  serialMotor->motor()->getUserPosition(),
       bgStart =  bgMotor->motor()->getUserPosition(),
@@ -2349,19 +2458,26 @@ void MainWindow::engine () {
   const bool
       doSerial = ui->checkSerial->isChecked(),
       doBG = ui->checkFF->isChecked() && ui->nofBGs->value(),
+      bgBefore = ui->bgIntervalBefore->isChecked(),
+      bgAfter = ui->bgIntervalAfter->isChecked(),
+      dfBefore = ui->dfIntervalBefore->isChecked(),
+      dfAfter = ui->dfIntervalAfter->isChecked(),
       doDF = ui->checkFF->isChecked() && ui->nofDFs->value(),
-      doAdd = ui->scanAdd->isChecked(),
       ongoingSeries = doSerial && ui->ongoingSeries->isChecked();
   const int
-      totalScans = doSerial ?
-        ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ,
-      totalProjections = ui->scanProjections->value(),
       bgInterval = ui->bgInterval->value(),
       dfInterval = ui->dfInterval->value(),
       scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
-      scanTime = QTime(0, 0, 0, 0).msecsTo( ui->scanTime->time() ),
+      scanTime = QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ),
       projectionDigs = QString::number(totalProjections).size(),
-      seriesDigs = QString::number(totalScans).size();
+      seriesDigs = QString::number(totalScans).size(),
+      doAdd = ui->scanAdd->isChecked() ? 1 : 0;
+
+
+  totalScans = doSerial ?
+    ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ;
+  totalProjections = ui->scanProjections->value();
+
 
   recordLog();
 
@@ -2370,25 +2486,13 @@ void MainWindow::engine () {
   foreach(QWidget * tab, ui->control->tabs())
         tab->setEnabled(false);
 
-
-
-  ui->scanProgress->setMaximum(totalProjections + ( doAdd ? 1 : 0 ));
-  if ( totalScans ) {
-    ui->serialProgress->setMaximum(totalScans);
-    ui->serialProgress->setFormat("Series progress. %p% (scans complete: %v of %m)");
-  } else if ( ui->endTime->isChecked() ) {
-    ui->serialProgress->setMaximum(scanTime);
-  } else {
-    ui->serialProgress->setMaximum(0);
-    ui->serialProgress->setFormat("Series progress. Scans complete: %v.");
-  }
-  ui->serialProgress->setValue(0);
-  ui->serialProgress->setVisible(true);
-
   inCTtime.restart();
   currentScan=0;
   bool timeToStop=false;
-  updateSeriesProgress();
+
+  int
+      beforeBG = 0,
+      beforeDF = 0;
 
   ui->preRunScript->execute();
   if (stopMe) goto onEngineExit;
@@ -2414,18 +2518,18 @@ void MainWindow::engine () {
     else
       seriesName = "_Z" + QString::number(currentScan);
 
-    if (ui->stepAndShotMode->isChecked()) {
+    if (ui->stepAndShotMode->isChecked()) { // STEP-AND-SHOT
 
-      int
-          currentProjection = 0,
-          beforeBG = 0,
-          beforeDF = 0;
+      currentProjection = 0;
+      if ( ! ongoingSeries ) {
+        beforeBG=0;
+        beforeDF=0;
+      }
+      QString projectionName;
 
-      ui->scanProgress->setValue(0);
-      ui->scanProgress->setVisible(true);
       do {
 
-        QString projectionName = seriesName +
+        projectionName = seriesName +
             QString("_T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
 
         if (doDF && ! beforeDF) {
@@ -2447,63 +2551,52 @@ void MainWindow::engine () {
           thetaInSeriesStart = ongoingSeries ?
                 thetaMotor->motor()->getUserPosition() :
                 thetaStart;
-
         if (stopMe) goto onEngineExit;
 
         acquireProjection(projectionName);
         if (stopMe) goto onEngineExit;
 
-        ui->scanProgress->setValue(currentProjection+1);
-
         currentProjection++;
-        if ( currentProjection < totalProjections ||  doAdd )
+        if ( currentProjection < totalProjections + doAdd )
           thetaMotor->motor()->goUserPosition
               ( thetaInSeriesStart + thetaRange * currentProjection / totalProjections, QCaMotor::STARTED);
         else if ( ! ongoingSeries )
           thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
         if (stopMe) goto onEngineExit;
 
-      } while ( currentProjection < totalProjections );
-
-      QString projectionName = seriesName +
-          QString("_T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
+      } while ( currentProjection < totalProjections + doAdd );
 
       if (doBG && ! beforeBG) {
         acquireBG(projectionName);
         if (stopMe) goto onEngineExit;
+        beforeBG = bgInterval;
       }
       if ( doDF && ! beforeDF ) {
         acquireDF(projectionName);
         if (stopMe) goto onEngineExit;
-      }
-      if ( doAdd ) {
-        thetaMotor->motor()->wait_stop();
-        if (stopMe) goto onEngineExit;
-        acquireProjection(projectionName);
-        if (stopMe) goto onEngineExit;
-        ui->scanProgress->setValue(currentProjection+1);
-        if ( ! ongoingSeries )
-          thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
+        beforeDF = dfInterval;
       }
 
     } else { // CONTINIOUS
 
-      const double accTime = thetaMotor->motor()->getAcceleration();
-      const double speed = ui->rotSpeed->value();
-      const double accTravel = speed * accTime / 2;
-      const double rotDir = copysign(1,ui->scanRange->value());
-
-      if ( doDF && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
+      if ( doDF && dfBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
         acquireDF(seriesName + "_BEFORE");
         if (stopMe) goto onEngineExit;
       }
-      if ( doBG  && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
+      if ( doBG  && bgBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
         acquireBG(seriesName + "_BEFORE");
         if (stopMe) goto onEngineExit;
       }
 
-      det->setInterval( qAbs(thetaRange) / (totalProjections * speed) );
-      prepareDetector(seriesName, totalProjections + (doAdd ? 1 : 0));
+      const double speed = ui->rotSpeed->value();
+      const double accTime = thetaMotor->motor()->getAcceleration();
+      const double accTravel = speed * accTime / 2;
+      const double rotDir = copysign(1,ui->scanRange->value());
+
+      double period = qAbs(thetaRange) / (totalProjections * speed);
+      if (det->period() != period)
+        det->setPeriod(period);
+      prepareDetector("SAMPLE"+seriesName, totalProjections + doAdd);
       if (stopMe) goto onEngineExit;
 
       if ( ! ongoingSeries || ! currentScan ) {
@@ -2533,15 +2626,27 @@ void MainWindow::engine () {
       }
 
       det->start();
-      qtWait(det, SIGNAL(done()));
+      if (stopMe) goto onEngineExit;
+      det->waitDone();
       if (stopMe) goto onEngineExit;
 
       if ( ! ongoingSeries ) {
+
         thetaMotor->motor()->stop(QCaMotor::STOPPED);
         if (stopMe) goto onEngineExit;
         setMotorSpeed(thetaMotor, thetaSpeed);
         thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
         if (stopMe) goto onEngineExit;
+
+        if ( doBG  && bgAfter && ui->ffOnEachScan->isChecked() ) {
+          acquireBG(seriesName + "_AFTER");
+          if (stopMe) goto onEngineExit;
+        }
+        if ( doDF && dfAfter && ui->ffOnEachScan->isChecked() ) {
+          acquireDF(seriesName + "_AFTER");
+          if (stopMe) goto onEngineExit;
+        }
+
       }
 
 
@@ -2549,11 +2654,8 @@ void MainWindow::engine () {
     }
 
     if (stopMe) goto onEngineExit;
-
     ui->postScanScript->execute();
-
-    ui->scanProgress->setVisible(false);
-
+    currentProjection = -1;
     if (stopMe) goto onEngineExit;
 
     currentScan++;
@@ -2566,8 +2668,6 @@ void MainWindow::engine () {
     else
       timeToStop = true;
 
-    updateSeriesProgress(false);
-
     if ( ! timeToStop ) {
       if (doSerial  && serialMotor->motor()->isConnected())
         serialMotor->motor()->goUserPosition
@@ -2577,6 +2677,18 @@ void MainWindow::engine () {
     }
     if (stopMe) goto onEngineExit;
 
+    if ( timeToStop && ! ui->stepAndShotMode->isChecked() && ! ui->ffOnEachScan->isChecked() ) {
+      if ( doBG && bgAfter ) {
+        acquireBG(seriesName + "_AFTER");
+        if (stopMe) goto onEngineExit;
+      }
+      if ( doDF && dfAfter ) {
+        acquireDF(seriesName + "_AFTER");
+        if (stopMe) goto onEngineExit;
+      }
+    }
+
+
   } while ( ! timeToStop );
 
   ui->postRunScript->execute();
@@ -2585,21 +2697,27 @@ void MainWindow::engine () {
 
 onEngineExit:
 
-  ui->serialProgress->setVisible(false);
-  ui->scanProgress->setVisible(false);
-  if (doSerial && serialMotor->motor()->isConnected())
+  if (doSerial && serialMotor->motor()->isConnected()) {
+    serialMotor->motor()->stop(QCaMotor::STOPPED);
     serialMotor->motor()->goUserPosition(serialStart, QCaMotor::STARTED);
-  if ( ! ongoingSeries )
-    thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
-  if ( doBG )
+  }
+  thetaMotor->motor()->stop(QCaMotor::STOPPED);
+  setMotorSpeed(thetaMotor, thetaSpeed);
+  thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
+  if ( doBG ) {
+    bgMotor->motor()->stop(QCaMotor::STOPPED);
     bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
+  }
   while ( ! stopMe && ( qtWait(det, SIGNAL(writingFinished()), 500) || det->isWriting() ) )
       continue;
   recordLog( ( stopMe ? "Interrupting" : "Finishing ") + QString(" acquisition.\n") );
-  logFile->close();
+  if (logFile)
+    logFile->close();
   logFile=0;
   foreach(QWidget * tab, ui->control->tabs())
         tab->setEnabled(true);
+  currentScan = -1;
+  currentProjection = -1;
   inCT = false;
 
   QTimer::singleShot(0, this, SLOT(updateUi_thetaMotor()));
@@ -2610,10 +2728,258 @@ onEngineExit:
   QTimer::singleShot(0, this, SLOT(updateUi_dynoMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_dyno2Motor()));
   QTimer::singleShot(0, this, SLOT(updateUi_detector()));
-  QTimer::singleShot(0, this, SLOT(onShutterStatus()));
-
+  QTimer::singleShot(0, this, SLOT(updateUi_shutterStatus()));
 
 
 }
 
 
+
+
+
+/*
+void MainWindow::engineCore () {
+
+  const double
+      serialStart =  serialMotor->motor()->getUserPosition(),
+      thetaStart = thetaMotor->motor()->getUserPosition(),
+      thetaRange = ui->scanRange->value(),
+      thetaSpeed = thetaMotor->motor()->getNormalSpeed();
+  double thetaInSeriesStart = thetaStart;
+  const bool
+      doSerial = ui->checkSerial->isChecked(),
+      doBG = ui->checkFF->isChecked() && ui->nofBGs->value(),
+      bgBefore = ui->bgIntervalBefore->isChecked(),
+      bgAfter = ui->bgIntervalAfter->isChecked(),
+      dfBefore = ui->dfIntervalBefore->isChecked(),
+      dfAfter = ui->dfIntervalAfter->isChecked(),
+      doDF = ui->checkFF->isChecked() && ui->nofDFs->value(),
+      ongoingSeries = doSerial && ui->ongoingSeries->isChecked();
+  const int
+      bgInterval = ui->bgInterval->value(),
+      dfInterval = ui->dfInterval->value(),
+      scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
+      scanTime = QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ),
+      projectionDigs = QString::number(totalProjections).size(),
+      seriesDigs = QString::number(totalScans).size(),
+      doAdd = ui->scanAdd->isChecked() ? 0 : 1;
+
+  totalScans = doSerial ?
+    ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ;
+  totalProjections = ui->scanProjections->value();
+
+  inCTtime.restart();
+  currentScan=0;
+  bool timeToStop=false;
+
+  int
+      beforeBG = 0,
+      beforeDF = 0;
+
+  ui->preRunScript->execute();
+  if (stopMe) return;
+
+  do { // serial scanning
+
+    qDebug() << "SERIES" << currentScan;
+
+    if (doSerial  && serialMotor->motor()->isConnected())
+      serialMotor->motor()->wait_stop();
+
+    if (stopMe) return;
+
+    ui->preScanScript->execute();
+
+    if (stopMe) return;
+
+    QString seriesName;
+    if (totalScans==1)
+      seriesName = "";
+    else if (totalScans>1)
+      seriesName = QString("_Z%1").arg(currentScan, seriesDigs, 10, QChar('0') );
+    else
+      seriesName = "_Z" + QString::number(currentScan);
+
+    if (ui->stepAndShotMode->isChecked()) { // STEP-AND-SHOT
+
+      currentProjection = 0;
+      if ( ! ongoingSeries ) {
+        beforeBG=0;
+        beforeDF=0;
+      }
+      QString projectionName;
+
+      do {
+
+        projectionName = seriesName +
+            QString("_T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
+
+        if (doDF && ! beforeDF) {
+          acquireDF(projectionName);
+          beforeDF = dfInterval;
+          if (stopMe) return;
+        }
+        beforeDF--;
+        // sh1A->open(true);
+        if (doBG && ! beforeBG) {
+          acquireBG(projectionName);
+          beforeBG = bgInterval;
+          if (stopMe) return;
+        }
+        beforeBG--;
+
+        thetaMotor->motor()->wait_stop();
+        if ( ! currentProjection )
+          thetaInSeriesStart = ongoingSeries ?
+                thetaMotor->motor()->getUserPosition() :
+                thetaStart;
+        if (stopMe) return;
+
+        qDebug() << currentProjection << projectionName;
+        acquireProjection(projectionName);
+        if (stopMe) return;
+
+        currentProjection++;
+        if ( currentProjection < totalProjections + doAdd ) {
+          qDebug() << thetaMotor->motor()->isConnected() << thetaMotor;
+          thetaMotor->motor()->goUserPosition
+              ( thetaInSeriesStart + thetaRange * currentProjection / totalProjections, QCaMotor::STARTED);
+        } else if ( ! ongoingSeries )
+          thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
+        if (stopMe) return;
+
+      } while ( currentProjection < totalProjections + doAdd );
+
+      if (doBG && ! beforeBG) {
+        acquireBG(projectionName);
+        if (stopMe) return;
+        beforeBG = bgInterval;
+      }
+      if ( doDF && ! beforeDF ) {
+        acquireDF(projectionName);
+        if (stopMe) return;
+        beforeDF = dfInterval;
+      }
+
+    } else { // CONTINIOUS
+
+      if ( doDF && dfBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
+        acquireDF(seriesName + "_BEFORE");
+        if (stopMe) return;
+      }
+      if ( doBG  && bgBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
+        acquireBG(seriesName + "_BEFORE");
+        if (stopMe) return;
+      }
+
+      const double speed = ui->rotSpeed->value();
+      const double accTime = thetaMotor->motor()->getAcceleration();
+      const double accTravel = speed * accTime / 2;
+      const double rotDir = copysign(1,ui->scanRange->value());
+
+      double period = qAbs(thetaRange) / (totalProjections * speed);
+      if (det->period() != period)
+        det->setPeriod(period);
+      prepareDetector(seriesName, totalProjections + doAdd);
+      if (stopMe) return;
+
+      if ( ! ongoingSeries || ! currentScan ) {
+
+        thetaMotor->motor()->wait_stop();
+        if (stopMe) return;
+
+        // 2 coefficient in the below string is required to quarantee that the
+        // motor has accelerated to the normal speed before the acquisition starts.
+        thetaMotor->motor()->goRelative( -2*rotDir*accTravel, QCaMotor::STOPPED);
+        if (stopMe) return;
+
+        setMotorSpeed(thetaMotor, speed);
+        if (stopMe) return;
+
+        // 1.1 coefficient in the below string is required to guarantee that the
+        // motor does not stop before all images are acquired. Perhaps redundant
+        // and can be decreased, but more tests are needed.
+        thetaMotor->motor()->goLimit(rotDir, QCaMotor::STARTED);
+        if (stopMe) return;
+
+        // accTravel/speed in the below string is required to compensate the coefficient 2
+        // two strings above.
+        qtWait(1000*(accTime + accTravel/speed));
+        if (stopMe) return;
+
+      }
+
+      det->start();
+      if (stopMe) return;
+      det->waitDone();
+      if (stopMe) return;
+
+      if ( ! ongoingSeries ) {
+
+        thetaMotor->motor()->stop(QCaMotor::STOPPED);
+        if (stopMe) return;
+        setMotorSpeed(thetaMotor, thetaSpeed);
+        thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
+        if (stopMe) return;
+
+        if ( doBG  && bgAfter && ui->ffOnEachScan->isChecked() ) {
+          acquireBG(seriesName + "_AFTER");
+          if (stopMe) return;
+        }
+        if ( doDF && dfAfter && ui->ffOnEachScan->isChecked() ) {
+          acquireDF(seriesName + "_AFTER");
+          if (stopMe) return;
+        }
+
+      }
+
+
+
+    }
+
+    if (stopMe) return;
+    ui->postScanScript->execute();
+    currentProjection = -1;
+    if (stopMe) return;
+
+    currentScan++;
+    if ( ui->endNumber->isChecked() )
+      timeToStop = currentScan >= totalScans;
+    else if (ui->endTime->isChecked())
+      timeToStop = inCTtime.elapsed() + scanDelay >= scanTime;
+    else if (ui->endCondition->isChecked())
+      timeToStop = ui->conditionScript->execute();
+    else
+      timeToStop = true;
+
+    if ( ! timeToStop ) {
+      if (doSerial  && serialMotor->motor()->isConnected())
+        serialMotor->motor()->goUserPosition
+            ( serialStart + currentScan * ui->serialStep->value(), QCaMotor::STARTED);
+      if (stopMe) return;
+      qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
+    }
+    if (stopMe) return;
+
+    if ( timeToStop && ! ui->stepAndShotMode->isChecked() && ongoingSeries ) {
+      if ( doBG && bgAfter && ! ui->ffOnEachScan->isChecked() ) {
+        acquireBG(seriesName + "_AFTER");
+        if (stopMe) return;
+      }
+      if ( doDF && dfAfter && ! ui->ffOnEachScan->isChecked() ) {
+        acquireDF(seriesName + "_AFTER");
+        if (stopMe) return;
+      }
+    }
+
+
+  } while ( ! timeToStop );
+
+  ui->postRunScript->execute();
+  //sh1A->close();
+  qDebug() << "SH CLOSE";
+
+
+}
+
+*/

@@ -37,6 +37,7 @@ Detector::Detector(QObject * parent) :
   lastNamePv(new QEpicsPv(this) ),
   autoSavePv( new QEpicsPv(this) ),
   writeStatusPv( new QEpicsPv(this) ),
+  delayPv( new QEpicsPv(this) ),
   _con(false),
 //  _counter(0),
   _name(QString()),
@@ -129,6 +130,7 @@ void Detector::setCamera(const QString & pvName) {
     writeStatusPv->setPV(pvName+":TIFF1:WriteFile_RBV");
     pathPv->setPV(pvName+":TIFF1:FilePath_RBV");
     pathExistsPv->setPV(pvName+":TIFF1:FilePathExists_RBV");
+    delayPv->setPV(pvName+":CAM:DELAY_TIME");
   }
 }
 
@@ -173,8 +175,10 @@ void Detector::updateCounter() {
 }
 
 void Detector::updateAcq() {
-  if (!isAcquiring())
+  if (!isAcquiring()) {
     emit done();
+    QCoreApplication::processEvents();
+  }
 }
 
 void Detector::updateWriting() {
@@ -184,13 +188,23 @@ void Detector::updateWriting() {
     writeExpected=false;
 }
 
-bool Detector::setInterval(double val) {
+bool Detector::setPeriod(double val) {
+  // The RUBY detector has fucken bug - the acquire period parameter is
+  // unreliable at all. Will replace the period with the delay.
+  /*
   if ( ! periodPv->isConnected() || isAcquiring() )
     return false;
   if (period() != val) {
     periodPv->set(val);
     qtWait(periodPv, SIGNAL(valueUpdated(QVariant)), 500);
   }
+  return period() == val;
+  */
+  periodPv->set(0);
+  bool waitupd = period() != val;
+  delayPv->set(val-exposure());
+  if (waitupd)
+    qtWait(delayPv, SIGNAL(valueUpdated(QVariant)), 500);
   return period() == val;
 }
 
@@ -209,7 +223,7 @@ bool Detector::setNumber(int val) {
   }
 
   if (val == 1)
-    setInterval(0);
+    setPeriod(0);
 
   return
       number() == val &&
@@ -257,6 +271,15 @@ bool Detector::prepareForAcq() {
       return false;
   }
 
+  if (triggerModePv->get() != 0) {
+    triggerModePv->set(0); // AUTO for RUBY
+    qtWait(triggerModePv, SIGNAL(valueUpdated(QVariant)), 500);
+    if (triggerModePv->get() != 0)
+      return false;
+  }
+
+  setPeriod(period()); // required for rubby: external change of period wipes out delay.
+
   return true;
 
 }
@@ -291,7 +314,7 @@ void Detector::waitDone() {
 void Detector::waitWritten() {
   if ( writeExpected && ! isWriting() )
     qtWait(writeStatusPv, SIGNAL(valueChanged(QVariant)), 500);
-  if (isWriting())
+  while ( isWriting() || qtWait(writeStatusPv, SIGNAL(valueChanged(QVariant)), 40) )
     qtWait(this, SIGNAL(writingFinished()));
 }
 

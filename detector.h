@@ -41,6 +41,8 @@ private:
   QEpicsPv * lastNamePv;
   QEpicsPv * autoSavePv;
   QEpicsPv * writeStatusPv;
+  QEpicsPv * delayPv;
+
 
 
   bool _con;
@@ -60,7 +62,8 @@ public:
 
   inline const QString & pv() const {return cameraPv;}
   inline double exposure() const {return exposurePv->get().toDouble();}
-  inline double period() const {return periodPv->get().toDouble();}
+  //inline double period() const {return periodPv->get().toDouble();}
+  inline double period() const {return exposure() + delayPv->get().toDouble();}
   inline int number() const {return numberPv->get().toInt();}
   inline int counter() const {return counterPv->get().toInt();}
   inline int triggerMode() const {return triggerModePv->get().toInt();}
@@ -81,7 +84,7 @@ public:
 
 public slots:
 
-  bool setInterval(double val);
+  bool setPeriod(double val);
   bool setNumber(int val);
   bool setName(const QString & fname);
   bool setNameTemplate(const QString & ntemp);

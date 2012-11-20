@@ -10,6 +10,7 @@
 #include <QFile>
 #include <QLineEdit>
 #include <QTime>
+#include <QThread>
 
 #include <imbl/shutter1A.h>
 #include "detector.h"
@@ -22,13 +23,6 @@ namespace Ui {
   class MainWindow;
   class HelpDialog;
 }
-
-
-
-
-
-
-
 
 
 class MainWindow : public QMainWindow
@@ -79,7 +73,8 @@ private:
     qDebug() << msg;
   }
 
-  void engine();
+  //void engineCore();
+  void engineRun();
 
 
   bool inAcquisitionTest;
@@ -88,10 +83,19 @@ private:
   bool inFFTest;
   bool inCT;
   QTime inCTtime;
-  int currentScan;
   bool readyToStartCT;
   bool stopMe;
 
+  int totalScans;
+  int currentScan;
+  int totalProjections;
+  int currentProjection;
+  int totalLoops;
+  int currentLoop;
+  int totalSubLoops;
+  int currentSubLoop;
+  int totalShots;
+  int currentShot;
 
 
   enum MsgType {
@@ -150,10 +154,11 @@ private slots:
   void onMultiCheck();
 
   void updateUi_nofScans();
-  void updateUi_scanTime();
+  void updateUi_acquisitionTime();
   void updateUi_condtitionScript();
   void updateUi_serialStep();
   void updateUi_serialMotor();
+  void updateUi_ffOnEachScan();
 
   void updateUi_scanRange();
   void updateUi_scanStep();
@@ -187,8 +192,8 @@ private slots:
   void updateUi_detector();
   void onDetectorSelection();
   void onDetectorTest();
-  void updateDetectorProgress();
 
+  void updateProgress();
 
 
 
@@ -197,8 +202,6 @@ private slots:
 
 
   void onStartStop();
-  void updateSeriesProgress(bool onTimer=true);
-
   void recordLog(const QString & message=QString());
 
 signals:
