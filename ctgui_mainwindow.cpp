@@ -2659,6 +2659,8 @@ void MainWindow::engineRun () {
     if (stopMe) goto onEngineExit;
 
     currentScan++;
+    if ( ! ui->checkSerial->isChecked() )
+      timeToStop = true;
     if ( ui->endNumber->isChecked() )
       timeToStop = currentScan >= totalScans;
     else if (ui->endTime->isChecked())
