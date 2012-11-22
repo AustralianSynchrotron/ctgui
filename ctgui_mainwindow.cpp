@@ -1548,7 +1548,7 @@ void MainWindow::onFFtest() {
     ui->ffWidget->setEnabled(false);
     check(ui->testFF, false);
     acquireBG(".test");
-    acquireDF(".test");
+    acquireDF(".test", sh1A->state());
     check(ui->testFF, true);
     ui->ffWidget->setEnabled(true);
     inFFTest=false;
@@ -2324,7 +2324,7 @@ onBgExit:
 
 
 
-int MainWindow::acquireDF(const QString &filetemplate) {
+int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToGo) {
 
   int ret = -1;
   const int dfs = ui->nofDFs->value();
@@ -2336,8 +2336,8 @@ int MainWindow::acquireDF(const QString &filetemplate) {
     return -1 ;
 
   if (shState != Shutter1A::CLOSED)
-    //sh1A->close(true);
-    qDebug() << "SH CLOSE";
+    sh1A->close(true);
+    //qDebug() << "SH CLOSE";
   if (stopMe) goto onDfExit;
 
   det->setPeriod(0);
@@ -2345,9 +2345,13 @@ int MainWindow::acquireDF(const QString &filetemplate) {
 
 onDfExit:
 
-  if (shState == Shutter1A::OPENED)
-    //sh1A->open(!stopMe);
-    qDebug() << "SH OPEN";
+  if (stateToGo == Shutter1A::OPENED)
+    sh1A->open(!stopMe);
+  else if (stateToGo == Shutter1A::CLOSED)
+    sh1A->close(!stopMe);
+  if ( ! stopMe && sh1A->state() != stateToGo)
+    qtWait(sh1A, SIGNAL(stateChanged(Shutter1A::State)), 500);
+
   return ret;
 
 }
@@ -2508,6 +2512,8 @@ void MainWindow::engineRun () {
   ui->preRunScript->execute();
   if (stopMe) goto onEngineExit;
 
+  sh1A->open(true);
+
   do { // serial scanning
 
     qDebug() << "SERIES" << currentScan;
@@ -2544,12 +2550,11 @@ void MainWindow::engineRun () {
             QString("_T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
 
         if (doDF && ! beforeDF) {
-          acquireDF(projectionName);
+          acquireDF(projectionName, Shutter1A::OPENED);
           beforeDF = dfInterval;
           if (stopMe) goto onEngineExit;
         }
         beforeDF--;
-        // sh1A->open(true);
         if (doBG && ! beforeBG) {
           acquireBG(projectionName);
           beforeBG = bgInterval;
@@ -2583,7 +2588,7 @@ void MainWindow::engineRun () {
         beforeBG = bgInterval;
       }
       if ( doDF && ! beforeDF ) {
-        acquireDF(projectionName);
+        acquireDF(projectionName, Shutter1A::OPENED);
         if (stopMe) goto onEngineExit;
         beforeDF = dfInterval;
       }
@@ -2591,7 +2596,7 @@ void MainWindow::engineRun () {
     } else { // CONTINIOUS
 
       if ( doDF && dfBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-        acquireDF(seriesName + "_BEFORE");
+        acquireDF(seriesName + "_BEFORE", Shutter1A::OPENED);
         if (stopMe) goto onEngineExit;
       }
       if ( doBG  && bgBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
@@ -2654,7 +2659,7 @@ void MainWindow::engineRun () {
           if (stopMe) goto onEngineExit;
         }
         if ( doDF && dfAfter && ui->ffOnEachScan->isChecked() ) {
-          acquireDF(seriesName + "_AFTER");
+          acquireDF(seriesName + "_AFTER", Shutter1A::OPENED);
           if (stopMe) goto onEngineExit;
         }
 
@@ -2696,7 +2701,7 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
       }
       if ( doDF && dfAfter ) {
-        acquireDF(seriesName + "_AFTER");
+        acquireDF(seriesName + "_AFTER", Shutter1A::OPENED);
         if (stopMe) goto onEngineExit;
       }
     }
@@ -2705,8 +2710,7 @@ void MainWindow::engineRun () {
   } while ( ! timeToStop );
 
   ui->postRunScript->execute();
-  //sh1A->close();
-  qDebug() << "SH CLOSE";
+  sh1A->close();
 
 onEngineExit:
 

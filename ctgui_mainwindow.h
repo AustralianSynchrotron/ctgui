@@ -128,7 +128,7 @@ private:
   int acquireDyno(const QString & filetemplate, int count=1);
   int acquireMulti(const QString & filetemplate, int count=1);
   int acquireBG(const QString &filetemplate);
-  int acquireDF(const QString &filetemplate);
+  int acquireDF(const QString &filetemplate, Shutter1A::State stateToGo);
   int acquireProjection(const QString &filetemplate);
 
   QFile * logFile;
