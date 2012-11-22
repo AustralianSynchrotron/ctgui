@@ -232,6 +232,7 @@ bool Detector::setNumber(int val) {
 }
 
 bool Detector::setNameTemplate(const QString & ntemp) {
+
   if ( ! nameTemplatePv->isConnected() || isAcquiring() )
     return false;
   if ( nameTemplate() != ntemp ) {
@@ -242,6 +243,7 @@ bool Detector::setNameTemplate(const QString & ntemp) {
 }
 
 bool Detector::setName(const QString & fname) {
+
   if ( ! namePv->isConnected() || isAcquiring() )
     return false;
   if ( name() != fname ) {

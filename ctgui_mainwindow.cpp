@@ -129,6 +129,7 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_serialMotor();
   updateUi_ffOnEachScan();
   updateUi_scanRange();
+  updateUi_aqsPP();
   updateUi_scanStep();
   updateUi_rotSpeed();
   updateUi_stepTime();
@@ -195,6 +196,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( thetaMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->scanRange, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->scanProjections, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->aqsPP, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->rotSpeed, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->scanAdd, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->preScanScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -450,6 +452,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "motor", thetaMotor);
   setInConfig(config, "range", ui->scanRange);
   setInConfig(config, "steps", ui->scanProjections);
+  setInConfig(config, "aquisitionsperprojection", ui->aqsPP);
   setInConfig(config, "add", ui->scanAdd);
   setInConfig(config, "prescan", ui->preScanScript);
   setInConfig(config, "postscan", ui->postScanScript);
@@ -577,6 +580,7 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "motor", thetaMotor);
     restoreFromConfig(config, "range", ui->scanRange);
     restoreFromConfig(config, "steps", ui->scanProjections);
+    restoreFromConfig(config, "aquisitionsperprojection", ui->aqsPP);
     restoreFromConfig(config, "add", ui->scanAdd);
     restoreFromConfig(config, "prescan", ui->preScanScript);
     restoreFromConfig(config, "postscan", ui->postScanScript);
@@ -842,6 +846,21 @@ void MainWindow::updateUi_scanRange() {
   check(ui->scanRange, ui->scanRange->value() != 0.0);
 
 }
+
+
+void MainWindow::updateUi_aqsPP() {
+  if ( ! sender() ) {
+    const char* thisSlot = SLOT(updateUi_aqsPP());
+    connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
+    connect( ui->checkDyno, SIGNAL(toggled(bool)), thisSlot);
+  }
+
+  bool vis = ui->stepAndShotMode->isChecked() && ! ui->checkDyno->isChecked();
+  ui->aqsPP->setVisible(vis);
+  ui->aqsPPLabel->setVisible(vis);
+
+}
+
 
 void MainWindow::updateUi_scanStep() {
   if ( ! sender() ) { // called from the constructor;
@@ -1402,7 +1421,6 @@ void MainWindow::updateUi_detector() {
   check (ui->detStatus, det->isConnected() &&
          ( inCT || ( ! det->isAcquiring() && ! det->isWriting() ) ) );
 
-  //updateDetectorProgress();
 
 }
 
@@ -1612,7 +1630,9 @@ void MainWindow::onDetectorTest() {
     inAcquisitionTest=true;
     stopMe=false;
     check(ui->testDetector, false);
-    acquireDetector(".test");
+    acquireDetector(".test",
+                    ui->stepAndShotMode->isChecked() && ! ui->checkDyno->isChecked() ?
+                      ui->aqsPP->value() : 1);
     check(ui->testDetector, true);
     inAcquisitionTest=false;
     ui->testDetector->setText("Test");
@@ -2257,11 +2277,11 @@ void MainWindow::updateSeriesProgress(bool onTimer) {
 int MainWindow::acquireProjection(const QString &filetemplate) {
   QString ftemplate = "SAMPLE" + filetemplate;
   if (ui->checkMulti->isChecked())
-    return acquireMulti(ftemplate);
+    return acquireMulti(ftemplate, ui->aqsPP->value());
   else if (ui->checkDyno->isChecked())
     return acquireDyno(ftemplate);
   else
-    return acquireDetector(ftemplate);
+    return acquireDetector(ftemplate, ui->aqsPP->value());
 }
 
 
@@ -2438,15 +2458,6 @@ void MainWindow::engineRun () {
   while (QFile::exists(configName))
       configName = "acquisition." + QString::number(++attempt) + ".configuration";
   saveConfiguration(configName);
-
-  /*
-  qDebug() << "AA";
-  QFuture<void> res = QtConcurrent::run( this, &MainWindow::engineCore );
-  QFutureWatcher<void> watcher;
-  watcher.setFuture(res);
-  qtWait(&watcher, SIGNAL(finished()));
-  qDebug() << "BB";
-  */
 
   const double
       serialStart =  serialMotor->motor()->getUserPosition(),
