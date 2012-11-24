@@ -21,7 +21,8 @@ done
 
 if echo $foundz | grep -q "^[0-9]*[.][0-9]*$" ; then
   echo "GOTO " $foundz
-  (caput $SERIALMOTORPV 0.0 ; cawait ${$SERIALMOTORPV}.DMOV 1) > /dev/null
+  caput $SERIALMOTORPV $foundz
+  cawait ${SERIALMOTORPV}.DMOV 1
   exit 0
 else
   exit 1
