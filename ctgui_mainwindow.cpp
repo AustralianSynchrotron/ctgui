@@ -239,6 +239,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
   updateProgress();
 
+  setenv("SERIALMOTORPV", "", 1);
+  setenv("CURRENTZ", "0", 1);
 
 }
 
@@ -797,6 +799,7 @@ void MainWindow::updateUi_serialMotor() {
              ui->serialCurrent, SLOT(setValue(double)));
   }
 
+  setenv("SERIALMOTORPV", serialMotor->motor()->getPv().toAscii() , 1);
 
   check(serialMotor->setupButton(),
         ! ui->checkSerial->isChecked() ||
@@ -946,6 +949,8 @@ void MainWindow::updateUi_thetaMotor() {
     connect(thetaMotor->motor(), SIGNAL(changedUserPosition(double)),
             ui->scanCurrent, SLOT(setValue(double)));
   }
+
+
 
   check(thetaMotor->setupButton(),
         thetaMotor->motor()->isConnected() &&
@@ -2517,6 +2522,7 @@ void MainWindow::engineRun () {
   do { // serial scanning
 
     qDebug() << "SERIES" << currentScan;
+    setenv("CURRENTZ", QString::number(currentScan).toAscii(), 1);
 
     if (doSerial  && serialMotor->motor()->isConnected())
       serialMotor->motor()->wait_stop();
