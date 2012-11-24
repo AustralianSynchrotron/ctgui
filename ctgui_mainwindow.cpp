@@ -2683,7 +2683,7 @@ void MainWindow::engineRun () {
     currentScan++;
     if ( ! ui->checkSerial->isChecked() )
       timeToStop = true;
-    if ( ui->endNumber->isChecked() )
+    else if ( ui->endNumber->isChecked() )
       timeToStop = currentScan >= totalScans;
     else if (ui->endTime->isChecked())
       timeToStop = inCTtime.elapsed() + scanDelay >= scanTime;
