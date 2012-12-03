@@ -1265,7 +1265,7 @@ void MainWindow::updateUi_detector() {
     connect(det, SIGNAL(nameChanged(QString)), ui->detFileName, SLOT(setText(QString)));
     connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
     connect(det, SIGNAL(templateChanged(QString)), ui->detFileTemplate, SLOT(setText(QString)));
-    connect(det, SIGNAL(counterChanged(int)), SLOT(recordLog()));
+    connect(det, SIGNAL(counterChanged(int)), SLOT(accumulateLog()));
   }
 
   totalShots = det->number();
@@ -1625,6 +1625,7 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
 
   det->waitWritten();
   const int accSize = accumulatedLog.size();
+  qDebug() << accumulatedLog << det->namesStored();
   if ( logFile && logFile->isWritable() &&
        accSize &&   det->namesStored().size() == accSize ) { // flush log
     for( int curl=0 ; curl < accSize ; curl++ ) {
@@ -2143,6 +2144,8 @@ onDfExit:
 
 void MainWindow::recordLog(const QString & message) {
 
+  return;
+
   if ( ! logFile || ! logFile->isWritable())
     return;
 
@@ -2566,7 +2569,17 @@ onEngineExit:
     bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
   }
   while ( ! stopMe && ( qtWait(det, SIGNAL(writingFinished()), 500) || det->isWriting() ) )
-      continue;
+    continue;
+  det->waitWritten();
+  const int accSize = accumulatedLog.size();
+  qDebug() << accumulatedLog << det->namesStored();
+  if ( logFile && logFile->isWritable() &&
+       accSize &&   det->namesStored().size() == accSize ) { // flush log
+    for( int curl=0 ; curl < accSize ; curl++ ) {
+      QString wrt = accumulatedLog[curl] + " " + det->namesStored()[curl] + "\n";
+      logFile->write( wrt.toAscii() );
+    }
+  }
   recordLog( ( stopMe ? "Interrupting" : "Finishing ") + QString(" acquisition.\n") );
   if (logFile)
     logFile->close();
