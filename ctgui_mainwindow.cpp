@@ -15,18 +15,12 @@
 
 
 
-
-QHash<QString,QString> MainWindow::envDesc;
 const QString MainWindow::storedState=QDir::homePath()+"/.ctgui";
-const bool MainWindow::inited = MainWindow::init();
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
-  //engine (new Engine(this)),
   isLoadingState(false),
   ui(new Ui::MainWindow),
-  hui(new Ui::HelpDialog),
-  hDialog(new QDialog(this, Qt::Tool)),
   det(new Detector(this)),
   inAcquisitionTest(false),
   inDynoTest(false),
@@ -69,11 +63,6 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->preAqScript->addToColumnResizer(resizer);
   ui->postAqScript->addToColumnResizer(resizer);
 
-
-  hui->setupUi(hDialog);
-
-  insertVariableIntoMe=0;
-
   QPushButton * save = new QPushButton("Save");
   save->setFlat(true);
   connect(save, SIGNAL(clicked()), SLOT(saveConfiguration()));
@@ -83,11 +72,6 @@ MainWindow::MainWindow(QWidget *parent) :
   load->setFlat(true);
   connect(load, SIGNAL(clicked()), SLOT(loadConfiguration()));
   ui->statusBar->addPermanentWidget(load);
-
-  QCheckBox * showVariables = new QCheckBox("Show variables");
-  connect(showVariables, SIGNAL(toggled(bool)), hDialog, SLOT(setVisible(bool)));
-  showVariables->setCheckState(Qt::Unchecked);
-  ui->statusBar->addPermanentWidget(showVariables);
 
   ui->startStop->setText("Start CT");
   ui->scanProgress->hide();
@@ -250,94 +234,6 @@ MainWindow::~MainWindow()
   delete ui;
 }
 
-
-bool MainWindow::init() {
-  Q_INIT_RESOURCE(ctgui);
-  envDesc["GTRANSPOS"] = "Directed position of the translation stage.";
-  envDesc["FILE"] = "Name of the last aquired image.";
-  envDesc["BGFILE"] = "Name of the last aquired background image.";
-  envDesc["SAMPLEFILE"] = "Name of the last aquired image.";
-  envDesc["AQTYPE"] = "Role of the image being acquired: DARKCURRENT, BACKGROUND, SAMPLE or SINGLESHOT.";
-  envDesc["DFTYPE"] = "Role of the dark field image being acquired: BEFORE or AFTER the scan.";
-  envDesc["DFBEFORECOUNT"] = "Count of the dark field image in the before-scan series.";
-  envDesc["DFAFTERCOUNT"] = "Count of the dark field image in the after-scan series.";
-  envDesc["DFCOUNT"] = "Count of the dark field image.";
-  envDesc["GSCANPOS"] = "Directed position of the sample rotation stage.";
-  envDesc["BGCOUNT"] = "Count of the background image.";
-  envDesc["PCOUNT"] = "Sample projection counter.";
-  envDesc["LOOPCOUNT"] = "Count of the image in the loop series.";
-  envDesc["GLOOPPOS"] = "Directed position of the loop stage.";
-  envDesc["SUBLOOPCOUNT"] = "Count of the image in the sub-loop series.";
-  envDesc["GSUBLOOPPOS"] = "Directed position of the sub-loop stage.";
-  envDesc["COUNT"] = "Total image counter (excluding dark field).";
-  envDesc["SCANMOTORUNITS"] = "Units of the rotation stage.";
-  envDesc["TRANSMOTORUNITS"] = "Units of the translation stage.";
-  envDesc["LOOPMOTORUNITS"] = "Units of the loop stage.";
-  envDesc["SUBLOOPMOTORUNITS"] = "Units of the sub-loop stage.";
-  envDesc["SCANMOTORPREC"] = "Precsicion of the rotation stage.";
-  envDesc["TRANSMOTORPREC"] = "Precsicion of the translation stage.";
-  envDesc["LOOPMOTORPREC"] = "Precsicion of the loop stage.";
-  envDesc["SUBLOOPMOTORPREC"] = "Precsicion of the sub-loop stage.";
-  envDesc["EXPPATH"] = "Working directory.";
-  envDesc["EXPNAME"] = "Experiment name.";
-  envDesc["EXPDESC"] = "Description of the experiment.";
-  envDesc["SAMPLEDESC"] = "Sample description.";
-  envDesc["PEOPLE"] = "Experimentalists list.";
-  envDesc["SCANMOTORPV"] = "EPICS PV of the rotation stage.";
-  envDesc["SCANMOTORDESC"] = "EPICS descriptiopn of the rotation stage.";
-  envDesc["SCANPOS"] = "Actual position of the rotation stage.";
-  envDesc["SCANRANGE"] = "Travel range of the rotation stage in the scan.";
-  envDesc["SCANSTEP"] = "Rotation step between two projections.";
-  envDesc["PROJECTIONS"] = "Total number of projections.";
-  envDesc["SCANSTART"] = "Start point of the rotation stage.";
-  envDesc["SCANEND"] = "End point of rotation stage.";
-  envDesc["TRANSMOTORPV"] = "EPICS PV of the translation stage.";
-  envDesc["TRANSMOTORDESC"] = "EPICS descriptiopn of the translation stage.";
-  envDesc["TRANSPOS"] = "Actual position of the translation stage.";
-  envDesc["TRANSINTERVAL"] = "Interval (number of projections) between two background acquisitions.";
-  envDesc["TRANSN"] = "Total number of backgrounds in the scan.";
-  envDesc["TRANSDIST"] = "Travel of the translation stage.";
-  envDesc["TRANSIN"] = "Position of the translation stage in-beam.";
-  envDesc["TRANSOUT"] = "Position of the translation stage out of the beam.";
-  envDesc["DFBEFORE"] = "Total number of dark current acquisitions before the scan.";
-  envDesc["DFAFTER"] = "Total number of dark current acquisitions after the scan.";
-  envDesc["DFTOTAL"] = "Total number of dark current acquisitions.";
-  envDesc["LOOPMOTORPV"] = "EPICS PV of the loop stage.";
-  envDesc["LOOPMOTORDESC"] = "EPICS descriptiopn of the loop stage.";
-  envDesc["LOOPRANGE"] = "Total travel range of the loop stage.";
-  envDesc["LOOPSTEP"] = "Single step between two acquisitions in the loop series.";
-  envDesc["LOOPSTART"] = "Start point of the loop stage.";
-  envDesc["LOOPEND"] = "End point of the loop stage.";
-  envDesc["SUBLOOPMOTORPV"] = "EPICS PV of the sub-loop stage.";
-  envDesc["SUBLOOPMOTORDESC"] = "EPICS descriptiopn of the sub-loop stage.";
-  envDesc["SUBLOOPRANGE"] = "Total travel range of the sub-loop stage.";
-  envDesc["SUBLOOPSTEP"] = "Single step between two acquisitions in the sub-loop series.";
-  envDesc["SUBLOOPSTART"] = "Start point of the sub-loop stage.";
-  envDesc["SUBLOOPEND"] = "End point of the sub-loop stage.";
-  envDesc["LOOPPOS"] = "Actual position of the loop stage.";
-  envDesc["LOOPN"] = "Total number of aqcuisitions in the loop series.";
-  envDesc["SUBLOOPPOS"] = "Actual position of the sub-loop stage.";
-  envDesc["SUBLOOPN"] = "Total number of aqcuisitions in the sub-loop series.";
-  envDesc["DYNOPOS"] = "Actual position of the stage controlling dynamic shot.";
-  envDesc["DYNOMOTORUNITS"] = "Units of the motor controlling dynamic shot.";
-  envDesc["DYNOMOTORPREC"] = "Precsicion of the motor controlling dynamic shot.";
-  envDesc["DYNOMOTORPV"] = "EPICS PV of the stage controlling dynamic shot";
-  envDesc["DYNOMOTORDESC"] = "EPICS descriptiopn of the stage controlling dynamic shot.";
-  envDesc["DYNORANGE"] = "Total travel range of the stage controlling dynamic shot.";
-  envDesc["DYNOSTART"] = "Start point of the stage controlling dynamic shot.";
-  envDesc["DYNOEND"] = "End point of the stage controlling dynamic shot.";
-  envDesc["DYNO2POS"] = "Actual position of the second stage controlling dynamic shot.";
-  envDesc["DYNO2MOTORUNITS"] = "Units of the motor controlling dynamic shot.";
-  envDesc["DYNO2MOTORPREC"] = "Precsicion of the motor controlling dynamic shot.";
-  envDesc["DYNO2MOTORPV"] = "EPICS PV of the second stage controlling dynamic shot";
-  envDesc["DYNO2MOTORDESC"] = "EPICS descriptiopn of the second stage controlling dynamic shot.";
-  envDesc["DYNO2RANGE"] = "Total travel range of the second stage controlling dynamic shot.";
-  envDesc["DYNO2START"] = "Start point of the second stage controlling dynamic shot.";
-  envDesc["DYNO2END"] = "End point of the second stage controlling dynamic shot.";
-
-  return true;
-
-}
 
 
 
@@ -678,21 +574,6 @@ void MainWindow::storeCurrentState() {
 }
 
 
-/*
-void MainWindow::onHelpClecked(int row) {
-  if ( ! insertVariableIntoMe )
-    return;
-  QString inS = hui->table->item(row, 0)->text();
-  if (  qobject_cast<QLineEdit*>(insertVariableIntoMe) )
-    ( (QLineEdit*) insertVariableIntoMe )->insert(inS);
-  else if (  qobject_cast<QPlainTextEdit*>(insertVariableIntoMe) )
-    ( (QPlainTextEdit*) insertVariableIntoMe )->insertPlainText(inS);
-  QApplication::setActiveWindow(this);
-}
-*/
-
-
-
 void MainWindow::updateUi_expPath() {
   if ( ! sender() ) // called from the constructor;
     connect( ui->expPath, SIGNAL(textChanged(QString)), SLOT(updateUi_expPath()) );
@@ -711,7 +592,7 @@ void MainWindow::updateUi_expPath() {
 
   check(ui->expPath, isOK);
 
-};
+}
 
 
 void MainWindow::updateUi_checkDyno() {
@@ -721,7 +602,7 @@ void MainWindow::updateUi_checkDyno() {
   if ( ! sasMode )
     ui->checkDyno->setChecked(false);
   ui->checkDyno->setVisible(sasMode);
-};
+}
 
 
 void MainWindow::updateUi_checkMulti() {
@@ -731,7 +612,7 @@ void MainWindow::updateUi_checkMulti() {
   if ( ! sasMode )
     ui->checkMulti->setChecked(false);
   ui->checkMulti->setVisible(sasMode);
-};
+}
 
 
 void MainWindow::updateUi_nofScans() {
@@ -1615,15 +1496,6 @@ void MainWindow::onDetectorSelection() {
   det->setCamera(currentText);
 }
 
-/*
-void MainWindow::updateDetectorProgress() {
-  ui->detProgress->setVisible
-      ( ( inAcquisitionTest || det->isAcquiring() )  &&
-        det->number() > 1 &&
-        det->imageMode() == 1 );
-}
-*/
-
 
 void MainWindow::onDetectorTest() {
   if ( ! det->isConnected() )
@@ -1656,39 +1528,6 @@ void MainWindow::onDetectorTest() {
 
 
 
-
-void MainWindow::setEnv(const char * var, const char * val) {
-
-  setenv(var, val, 1);
-
-  int found = -1, curRow=0, rowCount=hui->table->rowCount();
-  while ( found < 0 && curRow < rowCount ) {
-    if ( hui->table->item(curRow, 0)->text() == var )
-      found = curRow;
-    curRow++;
-  }
-
-  if (found < 0) {
-
-    QString desc = envDesc.contains(var) ? envDesc[var] : "" ;
-
-    hui->table->setSortingEnabled(false);
-    hui->table->insertRow(rowCount);
-    hui->table->setItem( rowCount, 0, new QTableWidgetItem( QString(var) ));
-    hui->table->setItem( rowCount, 1, new QTableWidgetItem( QString(val) ));
-    hui->table->setItem( rowCount, 2, new QTableWidgetItem(desc));
-    hui->table->setSortingEnabled(true);
-
-    hui->table->resizeColumnToContents(0);
-    hui->table->resizeColumnToContents(1);
-    hui->table->resizeColumnToContents(2);
-
-  } else {
-    hui->table->item(found, 1)->setText( QString(val) );
-    hui->table->resizeColumnToContents(1);
-  }
-
-}
 
 
 
@@ -1783,13 +1622,24 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
   if (count>1)
     fileT += "_%0" + QString::number(QString::number(count).length()) + "d";
   fileT+= ".tif";
+
   det->waitWritten();
+  const int accSize = accumulatedLog.size();
+  if ( logFile && logFile->isWritable() &&
+       accSize &&   det->namesStored().size() == accSize ) { // flush log
+    for( int curl=0 ; curl < accSize ; curl++ ) {
+      QString wrt = accumulatedLog[curl] + " " + det->namesStored()[curl] + "\n";
+      logFile->write( wrt.toAscii() );
+    }
+  }
+
   return
       det->setNameTemplate(fileT) &&
       det->isConnected() &&
       det->setNumber(count) &&
       det->setName(filetemplate) &&
       det->prepareForAcq() ;
+
 }
 
 int MainWindow::acquireDetector() {
@@ -2124,59 +1974,6 @@ void MainWindow::appendScanListRow(Role rl, double pos, const QString & fn) {
 }
 */
 
-/*
-QString MainWindow::setAqFileEnv(const QLineEdit * edt, const QString & var) {
-
-  QString eres, expr;
-  expr = edt->text();
-  if ( expr.isEmpty() )
-    expr = ui->sampleFile->text();
-  evalExpr(expr, eres);
-
-  int indexOfDot = eres.lastIndexOf('.');
-  if ( indexOfDot == -1 )
-    indexOfDot = eres.size();
-  QString res = eres;
-  int count = 0;
-
-  while ( res.isEmpty() || QFile::exists(res) || listHasFile(res) ) {
-    res = eres;
-    res.insert(indexOfDot, "_(" + QString::number(++count) + ")");
-  }
-
-  setEnv(var, res);
-  return res;
-
-}
-*/
-
-/*
-bool MainWindow::listHasFile(const QString & fn) {
-  if (fn.isEmpty())
-    return false;
-  bool found=false;
-
-  int count = 0;
-  while ( ! found && count < scanList->rowCount() )
-    found  =  scanList->item(count++, 3)->text() == fn;
-
-  return found;
-}
-*/
-
-/*
-bool MainWindow::doIt(int count) {
-
-  if ( count >= scanList->rowCount() )
-    return false;
-  if ( ! ui->selectiveScan->isChecked() )
-    return true;
-  return scanList->item(count,0)->checkState() == Qt::Checked;
-
-  return true;
-}
-*/
-
 
 
 void MainWindow::updateProgress () {
@@ -2259,24 +2056,6 @@ void MainWindow::updateProgress () {
 
 }
 
-
-
-
-/*
-void MainWindow::updateSeriesProgress(bool onTimer) {
-  if ( ui->endTime->isChecked() ) {
-    QString format = "Series progress: %p% "
-        + (QTime(0, 0, 0, 0).addMSecs(inCTtime.elapsed())).toString() + " of " + ui->acquisitionTime->time().toString()
-        + " (scans complete: " + QString::number(currentSeries) + ")";
-    ui->serialProgress->setFormat(format);
-    ui->serialProgress->setValue(inCTtime.elapsed());
-    if (onTimer && inCT)
-      QTimer::singleShot(100, this, SLOT(updateSeriesProgress()));
-  } else {
-    ui->serialProgress->setValue(currentSeries);
-  }
-}
-*/
 
 
 int MainWindow::acquireProjection(const QString &filetemplate) {
@@ -2433,12 +2212,34 @@ void MainWindow::recordLog(const QString & message) {
       wrt += " " + QString::number(subLoopMotor->motor()->getUserPosition());
     wrt += "\n";
     logFile->write(wrt.toAscii());
-/*
-    qtWait(det, SIGNAL(lastNameChanged(QString)), 500);
-    if (logFile) // could be closed if the ct quits while waiting for the write.
-        logFile->write((wrt+ " " + det->lastName() + "\n").toAscii());
-*/
+
   }
+
+}
+
+void MainWindow::accumulateLog() {
+
+  if ( ! inCT )
+    return;
+
+  if ( det->counter() ) {
+
+    QString wrt = QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz");
+    if ( ui->checkSerial->isChecked() && serialMotor->motor()->isConnected() )
+      wrt += " " + QString::number(serialMotor->motor()->getUserPosition());
+    wrt += " " + QString::number(thetaMotor->motor()->getUserPosition());
+    if ( ui->checkFF->isChecked() && ui->nofBGs->value() && bgMotor->motor()->isConnected() )
+      wrt += " " + QString::number(bgMotor->motor()->getUserPosition());
+    if ( ui->checkMulti->isChecked() && loopMotor->motor()->isConnected() )
+      wrt += " " + QString::number(loopMotor->motor()->getUserPosition());
+    if ( ui->checkMulti->isChecked() &&
+         ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected() )
+      wrt += " " + QString::number(subLoopMotor->motor()->getUserPosition());
+    accumulatedLog.push_back(wrt);
+
+  } else
+
+    accumulatedLog.clear();
 
 }
 
@@ -2493,13 +2294,46 @@ void MainWindow::engineRun () {
       seriesDigs = QString::number(totalScans).size(),
       doAdd = ui->scanAdd->isChecked() ? 1 : 0;
 
-
   totalScans = doSerial ?
     ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ;
   totalProjections = ui->scanProjections->value();
 
-
-  recordLog();
+  // Log header
+  QString wrt = "# Starting acquisition. " + QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz");
+  logFile->write((wrt+"\n").toAscii());
+  logFile->write("# Initial values:\n");
+  wrt = "#   Working directory: " + QDir::currentPath();
+  logFile->write((wrt+"\n").toAscii());
+  wrt = "#   Detector saving path: " + det->path();
+  logFile->write((wrt+"\n").toAscii());
+  if ( doSerial && serialMotor->motor()->isConnected() ) {
+    wrt = "#   Serial motor position: " + QString::number(serialMotor->motor()->getUserPosition());
+    logFile->write((wrt+"\n").toAscii());
+  }
+  wrt = "#   Theta motor position: " + QString::number(thetaMotor->motor()->getUserPosition());
+  logFile->write((wrt+"\n").toAscii());
+  if (doBG && bgMotor->motor()->isConnected()) {
+    wrt = "#   Background motor position: " + QString::number(bgMotor->motor()->getUserPosition());
+    logFile->write((wrt+"\n").toAscii());
+  }
+  if ( ui->checkMulti->isChecked() && loopMotor->motor()->isConnected() ) {
+    wrt = "#   Loop motor position: " + QString::number(loopMotor->motor()->getUserPosition());
+    logFile->write((wrt+"\n").toAscii());
+  }
+  if ( ui->checkMulti->isChecked() &&
+       ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected() ) {
+    wrt = "#   Sub-loop motor position: " + QString::number(subLoopMotor->motor()->getUserPosition());
+    logFile->write((wrt+"\n").toAscii());
+  }
+  if ( ui->checkDyno->isChecked() && dynoMotor->motor()->isConnected() ) {
+    wrt = "#   Dyno motor position: " + QString::number(dynoMotor->motor()->getUserPosition());
+    logFile->write((wrt+"\n").toAscii());
+  }
+  if ( ui->checkDyno->isChecked() && ui->dyno2->isChecked() && dyno2Motor->motor()->isConnected() ) {
+    wrt = "#   Dyno 2 motor position: " + QString::number(dyno2Motor->motor()->getUserPosition());
+    logFile->write((wrt+"\n").toAscii());
+  }
+  // end logheader
 
   stopMe = false;
   inCT = true;
@@ -2758,251 +2592,3 @@ onEngineExit:
 
 
 
-
-
-/*
-void MainWindow::engineCore () {
-
-  const double
-      serialStart =  serialMotor->motor()->getUserPosition(),
-      thetaStart = thetaMotor->motor()->getUserPosition(),
-      thetaRange = ui->scanRange->value(),
-      thetaSpeed = thetaMotor->motor()->getNormalSpeed();
-  double thetaInSeriesStart = thetaStart;
-  const bool
-      doSerial = ui->checkSerial->isChecked(),
-      doBG = ui->checkFF->isChecked() && ui->nofBGs->value(),
-      bgBefore = ui->bgIntervalBefore->isChecked(),
-      bgAfter = ui->bgIntervalAfter->isChecked(),
-      dfBefore = ui->dfIntervalBefore->isChecked(),
-      dfAfter = ui->dfIntervalAfter->isChecked(),
-      doDF = ui->checkFF->isChecked() && ui->nofDFs->value(),
-      ongoingSeries = doSerial && ui->ongoingSeries->isChecked();
-  const int
-      bgInterval = ui->bgInterval->value(),
-      dfInterval = ui->dfInterval->value(),
-      scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
-      scanTime = QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ),
-      projectionDigs = QString::number(totalProjections).size(),
-      seriesDigs = QString::number(totalScans).size(),
-      doAdd = ui->scanAdd->isChecked() ? 0 : 1;
-
-  totalScans = doSerial ?
-    ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ;
-  totalProjections = ui->scanProjections->value();
-
-  inCTtime.restart();
-  currentScan=0;
-  bool timeToStop=false;
-
-  int
-      beforeBG = 0,
-      beforeDF = 0;
-
-  ui->preRunScript->execute();
-  if (stopMe) return;
-
-  do { // serial scanning
-
-    qDebug() << "SERIES" << currentScan;
-
-    if (doSerial  && serialMotor->motor()->isConnected())
-      serialMotor->motor()->wait_stop();
-
-    if (stopMe) return;
-
-    ui->preScanScript->execute();
-
-    if (stopMe) return;
-
-    QString seriesName;
-    if (totalScans==1)
-      seriesName = "";
-    else if (totalScans>1)
-      seriesName = QString("_Z%1").arg(currentScan, seriesDigs, 10, QChar('0') );
-    else
-      seriesName = "_Z" + QString::number(currentScan);
-
-    if (ui->stepAndShotMode->isChecked()) { // STEP-AND-SHOT
-
-      currentProjection = 0;
-      if ( ! ongoingSeries ) {
-        beforeBG=0;
-        beforeDF=0;
-      }
-      QString projectionName;
-
-      do {
-
-        projectionName = seriesName +
-            QString("_T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
-
-        if (doDF && ! beforeDF) {
-          acquireDF(projectionName);
-          beforeDF = dfInterval;
-          if (stopMe) return;
-        }
-        beforeDF--;
-        // sh1A->open(true);
-        if (doBG && ! beforeBG) {
-          acquireBG(projectionName);
-          beforeBG = bgInterval;
-          if (stopMe) return;
-        }
-        beforeBG--;
-
-        thetaMotor->motor()->wait_stop();
-        if ( ! currentProjection )
-          thetaInSeriesStart = ongoingSeries ?
-                thetaMotor->motor()->getUserPosition() :
-                thetaStart;
-        if (stopMe) return;
-
-        qDebug() << currentProjection << projectionName;
-        acquireProjection(projectionName);
-        if (stopMe) return;
-
-        currentProjection++;
-        if ( currentProjection < totalProjections + doAdd ) {
-          qDebug() << thetaMotor->motor()->isConnected() << thetaMotor;
-          thetaMotor->motor()->goUserPosition
-              ( thetaInSeriesStart + thetaRange * currentProjection / totalProjections, QCaMotor::STARTED);
-        } else if ( ! ongoingSeries )
-          thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
-        if (stopMe) return;
-
-      } while ( currentProjection < totalProjections + doAdd );
-
-      if (doBG && ! beforeBG) {
-        acquireBG(projectionName);
-        if (stopMe) return;
-        beforeBG = bgInterval;
-      }
-      if ( doDF && ! beforeDF ) {
-        acquireDF(projectionName);
-        if (stopMe) return;
-        beforeDF = dfInterval;
-      }
-
-    } else { // CONTINIOUS
-
-      if ( doDF && dfBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-        acquireDF(seriesName + "_BEFORE");
-        if (stopMe) return;
-      }
-      if ( doBG  && bgBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-        acquireBG(seriesName + "_BEFORE");
-        if (stopMe) return;
-      }
-
-      const double speed = ui->rotSpeed->value();
-      const double accTime = thetaMotor->motor()->getAcceleration();
-      const double accTravel = speed * accTime / 2;
-      const double rotDir = copysign(1,ui->scanRange->value());
-
-      double period = qAbs(thetaRange) / (totalProjections * speed);
-      if (det->period() != period)
-        det->setPeriod(period);
-      prepareDetector(seriesName, totalProjections + doAdd);
-      if (stopMe) return;
-
-      if ( ! ongoingSeries || ! currentScan ) {
-
-        thetaMotor->motor()->wait_stop();
-        if (stopMe) return;
-
-        // 2 coefficient in the below string is required to quarantee that the
-        // motor has accelerated to the normal speed before the acquisition starts.
-        thetaMotor->motor()->goRelative( -2*rotDir*accTravel, QCaMotor::STOPPED);
-        if (stopMe) return;
-
-        setMotorSpeed(thetaMotor, speed);
-        if (stopMe) return;
-
-        // 1.1 coefficient in the below string is required to guarantee that the
-        // motor does not stop before all images are acquired. Perhaps redundant
-        // and can be decreased, but more tests are needed.
-        thetaMotor->motor()->goLimit(rotDir, QCaMotor::STARTED);
-        if (stopMe) return;
-
-        // accTravel/speed in the below string is required to compensate the coefficient 2
-        // two strings above.
-        qtWait(1000*(accTime + accTravel/speed));
-        if (stopMe) return;
-
-      }
-
-      det->start();
-      if (stopMe) return;
-      det->waitDone();
-      if (stopMe) return;
-
-      if ( ! ongoingSeries ) {
-
-        thetaMotor->motor()->stop(QCaMotor::STOPPED);
-        if (stopMe) return;
-        setMotorSpeed(thetaMotor, thetaSpeed);
-        thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
-        if (stopMe) return;
-
-        if ( doBG  && bgAfter && ui->ffOnEachScan->isChecked() ) {
-          acquireBG(seriesName + "_AFTER");
-          if (stopMe) return;
-        }
-        if ( doDF && dfAfter && ui->ffOnEachScan->isChecked() ) {
-          acquireDF(seriesName + "_AFTER");
-          if (stopMe) return;
-        }
-
-      }
-
-
-
-    }
-
-    if (stopMe) return;
-    ui->postScanScript->execute();
-    currentProjection = -1;
-    if (stopMe) return;
-
-    currentScan++;
-    if ( ui->endNumber->isChecked() )
-      timeToStop = currentScan >= totalScans;
-    else if (ui->endTime->isChecked())
-      timeToStop = inCTtime.elapsed() + scanDelay >= scanTime;
-    else if (ui->endCondition->isChecked())
-      timeToStop = ui->conditionScript->execute();
-    else
-      timeToStop = true;
-
-    if ( ! timeToStop ) {
-      if (doSerial  && serialMotor->motor()->isConnected())
-        serialMotor->motor()->goUserPosition
-            ( serialStart + currentScan * ui->serialStep->value(), QCaMotor::STARTED);
-      if (stopMe) return;
-      qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
-    }
-    if (stopMe) return;
-
-    if ( timeToStop && ! ui->stepAndShotMode->isChecked() && ongoingSeries ) {
-      if ( doBG && bgAfter && ! ui->ffOnEachScan->isChecked() ) {
-        acquireBG(seriesName + "_AFTER");
-        if (stopMe) return;
-      }
-      if ( doDF && dfAfter && ! ui->ffOnEachScan->isChecked() ) {
-        acquireDF(seriesName + "_AFTER");
-        if (stopMe) return;
-      }
-    }
-
-
-  } while ( ! timeToStop );
-
-  ui->postRunScript->execute();
-  //sh1A->close();
-  qDebug() << "SH CLOSE";
-
-
-}
-
-*/

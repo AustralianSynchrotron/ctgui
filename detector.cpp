@@ -161,6 +161,7 @@ void Detector::updateName() {
 void Detector::updateLastName() {
   _lastName = fromVList(lastNamePv->get());
   emit lastNameChanged(_lastName);
+  _names.push_back(_lastName);
 }
 
 void Detector::updateNameTemplate() {
@@ -170,8 +171,12 @@ void Detector::updateNameTemplate() {
 
 
 void Detector::updateCounter() {
-  if ( counterPv->isConnected() )
-    emit counterChanged(counterPv->get().toInt());
+  if ( ! counterPv->isConnected() )
+    return;
+  int cnt = counterPv->get().toInt();
+  emit counterChanged(cnt);
+  if ( ! cnt )
+    _names.clear();
 }
 
 void Detector::updateAcq() {

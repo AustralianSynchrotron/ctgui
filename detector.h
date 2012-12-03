@@ -53,6 +53,9 @@ private:
   QString _path;
   bool writeExpected;
 
+  QStringList _names;
+
+
 public:
 
   Detector(QObject * parent=0);
@@ -78,6 +81,7 @@ public:
   inline bool isAcquiring() const {return aqPv->get().toInt();}
   inline bool isWriting() const {return writeStatusPv->get().toInt();}
   inline bool isConnected() const {return _con;}
+  inline const QStringList & namesStored() {return _names;}
 
   void waitDone();
   void waitWritten();

@@ -21,7 +21,6 @@
 
 namespace Ui {
   class MainWindow;
-  class HelpDialog;
 }
 
 
@@ -37,19 +36,11 @@ public:
 
 private:
 
-  static QHash<QString,QString> envDesc;
-
   static const QString storedState;
   bool isLoadingState;
 
-  static const bool inited;
-  static bool init();
 
   Ui::MainWindow *ui;
-  Ui::HelpDialog *hui;
-
-  QDialog *hDialog;
-
 
   Shutter1A * sh1A;
   QCaMotorGUI * serialMotor;
@@ -65,15 +56,9 @@ private:
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <const QObject*,  ReqP > preReq;
 
-  QString setAqFileEnv(const QLineEdit * edt, const QString & var);
 
   void check(QWidget * obj, bool status);
 
-  void errorOnScan(const QString & msg) {
-    qDebug() << msg;
-  }
-
-  //void engineCore();
   void engineRun();
 
 
@@ -106,22 +91,6 @@ private:
   void appendMessage(MsgType tp, const QString& msg);
   void logMessage(const QString& msg);
 
-  void setEnv(const char * var, const char * val);
-
-  inline void setEnv(const char * var, const QString & val) {
-    setEnv(var, (const char*) val.toAscii());
-  }
-
-  inline void setEnv(const QString & var, const QString & val) {
-    setEnv((const char*) var.toAscii(), (const char*) val.toAscii());
-  }
-
-  template<class NUM> inline void setEnv(const char * var, NUM val) {
-    setEnv(var, QString::number(val));
-  }
-
-  QWidget * insertVariableIntoMe;
-
   bool prepareDetector(const QString & filetemplate, int count=1);
   int acquireDetector();
   int acquireDetector(const QString & filetemplate, int count=1);
@@ -132,6 +101,7 @@ private:
   int acquireProjection(const QString &filetemplate);
 
   QFile * logFile;
+  QStringList accumulatedLog;
 
   void stopAll();
 
@@ -196,14 +166,10 @@ private slots:
 
   void updateProgress();
 
-
-
-
-  //void onHelpClecked(int row);
-
-
   void onStartStop();
   void recordLog(const QString & message=QString());
+  void accumulateLog();
+
 
 signals:
 

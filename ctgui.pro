@@ -38,7 +38,6 @@ HEADERS  += ctgui_mainwindow.h \
     detector.h
 
 FORMS    += ctgui_mainwindow.ui \
-    ctgui_variables.ui \
     script.ui
 
 RESOURCES += \
