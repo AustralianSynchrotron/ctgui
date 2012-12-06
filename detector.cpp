@@ -260,6 +260,20 @@ bool Detector::setName(const QString & fname) {
 
 
 
+bool Detector::setAutoSave(bool autoSave) {
+  if ( ! autoSavePv->isConnected() )
+    return false;
+  if ( autoSavePv->get().toBool() != autoSave ) {
+    autoSavePv->set(autoSave ? 1 : 0);
+    qtWait(autoSavePv, SIGNAL(valueUpdated(QVariant)), 500);
+    if ( autoSavePv->get().toBool() != autoSave )
+      return false;
+  }
+  return true;
+}
+
+
+
 bool Detector::prepareForAcq() {
   if ( ! fileNumberPv->isConnected() || ! autoSavePv->isConnected() || isAcquiring() )
     return false;

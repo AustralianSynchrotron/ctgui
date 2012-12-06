@@ -96,6 +96,7 @@ public slots:
   void stop();
   bool acquire();
   bool prepareForAcq();
+  bool setAutoSave(bool autoSave);
 
 signals:
 

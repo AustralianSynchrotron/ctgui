@@ -1436,6 +1436,7 @@ void MainWindow::onFFtest() {
     acquireBG(".test");
     acquireDF(".test", sh1A->state());
     check(ui->testFF, true);
+    det->setAutoSave(false);
     ui->ffWidget->setEnabled(true);
     inFFTest=false;
     ui->testFF->setText("Test");
@@ -1455,6 +1456,7 @@ void MainWindow::onLoopTest() {
     acquireMulti(".test");
     check(ui->testMulti, true);
     inMultiTest=false;
+    det->setAutoSave(false);
     ui->testMulti->setText("Test");
     QTimer::singleShot(0, this, SLOT(updateUi_loopMotor()));
     QTimer::singleShot(0, this, SLOT(updateUi_subLoopMotor()));
@@ -1472,6 +1474,7 @@ void MainWindow::onDynoTest() {
     acquireDyno(".test");
     check(ui->testDyno, true);
     inDynoTest=false;
+    det->setAutoSave(false);
     ui->testDyno->setText("Test");
     QTimer::singleShot(0, this, SLOT(updateUi_dynoMotor()));
     QTimer::singleShot(0, this, SLOT(updateUi_dyno2Motor()));
@@ -1512,6 +1515,7 @@ void MainWindow::onDetectorTest() {
                       ui->aqsPP->value() : 1);
     check(ui->testDetector, true);
     inAcquisitionTest=false;
+    det->setAutoSave(false);
     ui->testDetector->setText("Test");
     updateUi_detector();
   }
@@ -1625,7 +1629,7 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
 
   det->waitWritten();
   const int accSize = accumulatedLog.size();
-  qDebug() << accumulatedLog << det->namesStored();
+  qDebug() << accumulatedLog.size() << det->namesStored().size();
   if ( logFile && logFile->isWritable() &&
        accSize &&   det->namesStored().size() == accSize ) { // flush log
     for( int curl=0 ; curl < accSize ; curl++ ) {
@@ -2572,7 +2576,7 @@ onEngineExit:
     continue;
   det->waitWritten();
   const int accSize = accumulatedLog.size();
-  qDebug() << accumulatedLog << det->namesStored();
+  qDebug() << accumulatedLog.size() << det->namesStored().size();
   if ( logFile && logFile->isWritable() &&
        accSize &&   det->namesStored().size() == accSize ) { // flush log
     for( int curl=0 ; curl < accSize ; curl++ ) {
@@ -2589,6 +2593,9 @@ onEngineExit:
   currentScan = -1;
   currentProjection = -1;
   inCT = false;
+
+  det->setName(".temp") ;
+  det->setAutoSave(false);
 
   QTimer::singleShot(0, this, SLOT(updateUi_thetaMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
