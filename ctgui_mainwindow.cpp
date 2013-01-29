@@ -11,7 +11,6 @@
 #include "ctgui_mainwindow.h"
 
 #include "ui_ctgui_mainwindow.h"
-#include "ui_ctgui_variables.h"
 
 
 
