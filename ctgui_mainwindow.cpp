@@ -2275,6 +2275,8 @@ void MainWindow::engineRun () {
       configName = "acquisition." + QString::number(++attempt) + ".configuration";
   saveConfiguration(configName);
 
+  totalProjections = ui->scanProjections->value();
+
   const double
       serialStart =  serialMotor->motor()->getUserPosition(),
       bgStart =  bgMotor->motor()->getUserPosition(),
@@ -2302,7 +2304,6 @@ void MainWindow::engineRun () {
 
   totalScans = doSerial ?
     ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ;
-  totalProjections = ui->scanProjections->value();
 
   // Log header
   QString wrt = "# Starting acquisition. " + QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz");
