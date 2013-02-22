@@ -121,6 +121,7 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_bgInterval();
   updateUi_dfInterval();
   updateUi_bgMotor();
+  updateUi_shutterStatus();
   updateUi_loopStep();
   updateUi_loopMotor();
   updateUi_subLoopStep();
@@ -221,9 +222,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
 
   updateProgress();
-
-  setenv("SERIALMOTORPV", "", 1);
-  setenv("CURRENTZ", "0", 1);
 
 }
 
@@ -1138,7 +1136,7 @@ void MainWindow::updateUi_dynoSpeed() {
 
   if ( ui->dynoSpeed->value()==0.0 )
     ui->dynoSpeed->setValue(dynoMotor->motor()->getNormalSpeed());
-  ui->dynoSpeed->setSuffix(dynoMotor->motor()->getUnits());
+  ui->dynoSpeed->setSuffix(dynoMotor->motor()->getUnits()+"/s");
   ui->dynoSpeed->setDecimals(dynoMotor->motor()->getPrecision());
 
 
@@ -1205,7 +1203,7 @@ void MainWindow::updateUi_dyno2Speed() {
 
   if ( ui->dyno2Speed->value()==0.0 )
     ui->dyno2Speed->setValue(dyno2Motor->motor()->getNormalSpeed());
-  ui->dyno2Speed->setSuffix(dyno2Motor->motor()->getUnits());
+  ui->dyno2Speed->setSuffix(dyno2Motor->motor()->getUnits()+"/s");
   ui->dyno2Speed->setDecimals(dyno2Motor->motor()->getPrecision());
   ui->dyno2Speed->setMaximum(dyno2Motor->motor()->getMaximumSpeed());
   ui->dyno2Speed->setDisabled(ui->dynoSpeedLock->isChecked());
@@ -1487,15 +1485,18 @@ void MainWindow::onDetectorSelection() {
   const QString currentText = ui->detSelection->currentText();
   if (currentText.isEmpty()) {
     det->setCamera(Detector::NONE);
+    setenv("DETECTORPV", det->pv().toAscii(), 1);
     return;
   } else {
     foreach (Detector::Camera cam , Detector::knownCameras)
       if (currentText==Detector::cameraName(cam)) {
         det->setCamera(cam);
+        setenv("DETECTORPV", det->pv().toAscii(), 1);
         return;
       }
   }
   det->setCamera(currentText);
+  setenv("DETECTORPV", det->pv().toAscii(), 1);
 }
 
 
@@ -1827,7 +1828,11 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
 
   for ( currentLoop = 0; currentLoop < totalLoops; currentLoop++) {
 
+    setenv("CURRENTLOOP", QString::number(currentLoop).toAscii(), 1);
+
     for ( currentSubLoop = 0; currentSubLoop < totalSubLoops; currentSubLoop++) {
+
+      setenv("CURRENTSUBLOOP", QString::number(currentLoop).toAscii(), 1);
 
       if (moveLoop)
         loopMotor->motor()->wait_stop();
@@ -2064,6 +2069,7 @@ void MainWindow::updateProgress () {
 
 int MainWindow::acquireProjection(const QString &filetemplate) {
   QString ftemplate = "SAMPLE" + filetemplate;
+  setenv("CONTRASTTYPE", "SAMPLE", 1);
   if (ui->checkMulti->isChecked())
     return acquireMulti(ftemplate, ui->aqsPP->value());
   else if (ui->checkDyno->isChecked())
@@ -2083,6 +2089,7 @@ int MainWindow::acquireBG(const QString &filetemplate) {
     return ret;
 
   QString ftemplate = "BG"+filetemplate;
+  setenv("CONTRASTTYPE", "BG", 1);
 
   bgMotor->motor()->wait_stop();
   const double bgStart = bgMotor->motor()->getUserPosition();
@@ -2123,9 +2130,10 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
   if ( ! sh1A->isEnabled() && shState != Shutter1A::CLOSED )
     return -1 ;
 
+  setenv("CONTRASTTYPE", "DF", 1);
+
   if (shState != Shutter1A::CLOSED)
     sh1A->close(true);
-    //qDebug() << "SH CLOSE";
   if (stopMe) goto onDfExit;
 
   det->setPeriod(0);
@@ -2362,8 +2370,7 @@ void MainWindow::engineRun () {
 
   do { // serial scanning
 
-    qDebug() << "SERIES" << currentScan;
-    setenv("CURRENTZ", QString::number(currentScan).toAscii(), 1);
+    setenv("CURRENTSCAN", QString::number(currentScan).toAscii(), 1);
 
     if (doSerial  && serialMotor->motor()->isConnected())
       serialMotor->motor()->wait_stop();
@@ -2392,6 +2399,8 @@ void MainWindow::engineRun () {
       QString projectionName;
 
       do {
+
+        setenv("CURRENTPROJECTION", QString::number(currentProjection).toAscii(), 1);
 
         projectionName = seriesName +
             QString("_T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
@@ -2459,7 +2468,7 @@ void MainWindow::engineRun () {
       double period = qAbs(thetaRange) / (totalProjections * speed);
       if (det->period() != period)
         det->setPeriod(period);
-      prepareDetector("SAMPLE"+seriesName, totalProjections + doAdd);
+      prepareDetector("SAMPLE"+seriesName+"_T", totalProjections + doAdd);
       if (stopMe) goto onEngineExit;
 
       if ( ! ongoingSeries || ! currentScan ) {
