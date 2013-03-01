@@ -92,6 +92,7 @@ public slots:
   bool setNumber(int val);
   bool setName(const QString & fname);
   bool setNameTemplate(const QString & ntemp);
+  bool setHardwareTriggering(bool set);
   bool start();
   void stop();
   bool acquire();

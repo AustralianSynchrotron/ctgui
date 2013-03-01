@@ -14,6 +14,7 @@
 
 #include <imbl/shutter1A.h>
 #include "detector.h"
+#include "triggct.h"
 
 
 
@@ -52,6 +53,8 @@ private:
   QCaMotorGUI * dyno2Motor;
 
   Detector * det;
+
+  TriggCT * tct;
 
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <const QObject*,  ReqP > preReq;
@@ -113,6 +116,7 @@ private slots:
   void storeCurrentState();
 
   void updateUi_expPath();
+  void updateUi_triggCT();
 
   void updateUi_checkDyno();
   void updateUi_checkMulti();

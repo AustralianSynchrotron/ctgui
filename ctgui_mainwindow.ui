@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>911</width>
+    <width>980</width>
     <height>647</height>
    </rect>
   </property>
@@ -25,7 +25,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>3</number>
+       <number>1</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -204,17 +204,35 @@
            </widget>
           </item>
           <item>
-           <widget class="QRadioButton" name="continiousMode">
-            <property name="toolTip">
-             <string>Continious mode</string>
-            </property>
-            <property name="text">
-             <string>Continious</string>
-            </property>
-            <attribute name="buttonGroup">
-             <string notr="true">aqModeButtonGroup</string>
-            </attribute>
-           </widget>
+           <layout class="QHBoxLayout" name="horizontalLayout_12">
+            <item>
+             <widget class="QRadioButton" name="continiousMode">
+              <property name="toolTip">
+               <string>Continious mode</string>
+              </property>
+              <property name="text">
+               <string>Continious (</string>
+              </property>
+              <attribute name="buttonGroup">
+               <string notr="true">aqModeButtonGroup</string>
+              </attribute>
+             </widget>
+            </item>
+            <item>
+             <widget class="QCheckBox" name="triggCT">
+              <property name="text">
+               <string>hardware triggered</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_11">
+              <property name="text">
+               <string>)</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </item>
          </layout>
         </item>
@@ -1917,8 +1935,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>911</width>
-     <height>26</height>
+     <width>980</width>
+     <height>29</height>
     </rect>
    </property>
   </widget>

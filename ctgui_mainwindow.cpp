@@ -101,6 +101,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
   sh1A = new Shutter1A(ui->tabFF);
 
+  tct = new TriggCT(this);
+  tct->setPrefix("CTTEST:");
+
   updateUi_expPath();
   updateUi_checkDyno();
   updateUi_checkMulti();
@@ -131,6 +134,8 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_dyno2Speed();
   updateUi_dyno2Motor();
   updateUi_detector();
+  updateUi_triggCT();
+
 
   onAcquisitionMode();
   onSerialCheck();
@@ -588,6 +593,25 @@ void MainWindow::updateUi_expPath() {
     QDir::setCurrent(txt);
 
   check(ui->expPath, isOK);
+
+}
+
+void MainWindow::updateUi_triggCT() {
+  if ( ! sender() ) { // called from the constructor;
+    const char* thisSlot = SLOT(updateUi_triggCT());
+    connect( tct, SIGNAL(connectionChanged(bool)), thisSlot);
+    connect( tct, SIGNAL(runningChanged(bool)), thisSlot);
+    connect( ui->continiousMode, SIGNAL(toggled(bool)), thisSlot);
+  }
+
+  bool isOK =
+      ! ui->continiousMode->isChecked()  ||
+      ! ui->triggCT->isChecked()  ||
+      ( tct->isConnected()  &&  ! tct->isRunning() );
+  check(ui->triggCT, isOK);
+
+  ui->triggCT->setEnabled( ui->continiousMode->isChecked() &&
+                           ( ui->triggCT->isChecked() || tct->isConnected() ) );
 
 }
 
@@ -2300,7 +2324,8 @@ void MainWindow::engineRun () {
       dfBefore = ui->dfIntervalBefore->isChecked(),
       dfAfter = ui->dfIntervalAfter->isChecked(),
       doDF = ui->checkFF->isChecked() && ui->nofDFs->value(),
-      ongoingSeries = doSerial && ui->ongoingSeries->isChecked();
+      ongoingSeries = doSerial && ui->ongoingSeries->isChecked(),
+      doTriggCT = ui->continiousMode->isChecked() && ui->triggCT->isChecked();
   const int
       bgInterval = ui->bgInterval->value(),
       dfInterval = ui->dfInterval->value(),
@@ -2471,7 +2496,17 @@ void MainWindow::engineRun () {
       prepareDetector("SAMPLE"+seriesName+"_T", totalProjections + doAdd);
       if (stopMe) goto onEngineExit;
 
-      if ( ! ongoingSeries || ! currentScan ) {
+      if (doTriggCT) {
+        thetaMotor->motor()->wait_stop();
+        if (stopMe) goto onEngineExit;
+        const double curpos = thetaMotor->motor()->getUserPosition();
+        tct->setStartPosition(curpos, true);
+        tct->setStopPosition(curpos + ui->scanRange->value(), true);
+        tct->setStep(ui->scanRange->value()/ui->scanProjections->value(), true);
+        det->setHardwareTriggering(true);
+      }
+
+      if ( ! ongoingSeries || ! currentScan || doTriggCT ) {
 
         thetaMotor->motor()->wait_stop();
         if (stopMe) goto onEngineExit;
@@ -2497,6 +2532,8 @@ void MainWindow::engineRun () {
 
       }
 
+      if (doTriggCT)
+        tct->start();
       det->start();
       if (stopMe) goto onEngineExit;
       det->waitDone();

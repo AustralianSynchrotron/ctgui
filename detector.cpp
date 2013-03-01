@@ -306,6 +306,16 @@ bool Detector::prepareForAcq() {
 }
 
 
+bool Detector::setHardwareTriggering(bool set) {
+  if ( ! triggerModePv->isConnected() )
+    return false;
+  const int mode = set ? 1 : 0 ;
+  triggerModePv->set(mode);
+  qtWait(triggerModePv, SIGNAL(valueUpdated(QVariant)), 500);
+  return triggerModePv->get().toInt() == mode;
+}
+
+
 bool Detector::start() {
   if ( ! aqPv->isConnected() || ! writeStatusPv->isConnected() || isAcquiring() )
     return false;

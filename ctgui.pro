@@ -13,7 +13,8 @@ TEMPLATE = app
 SOURCES += main.cpp\
         ctgui_mainwindow.cpp \
     additional_classes.cpp \
-    detector.cpp
+    detector.cpp \
+    triggct.cpp
 
 IMBLEXEC   = $$system(command -v imblgui)
 IMBLORIGIN = $$dirname(IMBLEXEC)
@@ -35,7 +36,8 @@ LIBS +=     -lqtpv -lqtpvwidgets \
 
 HEADERS  += ctgui_mainwindow.h \
     additional_classes.h \
-    detector.h
+    detector.h \
+    triggct.h
 
 FORMS    += ctgui_mainwindow.ui \
     script.ui
