@@ -4,6 +4,24 @@
 #include <QFileDialog>
 #include <QTimer>
 
+QSCheckBox::QSCheckBox(QWidget * parent) :
+  QCheckBox(parent) {}
+
+
+
+bool QSCheckBox::hitButton ( const QPoint & pos ) const  {
+  QStyleOptionButton opt;
+  initStyleOption(&opt);
+  return style()
+      ->subElementRect(QStyle::SE_CheckBoxIndicator, &opt, this)
+      .contains(pos);
+}
+
+
+
+
+
+
 
 typedef QPair<QGridLayout*, int> GridColumnInfo;
 

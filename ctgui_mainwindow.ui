@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>980</width>
-    <height>647</height>
+    <height>632</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -25,7 +25,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>4</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -106,7 +106,7 @@
         <item row="4" column="0" colspan="2">
          <layout class="QGridLayout" name="gridLayout_6">
           <item row="2" column="1">
-           <widget class="QCheckBox" name="checkMulti">
+           <widget class="QSCheckBox" name="checkMulti">
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Visible only in the SaS mode. Always unchecked in the continious mode. Hides/shows &amp;quot;Multishot&amp;quot; tab. If unchecked, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalLoops&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalSubLoops&lt;/span&gt;=0. Otherwise the parametrs are defined in the &amp;quot;Multishot&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
@@ -116,7 +116,7 @@
            </widget>
           </item>
           <item row="1" column="0">
-           <widget class="QCheckBox" name="checkSerial">
+           <widget class="QSCheckBox" name="checkSerial">
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, &amp;quot;Serial&amp;quot; tab is hidden, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalScans&lt;/span&gt;=1 and &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;=&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;NUMBER&lt;/span&gt;. Otherwise the parameters are defined in the &amp;quot;Serial&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
@@ -126,7 +126,7 @@
            </widget>
           </item>
           <item row="1" column="1">
-           <widget class="QCheckBox" name="checkFF">
+           <widget class="QSCheckBox" name="checkFF">
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Hides/shows &amp;quot;Flat field&amp;quot; tab. If unchecked, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;BGstep&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DFstep&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalBGs&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalDFs&lt;/span&gt;=0. Otherwise the parametrs are defined in the &amp;quot;Flat field&amp;quot; tab&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
@@ -136,7 +136,7 @@
            </widget>
           </item>
           <item row="2" column="0">
-           <widget class="QCheckBox" name="checkDyno">
+           <widget class="QSCheckBox" name="checkDyno">
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynamicShot&lt;/span&gt;. Visible only in the SaS mode. Always unchecked in the continious mode. Hides/shows &amp;quot;Dynamic shot&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
@@ -211,7 +211,7 @@
                <string>Continious mode</string>
               </property>
               <property name="text">
-               <string>Continious (</string>
+               <string>Continious</string>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">aqModeButtonGroup</string>
@@ -219,7 +219,14 @@
              </widget>
             </item>
             <item>
-             <widget class="QCheckBox" name="triggCT">
+             <widget class="QLabel" name="label_21">
+              <property name="text">
+               <string>(</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QSCheckBox" name="triggCT">
               <property name="text">
                <string>hardware triggered</string>
               </property>
@@ -308,7 +315,13 @@
          </widget>
         </item>
         <item row="7" column="0" colspan="2">
-         <widget class="QCheckBox" name="ffOnEachScan">
+         <widget class="QSCheckBox" name="ffOnEachScan">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;OngoingSeries. &lt;/span&gt;Visible if continious mode is selected and &amp;quot;flat field&amp;quot; feature is checked in the &amp;quot;Configuration&amp;quot; tab. Hidden otherwise. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -321,6 +334,12 @@
          <layout class="QHBoxLayout" name="horizontalLayout_4">
           <item>
            <widget class="QRadioButton" name="endNumber">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;=&lt;/span&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;NUMBER&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
@@ -337,6 +356,12 @@
           </item>
           <item>
            <widget class="QRadioButton" name="endTime">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;=&lt;/span&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;TIME&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
@@ -350,6 +375,12 @@
           </item>
           <item>
            <widget class="QRadioButton" name="endCondition">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;=&lt;/span&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;MANUAL&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
             </property>
@@ -399,15 +430,14 @@
         <item row="3" column="1">
          <widget class="Script" name="conditionScript" native="true"/>
         </item>
-        <item row="9" column="1">
-         <widget class="QVariantLabel" name="serialCurrent">
-          <property name="text">
-           <string>serialCurrent</string>
-          </property>
-         </widget>
-        </item>
         <item row="6" column="0" colspan="2">
-         <widget class="QCheckBox" name="ongoingSeries">
+         <widget class="QSCheckBox" name="ongoingSeries">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;OngoingSeries. &lt;/span&gt;Visible in continious mode. Hidden otherwise. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -544,6 +574,13 @@
           </property>
          </widget>
         </item>
+        <item row="9" column="1">
+         <widget class="QVariantLabel" name="serialCurrent">
+          <property name="text">
+           <string>serialCurrent</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="tabScan">
@@ -640,7 +677,7 @@
          </widget>
         </item>
         <item row="6" column="0" colspan="5">
-         <widget class="QCheckBox" name="scanAdd">
+         <widget class="QSCheckBox" name="scanAdd">
           <property name="toolTip">
            <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DoEndProj&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
           </property>
@@ -976,7 +1013,7 @@
            <item row="3" column="1">
             <widget class="QStackedWidget" name="bgIntervalWdg">
              <property name="currentIndex">
-              <number>1</number>
+              <number>0</number>
              </property>
              <widget class="QWidget" name="bgIntervalContinious">
               <layout class="QHBoxLayout" name="horizontalLayout_7">
@@ -987,14 +1024,14 @@
                 <number>0</number>
                </property>
                <item>
-                <widget class="QCheckBox" name="bgIntervalBefore">
+                <widget class="QSCheckBox" name="bgIntervalBefore">
                  <property name="text">
                   <string>Before</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="bgIntervalAfter">
+                <widget class="QSCheckBox" name="bgIntervalAfter">
                  <property name="text">
                   <string>After</string>
                  </property>
@@ -1030,7 +1067,7 @@
            <item row="12" column="1">
             <widget class="QStackedWidget" name="dfIntervalWdg">
              <property name="currentIndex">
-              <number>1</number>
+              <number>0</number>
              </property>
              <widget class="QWidget" name="dfIntervalContinious">
               <layout class="QHBoxLayout" name="horizontalLayout_9">
@@ -1041,14 +1078,14 @@
                 <number>0</number>
                </property>
                <item>
-                <widget class="QCheckBox" name="dfIntervalBefore">
+                <widget class="QSCheckBox" name="dfIntervalBefore">
                  <property name="text">
                   <string>Before</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="dfIntervalAfter">
+                <widget class="QSCheckBox" name="dfIntervalAfter">
                  <property name="text">
                   <string>After</string>
                  </property>
@@ -1125,7 +1162,7 @@
          <widget class="QWidget" name="multiWidget" native="true">
           <layout class="QGridLayout" name="gridLayout_7">
            <item row="0" column="0" colspan="2">
-            <widget class="QCheckBox" name="singleBg">
+            <widget class="QSCheckBox" name="singleBg">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;SameBG&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
@@ -1250,7 +1287,7 @@
             </widget>
            </item>
            <item row="9" column="0" colspan="2">
-            <widget class="QCheckBox" name="subLoop">
+            <widget class="QSCheckBox" name="subLoop">
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;TotalSubLoops&lt;/span&gt;=0 if uncheked. Enables/disables the widgets below related to the sub-loop execution.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
@@ -1488,7 +1525,7 @@
             </widget>
            </item>
            <item row="5" column="0">
-            <widget class="QCheckBox" name="dyno2">
+            <widget class="QSCheckBox" name="dyno2">
              <property name="text">
               <string>Use Second motor</string>
              </property>
@@ -1516,7 +1553,7 @@
             </widget>
            </item>
            <item row="8" column="1">
-            <widget class="QCheckBox" name="dynoSpeedLock">
+            <widget class="QSCheckBox" name="dynoSpeedLock">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                <horstretch>0</horstretch>
@@ -1546,7 +1583,7 @@
             </widget>
            </item>
            <item row="9" column="1">
-            <widget class="QCheckBox" name="dynoDirectionLock">
+            <widget class="QSCheckBox" name="dynoDirectionLock">
              <property name="text">
               <string>as first</string>
              </property>
@@ -1991,6 +2028,11 @@
   <customwidget>
    <class>CTprogressBar</class>
    <extends>QProgressBar</extends>
+   <header>additional_classes.h</header>
+  </customwidget>
+  <customwidget>
+   <class>QSCheckBox</class>
+   <extends>QCheckBox</extends>
    <header>additional_classes.h</header>
   </customwidget>
  </customwidgets>

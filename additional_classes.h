@@ -10,9 +10,27 @@
 #include <QTableWidget>
 #include <QWidgetList>
 #include <QProgressBar>
+#include <QCheckBox>
 
 #ifndef CTGUIADDITIONALCLASSES
 #define CTGUIADDITIONALCLASSES
+
+/*
+namespace Ui {
+  class QSCheckBox;
+}
+*/
+
+class QSCheckBox : public QCheckBox {
+  Q_OBJECT;
+  //Ui::QSCheckBox ui;
+public :
+  QSCheckBox(QWidget * parent = 0);
+
+protected:
+  virtual bool hitButton ( const QPoint & pos ) const ;
+
+};
 
 
 
@@ -152,23 +170,15 @@ signals:
 };
 
 
-/*
-class FilterFileTemplateEvent : public QObject {
+class MotorPosition : public QWidget {
   Q_OBJECT;
+
 public:
-  FilterFileTemplateEvent(QObject * parent=0) :
-    QObject(parent) {}
-protected:
-  bool eventFilter(QObject *obj, QEvent *event) {
-    if (event->type() == QEvent::FocusIn ||
-        event->type() == QEvent::FocusOut )
-      emit focusInOut();
-    return QObject::eventFilter(obj,event);
-  }
-signals:
-  void focusInOut();
+
+  explicit MotorPosition(QWidget *parent = 0);
+
+
 };
-*/
 
 
 #endif // CTGUIADDITIONALCLASSES

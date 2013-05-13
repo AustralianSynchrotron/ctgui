@@ -46,6 +46,12 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->control->setCurrentIndex(0);
 
 
+  /* While triggered CT in debug */
+  ui->label_11->hide();
+  ui->label_21->hide();
+  ui->triggCT->hide();
+  /**/
+
   ColumnResizer * resizer;
   resizer = new ColumnResizer(this);
   ui->preRunScript->addToColumnResizer(resizer);
@@ -809,10 +815,13 @@ void MainWindow::updateUi_rotSpeed() {
   if ( motIsConnected ) {
     ui->rotSpeed->setSuffix(thetaMotor->motor()->getUnits()+"/s");
     ui->rotSpeed->setDecimals(thetaMotor->motor()->getPrecision());
-    ui->rotSpeed->setMaximum(thetaMotor->motor()->getMaximumSpeed());
   }
 
-  check( ui->rotSpeed, sasMode || ui->rotSpeed->value() > 0 );
+  bool itemOK =
+      sasMode ||
+      ui->rotSpeed->value() > 0 ||
+      ui->rotSpeed->value() <= thetaMotor->motor()->getMaximumSpeed();
+  check( ui->rotSpeed, itemOK );
 
 }
 
@@ -886,6 +895,7 @@ void MainWindow::updateUi_bgInterval() {
     const char* thisSlot = SLOT(updateUi_bgInterval());
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
+    connect( ui->continiousMode, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->nofBGs, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->bgInterval, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->bgIntervalAfter, SIGNAL(toggled(bool)), thisSlot);
@@ -893,13 +903,21 @@ void MainWindow::updateUi_bgInterval() {
   }
 
   ui->bgIntervalWdg->setEnabled(ui->nofBGs->value());
-  if (ui->stepAndShotMode->isChecked()) {
+  if (ui->stepAndShotMode->isChecked())
     ui->bgIntervalWdg->setCurrentWidget(ui->bgIntervalSAS);
-    ui->bgInterval->setMaximum(ui->scanProjections->value());
-  } else
+  else
     ui->bgIntervalWdg->setCurrentWidget(ui->bgIntervalContinious);
 
-  bool itemOK = ! ui->continiousMode->isChecked()  ||
+  bool itemOK;
+
+  itemOK =
+      ! ui->stepAndShotMode->isChecked() ||
+      ! ui->nofBGs->value() ||
+      ui->bgInterval->value() <= ui->scanProjections->value();
+  check(ui->bgInterval, itemOK);
+
+  itemOK =
+      ! ui->continiousMode->isChecked() ||
       ! ui->nofBGs->value() ||
       ( ui->bgIntervalAfter->isChecked() || ui->bgIntervalBefore->isChecked() );
   check(ui->bgIntervalAfter, itemOK );
@@ -912,6 +930,7 @@ void MainWindow::updateUi_dfInterval() {
     const char* thisSlot = SLOT(updateUi_dfInterval());
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
+    connect( ui->continiousMode, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->nofDFs, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->dfInterval, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->dfIntervalAfter, SIGNAL(toggled(bool)), thisSlot);
@@ -919,17 +938,26 @@ void MainWindow::updateUi_dfInterval() {
   }
 
   ui->dfIntervalWdg->setEnabled(ui->nofDFs->value());
-  if (ui->stepAndShotMode->isChecked()) {
+  if (ui->stepAndShotMode->isChecked())
     ui->dfIntervalWdg->setCurrentWidget(ui->dfIntervalSAS);
-    ui->dfInterval->setMaximum(ui->scanProjections->value());
-  } else
+  else
     ui->dfIntervalWdg->setCurrentWidget(ui->dfIntervalContinious);
 
-  bool itemOK = ! ui->continiousMode->isChecked()  ||
+  bool itemOK;
+
+  itemOK =
+      ! ui->stepAndShotMode->isChecked() ||
+      ! ui->nofDFs->value() ||
+      ui->dfInterval->value() <= ui->scanProjections->value();
+  check(ui->dfInterval, itemOK);
+
+  itemOK =
+      ! ui->continiousMode->isChecked() ||
       ! ui->nofDFs->value() ||
       ( ui->dfIntervalAfter->isChecked() || ui->dfIntervalBefore->isChecked() );
   check(ui->dfIntervalAfter, itemOK );
   check(ui->dfIntervalBefore, itemOK );
+
 
 }
 
@@ -1144,6 +1172,7 @@ void MainWindow::updateUi_subLoopMotor() {
 void MainWindow::updateUi_dynoSpeed() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_dynoSpeed());
+    connect( ui->dynoSpeed , SIGNAL(editingFinished()), thisSlot);
     connect( dynoMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
     connect( dynoMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
     connect( dynoMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
@@ -1168,7 +1197,7 @@ void MainWindow::updateUi_dynoSpeed() {
   if (ui->dyno2->isChecked() && ui->dynoSpeedLock->isChecked() &&
       dyno2Motor->motor()->isConnected())
     maximum = qMax(maximum, dynoMotor->motor()->getMaximumSpeed());
-  ui->dynoSpeed->setMaximum(maximum);
+  check( ui->dynoSpeed, ui->dyno2Speed->value() <= maximum );
 
 }
 
@@ -1214,6 +1243,7 @@ void MainWindow::updateUi_dynoMotor() {
 void MainWindow::updateUi_dyno2Speed() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_dyno2Speed());
+    connect( ui->dyno2Speed , SIGNAL(editingFinished()), thisSlot);
     connect( dyno2Motor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
     connect( dyno2Motor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
     connect( dyno2Motor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
@@ -1229,8 +1259,10 @@ void MainWindow::updateUi_dyno2Speed() {
     ui->dyno2Speed->setValue(dyno2Motor->motor()->getNormalSpeed());
   ui->dyno2Speed->setSuffix(dyno2Motor->motor()->getUnits()+"/s");
   ui->dyno2Speed->setDecimals(dyno2Motor->motor()->getPrecision());
-  ui->dyno2Speed->setMaximum(dyno2Motor->motor()->getMaximumSpeed());
   ui->dyno2Speed->setDisabled(ui->dynoSpeedLock->isChecked());
+
+  check(ui->dyno2Speed,
+        ui->dyno2Speed->value() <= dyno2Motor->motor()->getMaximumSpeed() );
 
 }
 
