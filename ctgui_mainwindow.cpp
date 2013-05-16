@@ -667,65 +667,75 @@ void MainWindow::updateUi_condtitionScript() {
 }
 
 void MainWindow::updateUi_serialStep() {
+  QCaMotor * mot = serialMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_serialStep());
-    connect( serialMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
-    connect( serialMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( serialMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedUserLoLimit(double)), thisSlot);
+    connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);
+    connect( mot, SIGNAL(changedUserPosition(double)), thisSlot);
     connect( ui->serialStep, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->checkSerial, SIGNAL(toggled(bool)), thisSlot);
+    connect( ui->endNumber, SIGNAL(toggled(bool)), thisSlot);
+    connect( ui->nofScans, SIGNAL(valueChanged(int)), thisSlot);
   }
 
-  const bool motIsConnected = serialMotor->motor()->isConnected();
+  const double endpos = mot->getUserPosition()
+      + ( ui->nofScans->value() - 1 ) * ui->serialStep->value();
+  const bool itemOK =
+      ! ui->checkSerial->isChecked() ||
+      ! mot->isConnected() ||
+      ( ui->serialStep->value() != 0.0  &&
+      ( ! ui->endNumber->isChecked() ||
+        ( endpos > mot->getUserLoLimit() && endpos < mot->getUserHiLimit() ) ) ) ;
+  check(ui->serialStep, itemOK);
 
-  check(ui->serialStep,
-        ! ui->checkSerial->isChecked() ||
-        ! motIsConnected ||
-        ui->serialStep->value() != 0.0);
-
-  ui->serialStep->setEnabled(motIsConnected);
-  if(motIsConnected) {
-    ui->serialStep->setSuffix(serialMotor->motor()->getUnits());
-    ui->serialStep->setDecimals(serialMotor->motor()->getPrecision());
+  ui->serialStep->setEnabled(mot->isConnected());
+  if(mot->isConnected()) {
+    ui->serialStep->setSuffix(mot->getUnits());
+    ui->serialStep->setDecimals(mot->getPrecision());
   }
 
 }
 
 void MainWindow::updateUi_serialMotor() {
+  QCaMotor * mot = serialMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_serialMotor());
-    connect( serialMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
-    connect( serialMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( serialMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
-    connect( serialMotor->motor(), SIGNAL(changedPv()), thisSlot);
-    connect( serialMotor->motor(), SIGNAL(changedMoving(bool)), thisSlot);
-    connect( serialMotor->motor(), SIGNAL(changedLoLimitStatus(bool)), thisSlot);
-    connect( serialMotor->motor(), SIGNAL(changedHiLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedPv()), thisSlot);
+    connect( mot, SIGNAL(changedMoving(bool)), thisSlot);
+    connect( mot, SIGNAL(changedLoLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedHiLimitStatus(bool)), thisSlot);
     connect( ui->checkSerial, SIGNAL(toggled(bool)), thisSlot);
 
-    connect( serialMotor->motor(), SIGNAL(changedUserPosition(double)),
+    connect( mot, SIGNAL(changedUserPosition(double)),
              ui->serialCurrent, SLOT(setValue(double)));
   }
 
-  setenv("SERIALMOTORPV", serialMotor->motor()->getPv().toAscii() , 1);
+  setenv("SERIALMOTORPV", mot->getPv().toAscii() , 1);
 
   check(serialMotor->setupButton(),
         ! ui->checkSerial->isChecked() ||
-        serialMotor->motor()->getPv().isEmpty() ||
-        ( serialMotor->motor()->isConnected() &&
-          ! serialMotor->motor()->isMoving() ) );
+        mot->getPv().isEmpty() ||
+        ( mot->isConnected() &&
+          ! mot->isMoving() ) );
   check(ui->serialCurrent,
         ! ui->checkSerial->isChecked() ||
-        serialMotor->motor()->getPv().isEmpty() ||
-        ! serialMotor->motor()->getLimitStatus() );
+        mot->getPv().isEmpty() ||
+        ! mot->getLimitStatus() );
 
-  if ( ! serialMotor->motor()->isConnected() ) {
+  if ( ! mot->isConnected() ) {
     ui->serialCurrent->setText("no link");
     return;
   }
-  ui->serialCurrent->setValue(serialMotor->motor()->getUserPosition());
-  ui->serialCurrent->setSuffix(serialMotor->motor()->getUnits());
-  ui->serialCurrent->setDecimals(serialMotor->motor()->getPrecision());
+  ui->serialCurrent->setValue(mot->getUserPosition());
+  ui->serialCurrent->setSuffix(mot->getUnits());
+  ui->serialCurrent->setDecimals(mot->getPrecision());
 
 }
 
@@ -741,20 +751,36 @@ void MainWindow::updateUi_ffOnEachScan() {
 
 
 void MainWindow::updateUi_scanRange() {
+  QCaMotor * mot = thetaMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_scanRange());
     connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect(ui->checkSerial, SIGNAL(toggled(bool)), thisSlot);
+    connect(ui->ongoingSeries, SIGNAL(toggled(bool)), thisSlot);
+    connect(ui->endNumber, SIGNAL(toggled(bool)), thisSlot);
+    connect(ui->nofScans, SIGNAL(valueChanged(int)), thisSlot);
   }
 
-  if ( thetaMotor->motor()->isConnected() ) {
-    ui->scanRange->setSuffix(thetaMotor->motor()->getUnits());
-    ui->scanRange->setDecimals(thetaMotor->motor()->getPrecision());
+  if ( mot->isConnected() ) {
+    ui->scanRange->setSuffix(mot->getUnits());
+    ui->scanRange->setDecimals(mot->getPrecision());
   }
 
-  check(ui->scanRange, ui->scanRange->value() != 0.0);
+  double endpos = mot->getUserPosition();
+  if ( ui->checkSerial->isChecked() &&
+       ui->ongoingSeries->isChecked() &&
+       ui->endNumber->isChecked() )
+    endpos +=  ( ui->nofScans->value() - 1 ) * ui->scanRange->value();
+  else
+    endpos +=  ui->scanRange->value();
+
+  check(ui->scanRange,
+        ui->scanRange->value() != 0.0 &&
+      endpos > mot->getUserLoLimit() &&
+      endpos < mot->getUserHiLimit() );
 
 }
 
@@ -774,53 +800,55 @@ void MainWindow::updateUi_aqsPP() {
 
 
 void MainWindow::updateUi_scanStep() {
+  QCaMotor * mot = thetaMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_scanStep());
     connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
   }
 
-  if ( thetaMotor->motor()->isConnected() ) {
-    ui->scanStep->setSuffix(thetaMotor->motor()->getUnits());
-    ui->scanStep->setDecimals(thetaMotor->motor()->getPrecision());
+  if ( mot->isConnected() ) {
+    ui->scanStep->setSuffix(mot->getUnits());
+    ui->scanStep->setDecimals(mot->getPrecision());
   }
   ui->scanStep->setValue( ui->scanRange->value() / ui->scanProjections->value() );
 
 }
 
 void MainWindow::updateUi_rotSpeed() {
+  QCaMotor * mot = thetaMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_rotSpeed());
     connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->rotSpeed, SIGNAL(valueChanged(double)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedNormalSpeed(double)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedNormalSpeed(double)), thisSlot);
+    connect( mot, SIGNAL(changedMaximumSpeed(double)), thisSlot);
   }
 
   const bool sasMode = ui->stepAndShotMode->isChecked();
   ui->rotSpeedLabel->setVisible(!sasMode);
   ui->rotSpeed->setVisible(!sasMode);
 
-  const bool motIsConnected = thetaMotor->motor()->isConnected();
+  const bool motIsConnected = mot->isConnected();
 
   if ( ui->rotSpeed->value()==0.0 )
-    ui->rotSpeed->setValue(thetaMotor->motor()->getNormalSpeed());
+    ui->rotSpeed->setValue(mot->getNormalSpeed());
 
   if ( motIsConnected ) {
-    ui->rotSpeed->setSuffix(thetaMotor->motor()->getUnits()+"/s");
-    ui->rotSpeed->setDecimals(thetaMotor->motor()->getPrecision());
+    ui->rotSpeed->setSuffix(mot->getUnits()+"/s");
+    ui->rotSpeed->setDecimals(mot->getPrecision());
   }
 
   bool itemOK =
       sasMode ||
       ui->rotSpeed->value() > 0 ||
-      ui->rotSpeed->value() <= thetaMotor->motor()->getMaximumSpeed();
+      ui->rotSpeed->value() <= mot->getMaximumSpeed();
   check( ui->rotSpeed, itemOK );
 
 }
@@ -846,47 +874,46 @@ void MainWindow::updateUi_stepTime() {
 }
 
 void MainWindow::updateUi_thetaMotor() {
+  QCaMotor * mot = thetaMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_thetaMotor());
-    connect( thetaMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedMoving(bool)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedNormalSpeed(double)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedLoLimitStatus(bool)), thisSlot);
-    connect( thetaMotor->motor(), SIGNAL(changedHiLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedMoving(bool)), thisSlot);
+    connect( mot, SIGNAL(changedNormalSpeed(double)), thisSlot);
+    connect( mot, SIGNAL(changedMaximumSpeed(double)), thisSlot);
+    connect( mot, SIGNAL(changedLoLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedHiLimitStatus(bool)), thisSlot);
 
-    connect(thetaMotor->motor(), SIGNAL(changedUserPosition(double)),
+    connect(mot, SIGNAL(changedUserPosition(double)),
             ui->scanCurrent, SLOT(setValue(double)));
   }
 
-
-
   check(thetaMotor->setupButton(),
-        thetaMotor->motor()->isConnected() &&
-        ! thetaMotor->motor()->isMoving() );
+        mot->isConnected() &&
+        ! mot->isMoving() );
   check(ui->scanCurrent,
-        ! thetaMotor->motor()->getLimitStatus() );
+        ! mot->getLimitStatus() );
 
-  if (!thetaMotor->motor()->isConnected()) {
+  if (!mot->isConnected()) {
     ui->scanCurrent->setText("no link");
     return;
   }
-  ui->scanCurrent->setValue(thetaMotor->motor()->getUserPosition());
+  ui->scanCurrent->setValue(mot->getUserPosition());
 
-  const QString units = thetaMotor->motor()->getUnits();
+  const QString units = mot->getUnits();
   ui->scanCurrent->setSuffix(units);
   ui->normalSpeed->setSuffix(units+"/s");
   ui->maximumSpeed->setSuffix(units+"/s");
 
-  const int prec = thetaMotor->motor()->getPrecision();
+  const int prec = mot->getPrecision();
   ui->scanCurrent->setDecimals(prec);
   ui->normalSpeed->setDecimals(prec);
   ui->maximumSpeed->setDecimals(prec);
 
-  ui->normalSpeed->setValue(thetaMotor->motor()->getNormalSpeed());
-  ui->maximumSpeed->setValue(thetaMotor->motor()->getMaximumSpeed());
+  ui->normalSpeed->setValue(mot->getNormalSpeed());
+  ui->maximumSpeed->setValue(mot->getMaximumSpeed());
 
 }
 
@@ -962,62 +989,70 @@ void MainWindow::updateUi_dfInterval() {
 }
 
 void MainWindow::updateUi_bgTravel() {
+  QCaMotor * mot = bgMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_bgTravel());
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->nofBGs, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->bgTravel, SIGNAL(valueChanged(double)), thisSlot);
-    connect( bgMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( bgMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
-    connect( bgMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedUserLoLimit(double)), thisSlot);
+    connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);
   }
 
-  if (bgMotor->motor()->isConnected()) {
-    ui->bgTravel->setSuffix(bgMotor->motor()->getUnits());
-    ui->bgTravel->setDecimals(bgMotor->motor()->getPrecision());
+  if (mot->isConnected()) {
+    ui->bgTravel->setSuffix(mot->getUnits());
+    ui->bgTravel->setDecimals(mot->getPrecision());
   }
 
   const int nofbgs = ui->nofBGs->value();
   ui->bgTravel->setEnabled(nofbgs);
-  check(ui->bgTravel,
-        ! nofbgs ||  ui->bgTravel->value() != 0.0 );
+  const double endpos = mot->getUserPosition() + ui->bgTravel->value();
+  const bool itemOK =
+      ! nofbgs ||
+      ( ui->bgTravel->value() != 0.0  &&
+      endpos > mot->getUserLoLimit() && endpos < mot->getUserHiLimit() ) ;
+  check(ui->bgTravel, itemOK);
 
 }
 
 void MainWindow::updateUi_bgMotor() {
+  QCaMotor * mot = bgMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_bgMotor());
     connect( ui->nofBGs, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->checkFF, SIGNAL(toggled(bool)), thisSlot);
-    connect( bgMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
-    connect( bgMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( bgMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
-    connect( bgMotor->motor(), SIGNAL(changedMoving(bool)), thisSlot);
-    connect( bgMotor->motor(), SIGNAL(changedLoLimitStatus(bool)), thisSlot);
-    connect( bgMotor->motor(), SIGNAL(changedHiLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedMoving(bool)), thisSlot);
+    connect( mot, SIGNAL(changedLoLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedHiLimitStatus(bool)), thisSlot);
 
-    connect(bgMotor->motor(), SIGNAL(changedUserPosition(double)),
+    connect(mot, SIGNAL(changedUserPosition(double)),
             ui->bgCurrent, SLOT(setValue(double)));
   }
 
   const int nofbgs = ui->nofBGs->value();
-  const bool motIsConnected = bgMotor->motor()->isConnected();
+  const bool motIsConnected = mot->isConnected();
   const bool doFF = ui->checkFF->isChecked();
   bgMotor->setupButton()->setEnabled(nofbgs);
 
   check(bgMotor->setupButton(), ! doFF || ! nofbgs ||
-        ( motIsConnected && ! bgMotor->motor()->isMoving() ) );
+        ( motIsConnected && ! mot->isMoving() ) );
   check(ui->bgCurrent, ! doFF || ! nofbgs ||
-        ! bgMotor->motor()->getLimitStatus() );
+        ! mot->getLimitStatus() );
 
   if ( ! motIsConnected ) {
     ui->bgCurrent->setText("no link");
     return;
   }
-  ui->bgCurrent->setValue(bgMotor->motor()->getUserPosition());
-  ui->bgCurrent->setSuffix(bgMotor->motor()->getUnits());
-  ui->bgCurrent->setDecimals(bgMotor->motor()->getPrecision());
+  ui->bgCurrent->setValue(mot->getUserPosition());
+  ui->bgCurrent->setSuffix(mot->getUnits());
+  ui->bgCurrent->setDecimals(mot->getPrecision());
 
 }
 
@@ -1053,119 +1088,139 @@ void MainWindow::updateUi_shutterStatus() {
 }
 
 void MainWindow::updateUi_loopStep() {
+  QCaMotor * mot = loopMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_loopStep());
     connect( ui->loopStep, SIGNAL(valueChanged(double)), thisSlot);
+    connect( ui->loopNumber, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->checkMulti, SIGNAL(toggled(bool)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedUserLoLimit(double)), thisSlot);
+    connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);
   }
 
-  ui->loopStep->setSuffix(loopMotor->motor()->getUnits());
-  ui->loopStep->setDecimals(loopMotor->motor()->getPrecision());
-  ui->loopStep->setEnabled(loopMotor->motor()->isConnected());
-  check(ui->loopStep,
-        ! ui->checkMulti->isChecked() ||
-        ! loopMotor->motor()->isConnected() ||
-        ui->loopStep->value() != 0.0 );
+  ui->loopStep->setSuffix(mot->getUnits());
+  ui->loopStep->setDecimals(mot->getPrecision());
+  ui->loopStep->setEnabled(mot->isConnected());
+
+  const double endpos = mot->getUserPosition() +
+      ui->loopStep->value() * ( ui->loopNumber->value() - 1);
+  const bool itemOK =
+      ! ui->checkMulti->isChecked() ||
+      ! mot->isConnected() ||
+      ( ui->loopStep->value() != 0.0  &&
+      endpos > mot->getUserLoLimit() && endpos < mot->getUserHiLimit() );
+  check(ui->loopStep,itemOK);
 
 }
 
 void MainWindow::updateUi_loopMotor() {
+  QCaMotor * mot = loopMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_loopMotor());
     connect( ui->checkMulti, SIGNAL(toggled(bool)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedPv(QString)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedMoving(bool)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedLoLimitStatus(bool)), thisSlot);
-    connect( loopMotor->motor(), SIGNAL(changedHiLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedPv(QString)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedMoving(bool)), thisSlot);
+    connect( mot, SIGNAL(changedLoLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedHiLimitStatus(bool)), thisSlot);
 
-    connect(loopMotor->motor(), SIGNAL(changedUserPosition(double)),
+    connect(mot, SIGNAL(changedUserPosition(double)),
             ui->loopCurrent, SLOT(setValue(double)));
   }
 
   check(loopMotor->setupButton(),
         ! ui->checkMulti->isChecked() ||
-        loopMotor->motor()->getPv().isEmpty() ||
-        ( loopMotor->motor()->isConnected() &&
-          ! loopMotor->motor()->isMoving() ) );
+        mot->getPv().isEmpty() ||
+        ( mot->isConnected() &&
+          ! mot->isMoving() ) );
   check(ui->loopCurrent,
         ! ui->checkMulti->isChecked() ||
-        loopMotor->motor()->getPv().isEmpty() ||
-        ! loopMotor->motor()->getLimitStatus() );
+        mot->getPv().isEmpty() ||
+        ! mot->getLimitStatus() );
 
-  if ( ! loopMotor->motor()->isConnected() ) {
+  if ( ! mot->isConnected() ) {
     ui->loopCurrent->setText("no link");
     return;
   }
-  ui->loopCurrent->setValue(loopMotor->motor()->getUserPosition());
-  ui->loopCurrent->setSuffix(loopMotor->motor()->getUnits());
-  ui->loopCurrent->setDecimals(loopMotor->motor()->getPrecision());
+  ui->loopCurrent->setValue(mot->getUserPosition());
+  ui->loopCurrent->setSuffix(mot->getUnits());
+  ui->loopCurrent->setDecimals(mot->getPrecision());
 
 }
 
 void MainWindow::updateUi_subLoopStep() {
+  QCaMotor * mot = subLoopMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_subLoopStep());
     connect( ui->subLoopStep, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->checkMulti, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->subLoop, SIGNAL(toggled(bool)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
+    connect( ui->subLoopNumber, SIGNAL(valueChanged(int)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedUserLoLimit(double)), thisSlot);
+    connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);
   }
 
-  ui->subLoopStep->setSuffix(subLoopMotor->motor()->getUnits());
-  ui->subLoopStep->setDecimals(subLoopMotor->motor()->getPrecision());
-  ui->subLoopStep->setEnabled(subLoopMotor->motor()->isConnected());
-  check(ui->subLoopStep,
-        ! ui->checkMulti->isChecked() ||
-        ! ui->subLoop->isChecked() ||
-        ! subLoopMotor->motor()->isConnected() ||
-        ui->subLoopStep->value() != 0.0 );
+  ui->subLoopStep->setSuffix(mot->getUnits());
+  ui->subLoopStep->setDecimals(mot->getPrecision());
+  ui->subLoopStep->setEnabled(mot->isConnected());
+
+  const double endpos = mot->getUserPosition() +
+      ui->subLoopStep->value() * ( ui->subLoopNumber->value() - 1 );
+  const bool itemOK =
+      ! ui->checkMulti->isChecked() ||
+      ! ui->subLoop->isChecked() ||
+      ! mot->isConnected() ||
+      ( ui->subLoopStep->value() != 0.0  &&
+      endpos > mot->getUserLoLimit() && endpos < mot->getUserHiLimit() );
+  check(ui->subLoopStep,itemOK );
 
 }
 
 void MainWindow::updateUi_subLoopMotor() {
+  QCaMotor * mot = subLoopMotor->motor();
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_subLoopMotor());
     connect( ui->checkMulti, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->subLoop, SIGNAL(toggled(bool)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedConnected(bool)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedPrecision(int)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedPv(QString)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedUnits(QString)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedMoving(bool)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedLoLimitStatus(bool)), thisSlot);
-    connect( subLoopMotor->motor(), SIGNAL(changedHiLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
+    connect( mot, SIGNAL(changedPv(QString)), thisSlot);
+    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedMoving(bool)), thisSlot);
+    connect( mot, SIGNAL(changedLoLimitStatus(bool)), thisSlot);
+    connect( mot, SIGNAL(changedHiLimitStatus(bool)), thisSlot);
 
-    connect(subLoopMotor->motor(), SIGNAL(changedUserPosition(double)),
+    connect(mot, SIGNAL(changedUserPosition(double)),
             ui->subLoopCurrent, SLOT(setValue(double)));
   }
 
   check(subLoopMotor->setupButton(),
         ! ui->checkMulti->isChecked() ||
         ! ui->subLoop->isChecked() ||
-        subLoopMotor->motor()->getPv().isEmpty() ||
-        ( subLoopMotor->motor()->isConnected() &&
-          ! subLoopMotor->motor()->isMoving() ) );
+        mot->getPv().isEmpty() ||
+        ( mot->isConnected() &&
+          ! mot->isMoving() ) );
   check(ui->subLoopCurrent,
         ! ui->checkMulti->isChecked() ||
         ! ui->subLoop->isChecked() ||
-        subLoopMotor->motor()->getPv().isEmpty() ||
-        ! subLoopMotor->motor()->getLimitStatus() );
+        mot->getPv().isEmpty() ||
+        ! mot->getLimitStatus() );
 
-  if ( ! subLoopMotor->motor()->isConnected() ) {
+  if ( ! mot->isConnected() ) {
     ui->subLoopCurrent->setText("no link");
     return;
   }
-  ui->subLoopCurrent->setValue(subLoopMotor->motor()->getUserPosition());
-  ui->subLoopCurrent->setSuffix(subLoopMotor->motor()->getUnits());
-  ui->subLoopCurrent->setDecimals(subLoopMotor->motor()->getPrecision());
+  ui->subLoopCurrent->setValue(mot->getUserPosition());
+  ui->subLoopCurrent->setSuffix(mot->getUnits());
+  ui->subLoopCurrent->setDecimals(mot->getPrecision());
 
 }
 
