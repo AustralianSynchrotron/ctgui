@@ -5,6 +5,7 @@
 #include <QApplication>
 
 
+
 static QString fromVList(const QVariant & vlist) {
   if ( ! vlist.isValid() || vlist.type() != QVariant::List )
     return QString();
@@ -40,8 +41,8 @@ Detector::Detector(QObject * parent) :
   delayPv( new QEpicsPv(this) ),
   _con(false),
 //  _counter(0),
-  _name(QString()),
-  writeExpected(false)
+  _name(QString())
+  //writeExpected(false)
 {
 
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -161,7 +162,7 @@ void Detector::updateName() {
 void Detector::updateLastName() {
   _lastName = fromVList(lastNamePv->get());
   emit lastNameChanged(_lastName);
-  _names.push_back(_lastName);
+  //_names.push_back(_lastName);
 }
 
 void Detector::updateNameTemplate() {
@@ -175,8 +176,8 @@ void Detector::updateCounter() {
     return;
   int cnt = counterPv->get().toInt();
   emit counterChanged(cnt);
-  if ( ! cnt )
-    _names.clear();
+  //if ( ! cnt )
+  //  _names.clear();
 }
 
 void Detector::updateAcq() {
@@ -187,10 +188,10 @@ void Detector::updateAcq() {
 }
 
 void Detector::updateWriting() {
-  if (!isWriting())
-    emit writingFinished();
+  if (isWriting())
+    emit writingStarted();
   else
-    writeExpected=false;
+    emit frameWritingFinished();
 }
 
 bool Detector::setPeriod(double val) {
@@ -319,7 +320,7 @@ bool Detector::setHardwareTriggering(bool set) {
 bool Detector::start() {
   if ( ! aqPv->isConnected() || ! writeStatusPv->isConnected() || isAcquiring() )
     return false;
-  writeExpected=true;
+  //writeExpected=true;
   aqPv->set(1);
   qtWait(aqPv, SIGNAL(valueUpdated(QVariant)), 2000);
   return aqPv->get().toInt();
@@ -342,11 +343,25 @@ void Detector::waitDone() {
     qtWait(this, SIGNAL(done()));
 }
 
+
 void Detector::waitWritten() {
-  if ( writeExpected && ! isWriting() )
-    qtWait(writeStatusPv, SIGNAL(valueChanged(QVariant)), 500);
-  while ( isWriting() || qtWait(writeStatusPv, SIGNAL(valueChanged(QVariant)), 40) )
-    qtWait(this, SIGNAL(writingFinished()));
+
+  QTimer timer;
+  timer.setSingleShot(true);
+  timer.setInterval(500); // maximum time to start writing next frame
+
+  connect(this, SIGNAL(writingStarted()), &timer, SLOT(stop()));
+  connect(this, SIGNAL(frameWritingFinished()), &timer, SLOT(start()));
+
+  QEventLoop q;
+  connect(&timer, SIGNAL(timeout()), &q, SLOT(quit()));
+
+  if (!isWriting())
+    timer.start();
+  q.exec();
+
+  emit allWritingFinished();
+
 }
 
 

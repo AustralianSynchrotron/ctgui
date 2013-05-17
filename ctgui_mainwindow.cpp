@@ -1208,6 +1208,7 @@ void MainWindow::updateUi_subLoopMotor() {
         mot->getPv().isEmpty() ||
         ( mot->isConnected() &&
           ! mot->isMoving() ) );
+
   check(ui->subLoopCurrent,
         ! ui->checkMulti->isChecked() ||
         ! ui->subLoop->isChecked() ||
@@ -1374,6 +1375,7 @@ void MainWindow::updateUi_detector() {
     connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
     connect(det, SIGNAL(templateChanged(QString)), ui->detFileTemplate, SLOT(setText(QString)));
     connect(det, SIGNAL(counterChanged(int)), SLOT(accumulateLog()));
+    connect(det, SIGNAL(lastNameChanged(QString)), this, SLOT(nameToLog(QString)));
   }
 
   totalShots = det->number();
@@ -1738,6 +1740,7 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
     fileT += "_%0" + QString::number(QString::number(count).length()) + "d";
   fileT+= ".tif";
 
+  /*
   det->waitWritten();
   const int accSize = accumulatedLog.size();
   qDebug() << accumulatedLog.size() << det->namesStored().size();
@@ -1748,6 +1751,7 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
       logFile->write( wrt.toAscii() );
     }
   }
+  */
 
   return
       det->setNameTemplate(fileT) &&
@@ -2264,108 +2268,34 @@ onDfExit:
 }
 
 
-void MainWindow::recordLog(const QString & message) {
-
-  return;
-
-  if ( ! logFile || ! logFile->isWritable())
-    return;
-
-  static bool  recSerial, recBG, recLoop, recSubLoop;
-  static const QString timeFormat="dd/MM/yyyy_hh:mm:ss.zzz";
-  QString wrt;
-
-  if (!inCT) {
-
-    recSerial = ui->checkSerial->isChecked() && serialMotor->motor()->isConnected();
-    recBG = ui->checkFF->isChecked() && ui->nofBGs->value() && bgMotor->motor()->isConnected();
-    recLoop = ui->checkMulti->isChecked() && loopMotor->motor()->isConnected();
-    recSubLoop = ui->checkMulti->isChecked() &&
-        ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected();
-
-    wrt = "# Starting acquisition. " + QDateTime::currentDateTime().toString(timeFormat);
-    logFile->write((wrt+"\n").toAscii());
-    logFile->write("# Initial values:\n");
-    wrt = "#   Working directory: " + QDir::currentPath();
-    logFile->write((wrt+"\n").toAscii());
-    wrt = "#   Detector saving path: " + det->path();
-    logFile->write((wrt+"\n").toAscii());
-    if (recSerial) {
-      wrt = "#   Serial motor position: " + QString::number(serialMotor->motor()->getUserPosition());
-      logFile->write((wrt+"\n").toAscii());
-    }
-    wrt = "#   Theta motor position: " + QString::number(thetaMotor->motor()->getUserPosition());
-    logFile->write((wrt+"\n").toAscii());
-    if (recBG) {
-      wrt = "#   Background motor position: " + QString::number(bgMotor->motor()->getUserPosition());
-      logFile->write((wrt+"\n").toAscii());
-    }
-    if (recLoop) {
-      wrt = "#   Loop motor position: " + QString::number(loopMotor->motor()->getUserPosition());
-      logFile->write((wrt+"\n").toAscii());
-    }
-    if (recSubLoop) {
-      wrt = "#   Sub-loop motor position: " + QString::number(subLoopMotor->motor()->getUserPosition());
-      logFile->write((wrt+"\n").toAscii());
-    }
-    if (ui->checkDyno->isChecked() && dynoMotor->motor()->isConnected()) {
-      wrt = "#   Dyno motor position: " + QString::number(dynoMotor->motor()->getUserPosition());
-      logFile->write((wrt+"\n").toAscii());
-    }
-    if (ui->checkDyno->isChecked() && ui->dyno2->isChecked() && dyno2Motor->motor()->isConnected()) {
-      wrt = "#   Dyno 2 motor position: " + QString::number(dyno2Motor->motor()->getUserPosition());
-      logFile->write((wrt+"\n").toAscii());
-    }
-
-  } else if ( ! message.isEmpty() ) {
-
-    wrt = "# " + QDateTime::currentDateTime().toString(timeFormat) + " " + message;
-    logFile->write((wrt+"\n").toAscii());
-    return;
-
-  } else if (det->counter()) {
-
-    wrt = QDateTime::currentDateTime().toString(timeFormat);
-    if (recSerial)
-      wrt += " " + QString::number(serialMotor->motor()->getUserPosition());
-    wrt += " " + QString::number(thetaMotor->motor()->getUserPosition());
-    if (recBG)
-      wrt += " " + QString::number(bgMotor->motor()->getUserPosition());
-    if (recLoop)
-      wrt += " " + QString::number(loopMotor->motor()->getUserPosition());
-    if (recSubLoop)
-      wrt += " " + QString::number(subLoopMotor->motor()->getUserPosition());
-    wrt += "\n";
-    logFile->write(wrt.toAscii());
-
-  }
-
-}
 
 void MainWindow::accumulateLog() {
 
-  if ( ! inCT )
+  if ( ! inCT  || ! det->counter() )
     return;
 
-  if ( det->counter() ) {
+  QString wrt = QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz");
+  if ( ui->checkSerial->isChecked() && serialMotor->motor()->isConnected() )
+    wrt += " " + QString::number(serialMotor->motor()->getUserPosition());
+  wrt += " " + QString::number(thetaMotor->motor()->getUserPosition());
+  if ( ui->checkFF->isChecked() && ui->nofBGs->value() && bgMotor->motor()->isConnected() )
+    wrt += " " + QString::number(bgMotor->motor()->getUserPosition());
+  if ( ui->checkMulti->isChecked() && loopMotor->motor()->isConnected() )
+    wrt += " " + QString::number(loopMotor->motor()->getUserPosition());
+  if ( ui->checkMulti->isChecked() &&
+       ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected() )
+    wrt += " " + QString::number(subLoopMotor->motor()->getUserPosition());
+  wrt += " ";
 
-    QString wrt = QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz");
-    if ( ui->checkSerial->isChecked() && serialMotor->motor()->isConnected() )
-      wrt += " " + QString::number(serialMotor->motor()->getUserPosition());
-    wrt += " " + QString::number(thetaMotor->motor()->getUserPosition());
-    if ( ui->checkFF->isChecked() && ui->nofBGs->value() && bgMotor->motor()->isConnected() )
-      wrt += " " + QString::number(bgMotor->motor()->getUserPosition());
-    if ( ui->checkMulti->isChecked() && loopMotor->motor()->isConnected() )
-      wrt += " " + QString::number(loopMotor->motor()->getUserPosition());
-    if ( ui->checkMulti->isChecked() &&
-         ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected() )
-      wrt += " " + QString::number(subLoopMotor->motor()->getUserPosition());
-    accumulatedLog.push_back(wrt);
+  accumulatedLog.append(wrt);
 
-  } else
+}
 
-    accumulatedLog.clear();
 
+void MainWindow::nameToLog(const QString & fileName) {
+  if ( accumulatedLog.isEmpty() || ! logFile || ! logFile->isWritable() )
+    return;
+  logFile->write( (accumulatedLog.takeFirst() + fileName +"\n") . toAscii() );
 }
 
 
@@ -2377,7 +2307,6 @@ void MainWindow::engineRun () {
   if ( ! readyToStartCT || inCT )
     return;
 
-
   if (logFile) {
     qDebug() << "Log file is unexpectedly opened. Must be a bug. Will not proceed.";
     return;
@@ -2388,6 +2317,8 @@ void MainWindow::engineRun () {
     logFile = 0;
     return;
   }
+  accumulatedLog.clear();
+
   QString configName = "acquisition.configuration";
   int attempt=0;
   while (QFile::exists(configName))
@@ -2705,22 +2636,24 @@ onEngineExit:
     bgMotor->motor()->stop(QCaMotor::STOPPED);
     bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
   }
-  while ( ! stopMe && ( qtWait(det, SIGNAL(writingFinished()), 500) || det->isWriting() ) )
-    continue;
-  det->waitWritten();
-  const int accSize = accumulatedLog.size();
-  qDebug() << accumulatedLog.size() << det->namesStored().size();
-  if ( logFile && logFile->isWritable() &&
-       accSize &&   det->namesStored().size() == accSize ) { // flush log
-    for( int curl=0 ; curl < accSize ; curl++ ) {
-      QString wrt = accumulatedLog[curl] + " " + det->namesStored()[curl] + "\n";
-      logFile->write( wrt.toAscii() );
+
+  if ( logFile ) {
+    if ( logFile->isWritable() ) {
+      det->waitWritten();
+      if ( accumulatedLog.size() )  { // smth left: sdkipped frames
+        qDebug() << "Accamulated log is not empty in the end of the CT acquisition."
+                    " Some frame names might be skipped.";
+        while ( accumulatedLog.size() )
+          nameToLog("<unknown>");
+      }
+      QString wrt = QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz");
+      wrt += QString(" ") + ( stopMe ? "Interrupting" : "Finishing ") + "acquisition.\n\n" ;
+      logFile->write(wrt.toAscii());
     }
-  }
-  recordLog( ( stopMe ? "Interrupting" : "Finishing ") + QString(" acquisition.\n") );
-  if (logFile)
     logFile->close();
-  logFile=0;
+    logFile=0;
+  }
+
   foreach(QWidget * tab, ui->control->tabs())
         tab->setEnabled(true);
   currentScan = -1;

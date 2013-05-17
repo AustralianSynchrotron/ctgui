@@ -51,9 +51,8 @@ private:
   QString _nameTemplate;
   QString _lastName;
   QString _path;
-  bool writeExpected;
 
-  QStringList _names;
+  //QStringList _names;
 
 
 public:
@@ -65,7 +64,7 @@ public:
 
   inline const QString & pv() const {return cameraPv;}
   inline double exposure() const {return exposurePv->get().toDouble();}
-  //inline double period() const {return periodPv->get().toDouble();}
+  // inline double period() const {return periodPv->get().toDouble();}
   inline double period() const {return exposure() + delayPv->get().toDouble();}
   inline int number() const {return numberPv->get().toInt();}
   inline int counter() const {return counterPv->get().toInt();}
@@ -81,7 +80,6 @@ public:
   inline bool isAcquiring() const {return aqPv->get().toInt();}
   inline bool isWriting() const {return writeStatusPv->get().toInt();}
   inline bool isConnected() const {return _con;}
-  inline const QStringList & namesStored() {return _names;}
 
   void waitDone();
   void waitWritten();
@@ -108,7 +106,9 @@ signals:
   void templateChanged(const QString &);
   void nameChanged(const QString &);
   void lastNameChanged(const QString &);
-  void writingFinished();
+  void writingStarted();
+  void frameWritingFinished();
+  void allWritingFinished();
   void done();
 
 private slots:

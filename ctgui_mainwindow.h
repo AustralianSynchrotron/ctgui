@@ -169,10 +169,10 @@ private slots:
   void onDetectorTest();
 
   void updateProgress();
+  void nameToLog(const QString & fileName);
+  void accumulateLog();
 
   void onStartStop();
-  void recordLog(const QString & message=QString());
-  void accumulateLog();
 
 
 signals:
