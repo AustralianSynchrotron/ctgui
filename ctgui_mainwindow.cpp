@@ -2537,9 +2537,6 @@ void MainWindow::engineRun () {
         setMotorSpeed(thetaMotor, speed);
         if (stopMe) goto onEngineExit;
 
-        // 1.1 coefficient in the below string is required to guarantee that the
-        // motor does not stop before all images are acquired. Perhaps redundant
-        // and can be decreased, but more tests are needed.
         thetaMotor->motor()->goLimit(rotDir, QCaMotor::STARTED);
         if (stopMe) goto onEngineExit;
 

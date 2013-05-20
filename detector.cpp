@@ -352,6 +352,7 @@ void Detector::waitWritten() {
 
   connect(this, SIGNAL(writingStarted()), &timer, SLOT(stop()));
   connect(this, SIGNAL(frameWritingFinished()), &timer, SLOT(start()));
+  connect(lastNamePv, SIGNAL(valueUpdated(QVariant)), &timer, SLOT(start()));
 
   QEventLoop q;
   connect(&timer, SIGNAL(timeout()), &q, SLOT(quit()));
