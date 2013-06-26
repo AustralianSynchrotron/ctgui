@@ -108,6 +108,8 @@ private:
 
   void stopAll();
 
+  void addMessage(const QString & str);
+
 private slots:
 
   void saveConfiguration(QString fileName = QString());

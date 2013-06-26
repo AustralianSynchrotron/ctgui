@@ -108,7 +108,6 @@ signals:
   void lastNameChanged(const QString &);
   void writingStarted();
   void frameWritingFinished();
-  void allWritingFinished();
   void done();
 
 private slots:

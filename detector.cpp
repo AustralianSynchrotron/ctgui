@@ -361,8 +361,6 @@ void Detector::waitWritten() {
     timer.start();
   q.exec();
 
-  emit allWritingFinished();
-
 }
 
 

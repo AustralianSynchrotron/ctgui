@@ -234,6 +234,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   updateProgress();
 
+
 }
 
 
@@ -581,6 +582,12 @@ void MainWindow::storeCurrentState() {
     saveConfiguration(storedState);
 }
 
+
+void MainWindow::addMessage(const QString & str) {
+  ui->messages->append(
+        QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz") +
+        " " + str);
+}
 
 void MainWindow::updateUi_expPath() {
   if ( ! sender() ) // called from the constructor;
