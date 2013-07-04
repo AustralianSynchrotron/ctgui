@@ -96,33 +96,36 @@ const QList<Detector::Camera> Detector::knownCameras =
 
 void Detector::setCamera(Camera _cam) {
   switch (_cam) {
-    case ScintX:
-      setCamera("ScintX1");
-      break;
-    case PCOedge1:
-      setCamera("SR08ID01DET01");
-      break;
-    case PCOedge2:
-      setCamera("SR08ID01DET02");
-      break;
-    default:
-      foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
-        pv->setPV();
-      break;
+  case ScintX:
+    setCamera("ScintX1", "cam1");
+    break;
+  case PCOedge1:
+    setCamera("SR08ID01DET01", "CAM");
+    break;
+  case PCOedge2:
+    setCamera("SR08ID01DET02", "CAM");
+    break;
+  default:
+    foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
+      pv->setPV();
+    break;
   }
 }
 
 
-void Detector::setCamera(const QString & pvName) {
+void Detector::setCamera(const QString & pvName, const QString & cam) {
+
   cameraPv=pvName;
+  const QString camBase = cam.isEmpty() ? pvName : pvName + ":" + cam;
+
   if ( ! pvName.isEmpty() ) {
-    exposurePv->setPV(pvName+":CAM:AcquireTime_RBV");
-    periodPv->setPV(pvName+":CAM:AcquirePeriod");
-    numberPv->setPV(pvName+":CAM:NumImages");
-    counterPv->setPV(pvName+":CAM:NumImagesCounter_RBV");
-    triggerModePv->setPV(pvName+":CAM:TriggerMode");
-    imageModePv->setPV(pvName+":CAM:ImageMode");
-    aqPv->setPV(pvName+":CAM:Acquire");
+    exposurePv->setPV(camBase+":AcquireTime_RBV");
+    periodPv->setPV(camBase+":AcquirePeriod");
+    numberPv->setPV(camBase+":NumImages");
+    counterPv->setPV(camBase+":NumImagesCounter_RBV");
+    triggerModePv->setPV(camBase+":TriggerMode");
+    imageModePv->setPV(camBase+":ImageMode");
+    aqPv->setPV(camBase+":Acquire");
     nameTemplatePv->setPV(pvName+":TIFF1:FileTemplate");
     namePv->setPV(pvName+":TIFF1:FileName");
     lastNamePv->setPV(pvName+":TIFF1:FullFileName_RBV");
@@ -131,15 +134,17 @@ void Detector::setCamera(const QString & pvName) {
     writeStatusPv->setPV(pvName+":TIFF1:WriteFile_RBV");
     pathPv->setPV(pvName+":TIFF1:FilePath_RBV");
     pathExistsPv->setPV(pvName+":TIFF1:FilePathExists_RBV");
-    delayPv->setPV(pvName+":CAM:DELAY_TIME");
+    delayPv->setPV(camBase+":DELAY_TIME"); // BUG?? Only for PCOedge
   }
+
 }
 
 
 void Detector::updateConnection() {
   _con = true;
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
-    _con &= pv->isConnected();
+    if (pv!=delayPv)
+      _con &= pv->isConnected();
   emit connectionChanged(_con);
 }
 
@@ -194,24 +199,46 @@ void Detector::updateWriting() {
     emit frameWritingFinished();
 }
 
-bool Detector::setPeriod(double val) {
-  // The RUBY detector has fucken bug - the acquire period parameter is
+
+// inline double period() const {}
+double Detector::period() const {
+  // The RUBY detector has a bug - the acquire period parameter is
   // unreliable at all. Will replace the period with the delay.
-  /*
-  if ( ! periodPv->isConnected() || isAcquiring() )
-    return false;
-  if (period() != val) {
-    periodPv->set(val);
-    qtWait(periodPv, SIGNAL(valueUpdated(QVariant)), 500);
+
+  // BUG : incomplete areaDetector abstraction
+
+  if (delayPv->isConnected()) { // this is PCOedge
+    return exposure() + delayPv->get().toDouble();
+  } else { // All other detectors
+    return periodPv->get().toDouble();
   }
+
+}
+
+
+bool Detector::setPeriod(double val) {
+  // The RUBY detector has a bug - the acquire period parameter is
+  // unreliable at all. Will replace the period with the delay.
+
+  // BUG : incomplete areaDetector abstraction
+
+  if (delayPv->isConnected()) { // this is PCOedge
+    periodPv->set(0);
+    bool waitupd = period() != val;
+    delayPv->set(val-exposure());
+    if (waitupd)
+      qtWait(delayPv, SIGNAL(valueUpdated(QVariant)), 500);
+  } else { // All other detectors
+    if ( ! periodPv->isConnected() || isAcquiring() )
+      return false;
+    if (period() != val) {
+      periodPv->set(val);
+      qtWait(periodPv, SIGNAL(valueUpdated(QVariant)), 500);
+    }
+  }
+
   return period() == val;
-  */
-  periodPv->set(0);
-  bool waitupd = period() != val;
-  delayPv->set(val-exposure());
-  if (waitupd)
-    qtWait(delayPv, SIGNAL(valueUpdated(QVariant)), 500);
-  return period() == val;
+
 }
 
 bool Detector::setNumber(int val) {
@@ -300,7 +327,14 @@ bool Detector::prepareForAcq() {
       return false;
   }
 
-  setPeriod(period()); // required for rubby: external change of period wipes out delay.
+
+  // The RUBY detector has a bug - the acquire period parameter is
+  // unreliable at all. Will replace the period with the delay.
+
+  // BUG : incomplete areaDetector abstraction
+  if (delayPv->isConnected()) { // this is PCOedge
+    setPeriod(period());
+  }
 
   return true;
 

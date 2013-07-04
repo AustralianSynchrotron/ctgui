@@ -52,20 +52,18 @@ private:
   QString _lastName;
   QString _path;
 
-  //QStringList _names;
-
 
 public:
 
   Detector(QObject * parent=0);
 
+
+  void setCamera(const QString & pvName, const QString & cam=QString() );
   void setCamera(Camera _cam);
-  void setCamera(const QString & pvName);
 
   inline const QString & pv() const {return cameraPv;}
   inline double exposure() const {return exposurePv->get().toDouble();}
-  // inline double period() const {return periodPv->get().toDouble();}
-  inline double period() const {return exposure() + delayPv->get().toDouble();}
+  double period() const;
   inline int number() const {return numberPv->get().toInt();}
   inline int counter() const {return counterPv->get().toInt();}
   inline int triggerMode() const {return triggerModePv->get().toInt();}
