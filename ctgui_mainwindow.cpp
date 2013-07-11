@@ -1550,8 +1550,8 @@ void MainWindow::onFFtest() {
     stopMe=false;
     ui->ffWidget->setEnabled(false);
     check(ui->testFF, false);
-    acquireBG(".test");
-    acquireDF(".test", sh1A->state());
+    acquireBG("");
+    acquireDF("", sh1A->state());
     check(ui->testFF, true);
     det->setAutoSave(false);
     ui->ffWidget->setEnabled(true);
@@ -1570,7 +1570,7 @@ void MainWindow::onLoopTest() {
     inMultiTest=true;
     stopMe=false;
     check(ui->testMulti, false);
-    acquireMulti(".test");
+    acquireMulti("");
     check(ui->testMulti, true);
     inMultiTest=false;
     det->setAutoSave(false);
@@ -1588,7 +1588,7 @@ void MainWindow::onDynoTest() {
     stopMe=false;
     inDynoTest=true;
     check(ui->testDyno, false);
-    acquireDyno(".test");
+    acquireDyno("");
     check(ui->testDyno, true);
     inDynoTest=false;
     det->setAutoSave(false);
@@ -1630,7 +1630,7 @@ void MainWindow::onDetectorTest() {
     inAcquisitionTest=true;
     stopMe=false;
     check(ui->testDetector, false);
-    acquireDetector(".test",
+    acquireDetector(det->name(),
                     ui->stepAndShotMode->isChecked() && ! ui->checkDyno->isChecked() ?
                       ui->aqsPP->value() : 1);
     check(ui->testDetector, true);
@@ -1858,7 +1858,7 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
       if (stopMe) goto acquireDynoExit;
     }
 
-    QString ftemplate = filetemplate;
+    QString ftemplate = filetemplate.isEmpty() ? det->name() : filetemplate;
     if (count>1)
       ftemplate += QString("_N%1").arg(curr, QString::number(count).length(), 10, QChar('0'));
     // two stopMes below are reqiuired for the case it changes while the detector is being prepared
@@ -1948,6 +1948,8 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
       lStart = loopMotor->motor()->getUserPosition(),
       slStart = subLoopMotor->motor()->getUserPosition();
 
+  const QString ftemplate = ( filetemplate.isEmpty() ? det->name() : filetemplate );
+
   for ( currentLoop = 0; currentLoop < totalLoops; currentLoop++) {
 
     setenv("CURRENTLOOP", QString::number(currentLoop).toAscii(), 1);
@@ -1968,7 +1970,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
         goto acquireMultiExit;
       }
 
-      QString filename = filetemplate +
+      QString filename = ftemplate +
           QString("_L%1").arg(currentLoop, loopDigs, 10, QChar('0')) +
           ( ui->subLoop->isChecked()  ?
               QString("_S%1").arg(currentSubLoop, subLoopDigs, 10, QChar('0')) : "");
@@ -2210,7 +2212,8 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   if ( ! bgMotor->motor()->isConnected() || bgs <1 || bgTravel == 0.0 )
     return ret;
 
-  QString ftemplate = "BG"+filetemplate;
+  QString ftemplate = "BG" +
+      ( filetemplate.isEmpty() ? "_" + det->name() : filetemplate );
   setenv("CONTRASTTYPE", "BG", 1);
 
   bgMotor->motor()->wait_stop();
@@ -2259,7 +2262,9 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
   if (stopMe) goto onDfExit;
 
   det->setPeriod(0);
-  ret = acquireDetector("DF"+filetemplate, dfs);
+
+  ret = acquireDetector( "DF" + ( filetemplate.isEmpty() ? "_" + det->name() : filetemplate ),
+                         dfs);
 
 onDfExit:
 
