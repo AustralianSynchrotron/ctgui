@@ -1837,6 +1837,7 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
     ui->dynoProgress->setVisible(true);
   }
 
+ QString ftemplate;
 
   for (int curr=0 ; curr < count ; curr++) {
 
@@ -1858,7 +1859,7 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
       if (stopMe) goto acquireDynoExit;
     }
 
-    QString ftemplate = filetemplate.isEmpty() ? det->name() : filetemplate;
+    ftemplate = filetemplate.isEmpty() ? det->name() : filetemplate;
     if (count>1)
       ftemplate += QString("_N%1").arg(curr, QString::number(count).length(), 10, QChar('0'));
     // two stopMes below are reqiuired for the case it changes while the detector is being prepared
@@ -1891,6 +1892,9 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
   }
 
 acquireDynoExit:
+
+  if ( filetemplate.isEmpty() && ! ftemplate.isEmpty() )
+    det->setName(ftemplate) ;
 
   setMotorSpeed(dynoMotor, dnSpeed);
   if ( dynoMotor->motor()->getUserGoal() != dStart )
@@ -2004,6 +2008,9 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
   }
 
 acquireMultiExit:
+
+  if (filetemplate.isEmpty())
+    det->setName(ftemplate) ;
 
   if (moveLoop) {
     loopMotor->motor()->goUserPosition(lStart, QCaMotor::STARTED);
@@ -2212,8 +2219,8 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   if ( ! bgMotor->motor()->isConnected() || bgs <1 || bgTravel == 0.0 )
     return ret;
 
-  QString ftemplate = "BG" +
-      ( filetemplate.isEmpty() ? "_" + det->name() : filetemplate );
+  const QString detfilename=det->name();
+  QString ftemplate = "BG_" +  ( filetemplate.isEmpty() ? det->name() : filetemplate );
   setenv("CONTRASTTYPE", "BG", 1);
 
   bgMotor->motor()->wait_stop();
@@ -2236,6 +2243,9 @@ int MainWindow::acquireBG(const QString &filetemplate) {
 
 onBgExit:
 
+  if ( filetemplate.isEmpty() && ! detfilename.isEmpty() )
+    det->setName(detfilename) ;
+
   if (!stopMe)
     bgMotor->motor()->wait_stop();
   return ret;
@@ -2255,6 +2265,8 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
   if ( ! sh1A->isEnabled() && shState != Shutter1A::CLOSED )
     return -1 ;
 
+  const QString detfilename=det->name();
+  QString ftemplate = "DF_" + ( filetemplate.isEmpty() ? det->name() : filetemplate );
   setenv("CONTRASTTYPE", "DF", 1);
 
   if (shState != Shutter1A::CLOSED)
@@ -2263,10 +2275,12 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
 
   det->setPeriod(0);
 
-  ret = acquireDetector( "DF" + ( filetemplate.isEmpty() ? "_" + det->name() : filetemplate ),
-                         dfs);
+  ret = acquireDetector(ftemplate, dfs);
 
 onDfExit:
+
+  if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
+    det->setName(detfilename) ;
 
   if (stateToGo == Shutter1A::OPENED)
     sh1A->open(!stopMe);
