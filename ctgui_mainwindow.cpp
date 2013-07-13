@@ -1570,7 +1570,8 @@ void MainWindow::onLoopTest() {
     inMultiTest=true;
     stopMe=false;
     check(ui->testMulti, false);
-    acquireMulti("");
+    acquireMulti("",  ui->stepAndShotMode->isChecked() && ! ui->checkDyno->isChecked()  ?
+                   ui->aqsPP->value() : 1);
     check(ui->testMulti, true);
     inMultiTest=false;
     det->setAutoSave(false);
@@ -2009,7 +2010,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
 
 acquireMultiExit:
 
-  if (filetemplate.isEmpty())
+  if ( filetemplate.isEmpty()  &&  ! ftemplate.isEmpty() )
     det->setName(ftemplate) ;
 
   if (moveLoop) {
