@@ -2200,7 +2200,7 @@ void MainWindow::updateProgress () {
 
 
 int MainWindow::acquireProjection(const QString &filetemplate) {
-  QString ftemplate = "SAMPLE" + filetemplate;
+  QString ftemplate = "SAMPLE_" + filetemplate;
   setenv("CONTRASTTYPE", "SAMPLE", 1);
   if (ui->checkMulti->isChecked())
     return acquireMulti(ftemplate, ui->aqsPP->value());
@@ -2473,7 +2473,7 @@ void MainWindow::engineRun () {
         setenv("CURRENTPROJECTION", QString::number(currentProjection).toAscii(), 1);
 
         projectionName = seriesName +
-            QString("_T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
+            QString("T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
 
         if (doDF && ! beforeDF) {
           acquireDF(projectionName, Shutter1A::OPENED);
