@@ -763,6 +763,7 @@ void MainWindow::updateUi_scanRange() {
     const char* thisSlot = SLOT(updateUi_scanRange());
     connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
     connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
+    connect( mot, SIGNAL(changedUserPosition(double)), thisSlot);
     connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
     connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
     connect(ui->checkSerial, SIGNAL(toggled(bool)), thisSlot);
