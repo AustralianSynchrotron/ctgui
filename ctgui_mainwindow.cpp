@@ -2455,9 +2455,9 @@ void MainWindow::engineRun () {
     if (totalScans==1)
       seriesName = "";
     else if (totalScans>1)
-      seriesName = QString("_Z%1").arg(currentScan, seriesDigs, 10, QChar('0') );
+      seriesName = QString("Z%1_").arg(currentScan, seriesDigs, 10, QChar('0') );
     else
-      seriesName = "_Z" + QString::number(currentScan);
+      seriesName = "Z" + QString::number(currentScan) + "_";
 
     if (ui->stepAndShotMode->isChecked()) { // STEP-AND-SHOT
 
