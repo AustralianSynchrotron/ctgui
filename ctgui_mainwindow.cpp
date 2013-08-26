@@ -5,6 +5,7 @@
 #include <QtCore>
 #include <QSettings>
 #include <QFile>
+#include <QTime>
 
 #include "additional_classes.h"
 
@@ -2565,12 +2566,14 @@ void MainWindow::engineRun () {
         setMotorSpeed(thetaMotor, speed);
         if (stopMe) goto onEngineExit;
 
-        thetaMotor->motor()->goLimit(rotDir, QCaMotor::STARTED);
-        if (stopMe) goto onEngineExit;
 
+        thetaMotor->motor()->goLimit(rotDir);
+        if (stopMe) goto onEngineExit;
         // accTravel/speed in the below string is required to compensate the coefficient 2
         // two strings above.
-        qtWait(1000*(accTime + accTravel/speed));
+       // qtWait(1000*(accTime + accTravel/speed));
+	usleep(1000000*(accTime + accTravel/speed));
+
         if (stopMe) goto onEngineExit;
 
       }
@@ -2578,6 +2581,7 @@ void MainWindow::engineRun () {
       if (doTriggCT)
         tct->start();
       det->start();
+
       if (stopMe) goto onEngineExit;
       det->waitDone();
       if (stopMe) goto onEngineExit;

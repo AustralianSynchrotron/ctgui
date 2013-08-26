@@ -352,9 +352,12 @@ bool Detector::setHardwareTriggering(bool set) {
 
 
 bool Detector::start() {
+
+  qDebug() << "in starting";
   if ( ! aqPv->isConnected() || ! writeStatusPv->isConnected() || isAcquiring() )
     return false;
   //writeExpected=true;
+  qDebug() << "starting";
   aqPv->set(1);
   qtWait(aqPv, SIGNAL(valueUpdated(QVariant)), 2000);
   return aqPv->get().toInt();
