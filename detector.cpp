@@ -165,8 +165,9 @@ void Detector::updateName() {
 }
 
 void Detector::updateLastName() {
-  _lastName = fromVList(lastNamePv->get());
-  emit lastNameChanged(_lastName);
+  const QString new_lastName = fromVList(lastNamePv->get());
+  if (new_lastName != _lastName)
+    emit lastNameChanged(_lastName=new_lastName);
   //_names.push_back(_lastName);
 }
 
@@ -217,9 +218,8 @@ double Detector::period() const {
 
 
 bool Detector::setPeriod(double val) {
-  // The RUBY detector has a bug - the acquire period parameter is
+  // The PCO.Edge detector has a bug - the acquire period parameter is
   // unreliable at all. Will replace the period with the delay.
-
   // BUG : incomplete areaDetector abstraction
 
   if (delayPv->isConnected()) { // this is PCOedge

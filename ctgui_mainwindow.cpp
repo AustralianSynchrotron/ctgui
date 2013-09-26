@@ -6,6 +6,7 @@
 #include <QSettings>
 #include <QFile>
 #include <QTime>
+#include <unistd.h>
 
 #include "additional_classes.h"
 
@@ -2524,11 +2525,11 @@ void MainWindow::engineRun () {
     } else { // CONTINIOUS
 
       if ( doDF && dfBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-        acquireDF(seriesName + "_BEFORE", Shutter1A::OPENED);
+        acquireDF(seriesName + "BEFORE", Shutter1A::OPENED);
         if (stopMe) goto onEngineExit;
       }
       if ( doBG  && bgBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-        acquireBG(seriesName + "_BEFORE");
+        acquireBG(seriesName + "BEFORE");
         if (stopMe) goto onEngineExit;
       }
 
@@ -2540,7 +2541,7 @@ void MainWindow::engineRun () {
       double period = qAbs(thetaRange) / (totalProjections * speed);
       if (det->period() != period)
         det->setPeriod(period);
-      prepareDetector("SAMPLE"+seriesName+"_T", totalProjections + doAdd);
+      prepareDetector("SAMPLE_"+seriesName+"T", totalProjections + doAdd);
       if (stopMe) goto onEngineExit;
 
       if (doTriggCT) {
@@ -2558,7 +2559,7 @@ void MainWindow::engineRun () {
         thetaMotor->motor()->wait_stop();
         if (stopMe) goto onEngineExit;
 
-        // 2 coefficient in the below string is required to quarantee that the
+        // 2 coefficient in the below string is required to guarantee that the
         // motor has accelerated to the normal speed before the acquisition starts.
         thetaMotor->motor()->goRelative( -2*rotDir*accTravel, QCaMotor::STOPPED);
         if (stopMe) goto onEngineExit;
@@ -2566,13 +2567,12 @@ void MainWindow::engineRun () {
         setMotorSpeed(thetaMotor, speed);
         if (stopMe) goto onEngineExit;
 
-
         thetaMotor->motor()->goLimit(rotDir);
         if (stopMe) goto onEngineExit;
         // accTravel/speed in the below string is required to compensate the coefficient 2
         // two strings above.
-       // qtWait(1000*(accTime + accTravel/speed));
-	usleep(1000000*(accTime + accTravel/speed));
+        // qtWait(1000*(accTime + accTravel/speed));
+        usleep(1000000*(accTime + accTravel/speed));
 
         if (stopMe) goto onEngineExit;
 
@@ -2585,6 +2585,8 @@ void MainWindow::engineRun () {
       if (stopMe) goto onEngineExit;
       det->waitDone();
       if (stopMe) goto onEngineExit;
+      det->waitWritten();
+      if (stopMe) goto onEngineExit;
 
       if ( ! ongoingSeries ) {
 
@@ -2595,11 +2597,11 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
 
         if ( doBG  && bgAfter && ui->ffOnEachScan->isChecked() ) {
-          acquireBG(seriesName + "_AFTER");
+          acquireBG(seriesName + "AFTER");
           if (stopMe) goto onEngineExit;
         }
         if ( doDF && dfAfter && ui->ffOnEachScan->isChecked() ) {
-          acquireDF(seriesName + "_AFTER", Shutter1A::OPENED);
+          acquireDF(seriesName + "AFTER", Shutter1A::OPENED);
           if (stopMe) goto onEngineExit;
         }
 
@@ -2637,11 +2639,11 @@ void MainWindow::engineRun () {
 
     if ( timeToStop && ! ui->stepAndShotMode->isChecked() && ! ui->ffOnEachScan->isChecked() ) {
       if ( doBG && bgAfter ) {
-        acquireBG(seriesName + "_AFTER");
+        acquireBG(seriesName + "AFTER");
         if (stopMe) goto onEngineExit;
       }
       if ( doDF && dfAfter ) {
-        acquireDF(seriesName + "_AFTER", Shutter1A::OPENED);
+        acquireDF(seriesName + "AFTER", Shutter1A::OPENED);
         if (stopMe) goto onEngineExit;
       }
     }
