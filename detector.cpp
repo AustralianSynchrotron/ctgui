@@ -203,9 +203,8 @@ void Detector::updateWriting() {
 
 // inline double period() const {}
 double Detector::period() const {
-  // The RUBY detector has a bug - the acquire period parameter is
+  // The PCO.edge detector has a bug - the acquire period parameter is
   // unreliable at all. Will replace the period with the delay.
-
   // BUG : incomplete areaDetector abstraction
 
   if (delayPv->isConnected()) { // this is PCOedge
