@@ -133,14 +133,14 @@ void Detector::setCamera(const QString & pvName) {
     imageModePv->setPV(pvName+":CAM:ImageMode");
     aqPv->setPV(pvName+":CAM:Acquire");
 
-    nameTemplatePv->setPV(pvName + "TIFF:FileTemplate");
-    namePv->setPV(pvName + "TIFF:FileName");
-    lastNamePv->setPV(pvName + "TIFF:FullFileName_RBV");
-    fileNumberPv->setPV(pvName + "TIFF:FileNumber");
-    autoSavePv->setPV(pvName + "TIFF:AutoSave");
-    writeStatusPv->setPV(pvName + "TIFF:WriteFile_RBV");
-    pathPv->setPV(pvName + "TIFF:FilePath_RBV");
-    pathExistsPv->setPV(pvName + "TIFF:FilePathExists_RBV");
+    nameTemplatePv->setPV(pvName + ":TIFF:FileTemplate");
+    namePv->setPV(pvName + ":TIFF:FileName");
+    lastNamePv->setPV(pvName + ":TIFF:FullFileName_RBV");
+    fileNumberPv->setPV(pvName + ":TIFF:FileNumber");
+    autoSavePv->setPV(pvName + ":TIFF:AutoSave");
+    writeStatusPv->setPV(pvName + ":TIFF:WriteFile_RBV");
+    pathPv->setPV(pvName + ":TIFF:FilePath_RBV");
+    pathExistsPv->setPV(pvName + ":TIFF:FilePathExists_RBV");
 
   }
 
