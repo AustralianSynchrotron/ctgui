@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>940</width>
+    <width>962</width>
     <height>1033</height>
    </rect>
   </property>
@@ -25,7 +25,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>8</number>
+       <number>3</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -193,7 +193,7 @@
              <string>SaS mode</string>
             </property>
             <property name="text">
-             <string>Stop and shot</string>
+             <string>stop-and-shot</string>
             </property>
             <property name="checked">
              <bool>true</bool>
@@ -211,7 +211,7 @@
                <string>Continious mode</string>
               </property>
               <property name="text">
-               <string>Continious</string>
+               <string>on-the-fly</string>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">aqModeButtonGroup</string>
@@ -1692,7 +1692,7 @@
         <string>Detector parameters</string>
        </property>
        <attribute name="title">
-        <string>Detrector</string>
+        <string>Detector</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_">
         <item>
@@ -1972,8 +1972,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>940</width>
-     <height>29</height>
+     <width>962</width>
+     <height>28</height>
     </rect>
    </property>
   </widget>

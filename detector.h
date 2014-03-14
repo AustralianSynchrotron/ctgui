@@ -14,9 +14,10 @@ public:
 
   enum Camera {
     NONE=0,
-    ScintX,
     PCOedge1,
     PCOedge2,
+    ScintX,
+    Hamamatsu,
     BYPV
   };
 
@@ -41,11 +42,9 @@ private:
   QEpicsPv * lastNamePv;
   QEpicsPv * autoSavePv;
   QEpicsPv * writeStatusPv;
-  QEpicsPv * delayPv;
-
-
 
   bool _con;
+  Camera _camera;
   QString cameraPv;
   QString _name;
   QString _nameTemplate;
@@ -58,7 +57,7 @@ public:
   Detector(QObject * parent=0);
 
 
-  void setCamera(const QString & pvName, const QString & cam=QString() );
+  void setCamera(const QString & pvName);
   void setCamera(Camera _cam);
 
   inline const QString & pv() const {return cameraPv;}

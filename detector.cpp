@@ -38,11 +38,9 @@ Detector::Detector(QObject * parent) :
   lastNamePv(new QEpicsPv(this) ),
   autoSavePv( new QEpicsPv(this) ),
   writeStatusPv( new QEpicsPv(this) ),
-  delayPv( new QEpicsPv(this) ),
   _con(false),
-//  _counter(0),
+  _camera(NONE),
   _name(QString())
-  //writeExpected(false)
 {
 
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -73,15 +71,17 @@ Detector::Detector(QObject * parent) :
 
 QString Detector::cameraName(Detector::Camera cam) {
   switch(cam) {
-    case ScintX : return "ScintX";
-    case PCOedge1 : return "PCO.Edge 1";
-    case PCOedge2 : return "PCO.Edge 2";
-    default: return QString();
+  case ScintX : return "ScintX";
+  case Hamamatsu : return "Hamamatsu";
+  case PCOedge1 : return "PCO.Edge 1";
+  case PCOedge2 : return "PCO.Edge 2";
+  default: return QString();
   }
 }
 
 Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="ScintX") return ScintX;
+  if (_cameraName =="Hamamatsu") return Hamamatsu;
   if (_cameraName =="PCO.Edge 1") return PCOedge1;
   if (_cameraName =="PCO.Edge 2") return PCOedge2;
   return NONE;
@@ -90,6 +90,7 @@ Detector::Camera Detector::camera(const QString & _cameraName) {
 const QList<Detector::Camera> Detector::knownCameras =
     ( QList<Detector::Camera> ()
       << Detector::ScintX
+      << Detector::Hamamatsu
       << Detector::PCOedge1
       << Detector::PCOedge2) ;
 
@@ -97,13 +98,20 @@ const QList<Detector::Camera> Detector::knownCameras =
 void Detector::setCamera(Camera _cam) {
   switch (_cam) {
   case ScintX:
-    setCamera("ScintX1", "cam1");
+    _camera = ScintX;
+    setCamera("SR08ID01DET05");
+    break;
+  case Hamamatsu:
+    _camera = Hamamatsu;
+    setCamera("SR08ID01DET04");
     break;
   case PCOedge1:
-    setCamera("SR08ID01DET01", "CAM");
+    _camera = PCOedge1;
+    setCamera("SR08ID01DET01");
     break;
   case PCOedge2:
-    setCamera("SR08ID01DET02", "CAM");
+    _camera = PCOedge2;
+    setCamera("SR08ID01DET02");
     break;
   default:
     foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -113,28 +121,27 @@ void Detector::setCamera(Camera _cam) {
 }
 
 
-void Detector::setCamera(const QString & pvName, const QString & cam) {
-
-  cameraPv=pvName;
-  const QString camBase = cam.isEmpty() ? pvName : pvName + ":" + cam;
+void Detector::setCamera(const QString & pvName) {
 
   if ( ! pvName.isEmpty() ) {
-    exposurePv->setPV(camBase+":AcquireTime_RBV");
-    periodPv->setPV(camBase+":AcquirePeriod");
-    numberPv->setPV(camBase+":NumImages");
-    counterPv->setPV(camBase+":NumImagesCounter_RBV");
-    triggerModePv->setPV(camBase+":TriggerMode");
-    imageModePv->setPV(camBase+":ImageMode");
-    aqPv->setPV(camBase+":Acquire");
-    nameTemplatePv->setPV(pvName+":TIFF1:FileTemplate");
-    namePv->setPV(pvName+":TIFF1:FileName");
-    lastNamePv->setPV(pvName+":TIFF1:FullFileName_RBV");
-    fileNumberPv->setPV(pvName+":TIFF1:FileNumber");
-    autoSavePv->setPV(pvName+":TIFF1:AutoSave");
-    writeStatusPv->setPV(pvName+":TIFF1:WriteFile_RBV");
-    pathPv->setPV(pvName+":TIFF1:FilePath_RBV");
-    pathExistsPv->setPV(pvName+":TIFF1:FilePathExists_RBV");
-    delayPv->setPV(camBase+":DELAY_TIME"); // BUG?? Only for PCOedge
+
+    exposurePv->setPV(pvName+":CAM:AcquireTime_RBV");
+    periodPv->setPV(pvName+":CAM:AcquirePeriod");
+    numberPv->setPV(pvName+":CAM:NumImages");
+    counterPv->setPV(pvName+":CAM:NumImagesCounter_RBV");
+    triggerModePv->setPV(pvName+":CAM:TriggerMode");
+    imageModePv->setPV(pvName+":CAM:ImageMode");
+    aqPv->setPV(pvName+":CAM:Acquire");
+
+    nameTemplatePv->setPV(pvName + "TIFF:FileTemplate");
+    namePv->setPV(pvName + "TIFF:FileName");
+    lastNamePv->setPV(pvName + "TIFF:FullFileName_RBV");
+    fileNumberPv->setPV(pvName + "TIFF:FileNumber");
+    autoSavePv->setPV(pvName + "TIFF:AutoSave");
+    writeStatusPv->setPV(pvName + "TIFF:WriteFile_RBV");
+    pathPv->setPV(pvName + "TIFF:FilePath_RBV");
+    pathExistsPv->setPV(pvName + "TIFF:FilePathExists_RBV");
+
   }
 
 }
@@ -143,8 +150,7 @@ void Detector::setCamera(const QString & pvName, const QString & cam) {
 void Detector::updateConnection() {
   _con = true;
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
-    if (pv!=delayPv)
-      _con &= pv->isConnected();
+    _con &= pv->isConnected();
   emit connectionChanged(_con);
 }
 
@@ -168,7 +174,6 @@ void Detector::updateLastName() {
   const QString new_lastName = fromVList(lastNamePv->get());
   if (new_lastName != _lastName)
     emit lastNameChanged(_lastName=new_lastName);
-  //_names.push_back(_lastName);
 }
 
 void Detector::updateNameTemplate() {
@@ -182,8 +187,7 @@ void Detector::updateCounter() {
     return;
   int cnt = counterPv->get().toInt();
   emit counterChanged(cnt);
-  //if ( ! cnt )
-  //  _names.clear();
+
 }
 
 void Detector::updateAcq() {
@@ -201,43 +205,19 @@ void Detector::updateWriting() {
 }
 
 
-// inline double period() const {}
 double Detector::period() const {
-  // The PCO.edge detector has a bug - the acquire period parameter is
-  // unreliable at all. Will replace the period with the delay.
-  // BUG : incomplete areaDetector abstraction
-
-  if (delayPv->isConnected()) { // this is PCOedge
-    return exposure() + delayPv->get().toDouble();
-  } else { // All other detectors
-    return periodPv->get().toDouble();
-  }
-
+  return periodPv->get().toDouble();
 }
 
 
 bool Detector::setPeriod(double val) {
-  // The PCO.Edge detector has a bug - the acquire period parameter is
-  // unreliable at all. Will replace the period with the delay.
-  // BUG : incomplete areaDetector abstraction
-
-  if (delayPv->isConnected()) { // this is PCOedge
-    periodPv->set(0);
-    bool waitupd = period() != val;
-    delayPv->set(val-exposure());
-    if (waitupd)
-      qtWait(delayPv, SIGNAL(valueUpdated(QVariant)), 500);
-  } else { // All other detectors
-    if ( ! periodPv->isConnected() || isAcquiring() )
-      return false;
-    if (period() != val) {
-      periodPv->set(val);
-      qtWait(periodPv, SIGNAL(valueUpdated(QVariant)), 500);
-    }
+  if ( ! periodPv->isConnected() || isAcquiring() )
+    return false;
+  if (period() != val) {
+    periodPv->set(val);
+    qtWait(periodPv, SIGNAL(valueUpdated(QVariant)), 500);
   }
-
   return period() == val;
-
 }
 
 bool Detector::setNumber(int val) {
@@ -326,15 +306,6 @@ bool Detector::prepareForAcq() {
       return false;
   }
 
-
-  // The RUBY detector has a bug - the acquire period parameter is
-  // unreliable at all. Will replace the period with the delay.
-
-  // BUG : incomplete areaDetector abstraction
-  if (delayPv->isConnected()) { // this is PCOedge
-    setPeriod(period());
-  }
-
   return true;
 
 }
@@ -352,11 +323,8 @@ bool Detector::setHardwareTriggering(bool set) {
 
 bool Detector::start() {
 
-  qDebug() << "in starting";
   if ( ! aqPv->isConnected() || ! writeStatusPv->isConnected() || isAcquiring() )
     return false;
-  //writeExpected=true;
-  qDebug() << "starting";
   aqPv->set(1);
   qtWait(aqPv, SIGNAL(valueUpdated(QVariant)), 2000);
   return aqPv->get().toInt();

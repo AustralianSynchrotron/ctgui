@@ -127,6 +127,7 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_scanStep();
   updateUi_rotSpeed();
   updateUi_stepTime();
+  updateUi_expOverStep();
   updateUi_thetaMotor();
   updateUi_bgTravel();
   updateUi_bgInterval();
@@ -145,14 +146,6 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_triggCT();
 
 
-  onAcquisitionMode();
-  onSerialCheck();
-  onFFcheck();
-  onDynoCheck();
-  onMultiCheck();
-  onDyno2();
-  onSubLoop();
-
   connect(ui->browseExpPath, SIGNAL(clicked()), SLOT(onWorkingDirBrowse()));
   connect(ui->continiousMode, SIGNAL(toggled(bool)), SLOT(onAcquisitionMode()));
   connect(ui->stepAndShotMode, SIGNAL(toggled(bool)), SLOT(onAcquisitionMode()));
@@ -169,6 +162,15 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->dyno2, SIGNAL(toggled(bool)), SLOT(onDyno2()));
   connect(ui->testDetector, SIGNAL(clicked()), SLOT(onDetectorTest()));
   connect(ui->startStop, SIGNAL(clicked()), SLOT(onStartStop()));
+
+  onAcquisitionMode();
+  onSerialCheck();
+  onFFcheck();
+  onDynoCheck();
+  onMultiCheck();
+  onDyno2();
+  onSubLoop();
+  onDetectorSelection();
 
   loadConfiguration(storedState);
   connect( ui->expName, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -768,6 +770,8 @@ void MainWindow::updateUi_scanRange() {
     connect( mot, SIGNAL(changedUserPosition(double)), thisSlot);
     connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
     connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(changedUserLoLimit(double)), thisSlot);
+    connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);
     connect(ui->checkSerial, SIGNAL(toggled(bool)), thisSlot);
     connect(ui->ongoingSeries, SIGNAL(toggled(bool)), thisSlot);
     connect(ui->endNumber, SIGNAL(toggled(bool)), thisSlot);
@@ -881,6 +885,16 @@ void MainWindow::updateUi_stepTime() {
     ui->stepTime->setText("");
     ui->expOverStep->setText("");
   }
+}
+
+void MainWindow::updateUi_expOverStep() {
+  if ( ! sender() ) { // called from the constructor;
+    connect( ui->expOverStep, SIGNAL(somethingChanged(QString)), SLOT(updateUi_expOverStep()));
+  }
+  bool ok;
+  double num = ui->expOverStep->text().toDouble(&ok);
+  check( ui->expOverStep, ok && num > 0 && num < 1.0 );
+
 }
 
 void MainWindow::updateUi_thetaMotor() {
@@ -2342,7 +2356,7 @@ void MainWindow::engineRun () {
     return;
   }
   logFile = new QFile("acquisition.log");
-  if ( ! logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text) ) {
+  if ( ! logFile || ! logFile->open(QIODevice::WriteOnly | QIODevice::Append | QIODevice::Text) ) {
     qDebug() << "Could not open log file for writing. Will not proceed.";
     logFile = 0;
     return;
