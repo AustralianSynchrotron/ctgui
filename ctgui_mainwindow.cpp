@@ -1765,19 +1765,6 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
     fileT += "_%0" + QString::number(QString::number(count).length()) + "d";
   fileT+= ".tif";
 
-  /*
-  det->waitWritten();
-  const int accSize = accumulatedLog.size();
-  qDebug() << accumulatedLog.size() << det->namesStored().size();
-  if ( logFile && logFile->isWritable() &&
-       accSize &&   det->namesStored().size() == accSize ) { // flush log
-    for( int curl=0 ; curl < accSize ; curl++ ) {
-      QString wrt = accumulatedLog[curl] + " " + det->namesStored()[curl] + "\n";
-      logFile->write( wrt.toAscii() );
-    }
-  }
-  */
-
   return
       det->setNameTemplate(fileT) &&
       det->isConnected() &&
@@ -2378,6 +2365,7 @@ void MainWindow::engineRun () {
       thetaRange = ui->scanRange->value(),
       thetaSpeed = thetaMotor->motor()->getNormalSpeed();
   double thetaInSeriesStart = thetaStart;
+
   const bool
       doSerial = ui->checkSerial->isChecked(),
       doBG = ui->checkFF->isChecked() && ui->nofBGs->value(),
@@ -2388,6 +2376,10 @@ void MainWindow::engineRun () {
       doDF = ui->checkFF->isChecked() && ui->nofDFs->value(),
       ongoingSeries = doSerial && ui->ongoingSeries->isChecked(),
       doTriggCT = ui->continiousMode->isChecked() && ui->triggCT->isChecked();
+
+  totalScans = doSerial ?
+    ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ;
+
   const int
       bgInterval = ui->bgInterval->value(),
       dfInterval = ui->dfInterval->value(),
@@ -2396,9 +2388,6 @@ void MainWindow::engineRun () {
       projectionDigs = QString::number(totalProjections).size(),
       seriesDigs = QString::number(totalScans).size(),
       doAdd = ui->scanAdd->isChecked() ? 1 : 0;
-
-  totalScans = doSerial ?
-    ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ;
 
   // Log header
   QString wrt = "# Starting acquisition. " + QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz");
@@ -2552,9 +2541,7 @@ void MainWindow::engineRun () {
       const double accTravel = speed * accTime / 2;
       const double rotDir = copysign(1,ui->scanRange->value());
 
-      double period = qAbs(thetaRange) / (totalProjections * speed);
-      if (det->period() != period)
-        det->setPeriod(period);
+      det->setPeriod( qAbs(thetaRange) / (totalProjections * speed) );
       prepareDetector("SAMPLE_"+seriesName+"T", totalProjections + doAdd);
       if (stopMe) goto onEngineExit;
 
