@@ -1799,12 +1799,12 @@ int MainWindow::acquireDetector(const QString & filetemplate, int count) {
 
 
 static void setMotorSpeed(QCaMotor* mot, double speed) {
-  if ( ! mot || ! mot->isConnected() )
+  if ( ! mot )
     return;
-  if ( speed >= 0.0  &&  mot->getNormalSpeed() != speed ) {
+  if ( speed >= 0.0 &&  mot->getNormalSpeed() != speed ) {
     mot->setNormalSpeed(speed);
     mot->waitUpdated<double>
-        (".VELO", speed, &QCaMotor::getNormalSpeed, 200);
+        (".VELO", speed, &QCaMotor::getNormalSpeed, 500);
   }
 }
 
