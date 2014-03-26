@@ -75,6 +75,7 @@ QString Detector::cameraName(Detector::Camera cam) {
   case Hamamatsu : return "Hamamatsu";
   case PCOedge1 : return "PCO.Edge 1";
   case PCOedge2 : return "PCO.Edge 2";
+  case Argus : return "Argus";
   default: return QString();
   }
 }
@@ -82,6 +83,7 @@ QString Detector::cameraName(Detector::Camera cam) {
 Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="ScintX") return ScintX;
   if (_cameraName =="Hamamatsu") return Hamamatsu;
+  if (_cameraName =="Argus") return Argus;
   if (_cameraName =="PCO.Edge 1") return PCOedge1;
   if (_cameraName =="PCO.Edge 2") return PCOedge2;
   return NONE;
@@ -91,6 +93,7 @@ const QList<Detector::Camera> Detector::knownCameras =
     ( QList<Detector::Camera> ()
       << Detector::ScintX
       << Detector::Hamamatsu
+      << Detector::Argus
       << Detector::PCOedge1
       << Detector::PCOedge2) ;
 
@@ -104,6 +107,10 @@ void Detector::setCamera(Camera _cam) {
   case Hamamatsu:
     _camera = Hamamatsu;
     setCamera("SR08ID01DET04");
+    break;
+  case Argus:
+    _camera = Argus;
+    setCamera("SR08ID01DET03");
     break;
   case PCOedge1:
     _camera = PCOedge1;

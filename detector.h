@@ -18,6 +18,7 @@ public:
     PCOedge2,
     ScintX,
     Hamamatsu,
+    Argus,
     BYPV
   };
 

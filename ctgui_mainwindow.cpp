@@ -889,11 +889,14 @@ void MainWindow::updateUi_stepTime() {
 
 void MainWindow::updateUi_expOverStep() {
   if ( ! sender() ) { // called from the constructor;
-    connect( ui->expOverStep, SIGNAL(somethingChanged(QString)), SLOT(updateUi_expOverStep()));
+    const char* thisSlot = SLOT(updateUi_expOverStep());
+    connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
+    connect( ui->expOverStep, SIGNAL(somethingChanged(QString)), thisSlot);
   }
   bool ok;
   double num = ui->expOverStep->text().toDouble(&ok);
-  check( ui->expOverStep, ok && num > 0 && num < 1.0 );
+  check( ui->expOverStep,  ui->stepAndShotMode->isChecked() ||
+                           ( ok && num > 0 && num < 1.0 ) );
 
 }
 
