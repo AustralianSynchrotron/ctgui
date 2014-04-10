@@ -36,6 +36,7 @@ private:
   QEpicsPv * imageModePv;//ImageMode
   QEpicsPv * aqPv; //Acquire
   QEpicsPv * pathPv;
+  QEpicsPv * pathPvSet;
   QEpicsPv * pathExistsPv;
   QEpicsPv * namePv;
   QEpicsPv * nameTemplatePv;
@@ -89,6 +90,7 @@ public slots:
   bool setName(const QString & fname);
   bool setNameTemplate(const QString & ntemp);
   bool setHardwareTriggering(bool set);
+  bool setPath(const QString & _path);
   bool start();
   void stop();
   bool acquire();
@@ -98,9 +100,12 @@ public slots:
 signals:
 
   void exposureChanged(double);
+  void periodChanged(double);
   void connectionChanged(bool);
-  void parameterChanged(); // exp int num trigM imagM path writeSt
+  void pathChanged(const QString &);
+  void parameterChanged(); // exp int num trigM imagM writeSt
   void counterChanged(int);
+  void totalImagesChanged(int);
   void templateChanged(const QString &);
   void nameChanged(const QString &);
   void lastNameChanged(const QString &);
@@ -111,8 +116,10 @@ signals:
 private slots:
 
   void updateExposure();
+  void updatePeriod();
   void updateConnection();
   void updateCounter();
+  void updateTotalImages();
   void updatePath();
   void updateName();
   void updateNameTemplate();

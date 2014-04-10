@@ -113,9 +113,9 @@ MainWindow::MainWindow(QWidget *parent) :
   tct->setPrefix("CTTEST:");
 
   updateUi_expPath();
+  updateUi_pathSync();
   updateUi_checkDyno();
   updateUi_checkMulti();
-  updateUi_expPath();
   updateUi_nofScans();
   updateUi_acquisitionTime();
   updateUi_condtitionScript();
@@ -234,6 +234,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(storeCurrentState()));
   connect( ui->preAqScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->postAqScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->detPathSync, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
 
 
   updateProgress();
@@ -328,6 +329,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "description", ui->expDesc);
   setInConfig(config, "sample", ui->sampleDesc);
   setInConfig(config, "workingdir", ui->expPath);
+  setInConfig(config, "syncdetectordir", ui->detPathSync);
   config.setValue("acquisitionmode", ui->stepAndShotMode->isChecked() ?
                     "step-and-shot" : "continious");
   setInConfig(config, "doserialscans", ui->checkSerial);
@@ -451,6 +453,7 @@ void MainWindow::loadConfiguration(QString fileName) {
   restoreFromConfig(config, "description", ui->expDesc);
   restoreFromConfig(config, "sample", ui->sampleDesc);
   restoreFromConfig(config, "workingdir", ui->expPath);
+  restoreFromConfig(config, "syncdetectordir", ui->detPathSync);
   if (config.contains("acquisitionmode")) {
     if ( config.value("acquisitionmode").toString() == "step-and-shot" )
       ui->stepAndShotMode->setChecked(true);
@@ -593,25 +596,72 @@ void MainWindow::addMessage(const QString & str) {
         " " + str);
 }
 
-void MainWindow::updateUi_expPath() {
-  if ( ! sender() ) // called from the constructor;
-    connect( ui->expPath, SIGNAL(textChanged(QString)), SLOT(updateUi_expPath()) );
+static QString lastPathComponent(const QString & pth) {
+  QString lastComponent = pth;
+  if ( lastComponent.endsWith("/") )
+    lastComponent.chop(1);
+  if (lastComponent.contains('/'))
+    lastComponent.remove(0, lastComponent.lastIndexOf('/')+1);
+  return lastComponent;
+}
 
-  const QString txt = ui->expPath->text();
+void MainWindow::updateUi_expPath() {
+  if ( ! sender() ) { // called from the constructor;
+    const char* thisSlot = SLOT(updateUi_expPath());
+    connect( ui->expPath, SIGNAL(textChanged(QString)), SLOT(updateUi_expPath()) );
+    connect( ui->detPathSync, SIGNAL(toggled(bool)), thisSlot );
+    connect( det, SIGNAL(pathChanged(QString)), thisSlot);
+  }
+
+  const QString pth = ui->expPath->text();
 
   bool isOK;
-  if (QDir::isAbsolutePath(txt)) {
-    QFileInfo fi(txt);
+  if (QDir::isAbsolutePath(pth)) {
+    QFileInfo fi(pth);
     isOK = fi.isDir() && fi.isWritable();
   } else
     isOK = false;
 
-  if (isOK)
-    QDir::setCurrent(txt);
+  if (isOK) {
+
+    QDir::setCurrent(pth);
+    ui->nonEmptyWarning->setVisible(
+          QDir::current().entryList(
+            QStringList() << "*.[tT][iI][fF]" << "*.[tT][iI][fF][fF]" ) . size() );
+
+    if ( ui->detPathSync->isChecked() && det->isConnected() ) {
+
+      QString lastComponent = lastPathComponent(pth);
+      QString detDir = det->path();
+      if ( detDir.endsWith("/") || detDir.endsWith("\\") ) // can be win or lin path delimiter
+        detDir.chop(1);
+      const int delidx = detDir.lastIndexOf( QRegExp("[/\\\\]") );
+      if ( delidx >=0 )
+        detDir.truncate(delidx+1);
+      det->setPath(detDir + lastComponent);
+
+    }
+
+  }
 
   check(ui->expPath, isOK);
 
 }
+
+
+void MainWindow::updateUi_pathSync() {
+  if ( ! sender() ) { // called from the constructor;
+    const char* thisSlot = SLOT(updateUi_pathSync());
+    connect( ui->expPath, SIGNAL(textChanged(QString)), thisSlot );
+    connect( ui->detPathSync, SIGNAL(toggled(bool)), thisSlot );
+    connect( det, SIGNAL(pathChanged(QString)), thisSlot);
+  }
+
+  check( ui->detPathSync, ! ui->detPathSync->isChecked() ||
+         lastPathComponent(det->path()) == lastPathComponent(ui->expPath->text()));
+
+}
+
 
 void MainWindow::updateUi_triggCT() {
   if ( ! sender() ) { // called from the constructor;
@@ -1397,10 +1447,17 @@ void MainWindow::updateUi_detector() {
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
     connect(det, SIGNAL(connectionChanged(bool)), thisSlot);
     connect(det, SIGNAL(parameterChanged()), thisSlot);
-    connect(det, SIGNAL(counterChanged(int)), thisSlot);
+    connect(det, SIGNAL(counterChanged(int)), ui->detProgress, SLOT(setValue(int)));
+    connect(det, SIGNAL(totalImagesChanged(int)), ui->detProgress, SLOT(setMaximum(int)));
+    connect(det, SIGNAL(counterChanged(int)), ui->detImageCounter, SLOT(setValue(int)));
+    connect(det, SIGNAL(totalImagesChanged(int)), ui->detTotalImages, SLOT(setValue(int)));
+    connect(det, SIGNAL(exposureChanged(double)), ui->exposureInfo, SLOT(setValue(double)));
+    connect(det, SIGNAL(exposureChanged(double)), ui->detExposure, SLOT(setValue(double)));
+    connect(det, SIGNAL(periodChanged(double)), ui->detPeriod, SLOT(setValue(double)));
     connect(det, SIGNAL(nameChanged(QString)), ui->detFileName, SLOT(setText(QString)));
     connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
     connect(det, SIGNAL(templateChanged(QString)), ui->detFileTemplate, SLOT(setText(QString)));
+    connect(det, SIGNAL(pathChanged(QString)), ui->detPath, SLOT(setText(QString)));
     connect(det, SIGNAL(counterChanged(int)), SLOT(accumulateLog()));
     connect(det, SIGNAL(lastNameChanged(QString)), this, SLOT(nameToLog(QString)));
   }
@@ -1418,31 +1475,14 @@ void MainWindow::updateUi_detector() {
     ui->detStatus->setText("idle");
 
   if (  det->isConnected() ) {
-    ui->exposureInfo->setValue(det->exposure());
-    ui->detExposure->setValue(det->exposure());
-    ui->detPeriod->setValue(det->period());
     ui->detTriggerMode->setText(det->triggerModeString());
     ui->detImageMode->setText(det->imageModeString());
     ui->detTotalImages->setValue(det->number());
-    ui->detPath->setText(det->path());
-    ui->detPath->setStyleSheet( det->pathExists() ? "" : "color: rgb(255, 0, 0);");
-    ui->detFileTemplate->setText(det->nameTemplate());
-    ui->detFileName->setText(det->name());
-  } else {
-    ui->exposureInfo->setText("");
-    ui->detExposure->setText("");
-    ui->detPeriod->setText("");
-    ui->detTriggerMode->setText("");
-    ui->detImageMode->setText("");
-    ui->detTotalImages->setText("");
-    ui->detPath->setText("");
-    ui->detPath->setText("");
-    ui->detFileTemplate->setText("");
-    ui->detFileName->setText("");
   }
 
   check (ui->detStatus, det->isConnected() &&
          ( inCT || ( ! det->isAcquiring() && ! det->isWriting() ) ) );
+  check (ui->detPath, det->pathExists() );
 
 
 }
@@ -2160,7 +2200,7 @@ void MainWindow::updateProgress () {
 
   if (currentProjection>=0) {
     if ( ! ui->scanProgress->isVisible() ) {
-      ui->scanProgress->setMaximum(totalProjections + ( ui->scanAdd->isChecked() ? 1 : 0 ));\
+      ui->scanProgress->setMaximum(totalProjections + ( ui->scanAdd->isChecked() ? 1 : 0 ));
       ui->scanProgress->setVisible(true);
     }
     ui->scanProgress->setValue(currentProjection);
@@ -2191,14 +2231,7 @@ void MainWindow::updateProgress () {
   } else
     ui->multiProgress->setVisible(false);
 
-  if ( currentShot>=0 && totalShots>1 && det->imageMode() == 1 ) {
-    if ( ! ui->detProgress->isVisible() ) {
-      ui->detProgress->setMaximum(totalShots);
-      ui->detProgress->setVisible(true);
-    }
-    ui->detProgress->setValue(currentShot);
-  } else
-    ui->detProgress->setVisible(false);
+  ui->detProgress->setVisible( currentShot>=0 && totalShots>1 && det->imageMode() == 1 );
 
   QTimer::singleShot(50, this, SLOT(updateProgress()));
 
@@ -2542,7 +2575,7 @@ void MainWindow::engineRun () {
       const double speed = ui->rotSpeed->value();
       const double accTime = thetaMotor->motor()->getAcceleration();
       const double accTravel = speed * accTime / 2;
-      const double rotDir = copysign(1,ui->scanRange->value());
+      const double rotDir = copysign(1,thetaRange);
 
       det->setPeriod( qAbs(thetaRange) / (totalProjections * speed) );
       prepareDetector("SAMPLE_"+seriesName+"T", totalProjections + doAdd);
@@ -2571,7 +2604,7 @@ void MainWindow::engineRun () {
         setMotorSpeed(thetaMotor, speed);
         if (stopMe) goto onEngineExit;
 
-        thetaMotor->motor()->goLimit(rotDir);
+        thetaMotor->motor()->goRelative( thetaRange + 2*rotDir*accTravel );
         if (stopMe) goto onEngineExit;
         // accTravel/speed in the below string is required to compensate the coefficient 2
         // two strings above.
@@ -2707,6 +2740,7 @@ onEngineExit:
   QTimer::singleShot(0, this, SLOT(updateUi_dyno2Motor()));
   QTimer::singleShot(0, this, SLOT(updateUi_detector()));
   QTimer::singleShot(0, this, SLOT(updateUi_shutterStatus()));
+  QTimer::singleShot(0, this, SLOT(updateUi_expPath()));
 
 
 }

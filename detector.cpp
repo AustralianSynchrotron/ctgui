@@ -31,6 +31,7 @@ Detector::Detector(QObject * parent) :
   imageModePv( new QEpicsPv(this) ),
   aqPv( new QEpicsPv(this) ),
   pathPv( new QEpicsPv(this) ),
+  pathPvSet( new QEpicsPv(this) ),
   pathExistsPv( new QEpicsPv(this) ),
   namePv( new QEpicsPv(this) ),
   nameTemplatePv( new QEpicsPv(this) ),
@@ -54,12 +55,11 @@ Detector::Detector(QObject * parent) :
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SLOT(updateAcq()));
   connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
   connect(exposurePv, SIGNAL(valueChanged(QVariant)), SLOT(updateExposure()));
+  connect(periodPv, SIGNAL(valueChanged(QVariant)), SLOT(updatePeriod()));
+  connect(numberPv, SIGNAL(valueChanged(QVariant)), SLOT(updateTotalImages()));
 
   connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(exposurePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(periodPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(numberPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(triggerModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(imageModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(pathExistsPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
@@ -147,6 +147,7 @@ void Detector::setCamera(const QString & pvName) {
     autoSavePv->setPV(pvName + ":TIFF:AutoSave");
     writeStatusPv->setPV(pvName + ":TIFF:WriteFile_RBV");
     pathPv->setPV(pvName + ":TIFF:FilePath_RBV");
+    pathPvSet->setPV(pvName + ":TIFF:FilePath");
     pathExistsPv->setPV(pvName + ":TIFF:FilePathExists_RBV");
 
   }
@@ -164,12 +165,17 @@ void Detector::updateConnection() {
 
 void Detector::updatePath() {
   _path = fromVList(pathPv->get());
-  emit parameterChanged();
+  emit pathChanged(_path);
 }
 
 void Detector::updateExposure() {
   if ( exposurePv->isConnected() )
-    emit exposureChanged(exposurePv->get().toInt());
+    emit exposureChanged(exposurePv->get().toDouble());
+}
+
+void Detector::updatePeriod() {
+  if ( periodPv->isConnected() )
+    emit periodChanged(periodPv->get().toDouble());
 }
 
 void Detector::updateName() {
@@ -194,8 +200,15 @@ void Detector::updateCounter() {
     return;
   int cnt = counterPv->get().toInt();
   emit counterChanged(cnt);
-
 }
+
+void Detector::updateTotalImages() {
+  if ( ! numberPv->isConnected() )
+    return;
+  int tot = numberPv->get().toInt();
+  emit totalImagesChanged(tot);
+}
+
 
 void Detector::updateAcq() {
   if (!isAcquiring()) {
@@ -270,6 +283,18 @@ bool Detector::setName(const QString & fname) {
     qtWait(namePv, SIGNAL(valueUpdated(QVariant)), 500);
   }
   return name() == fname ;
+}
+
+bool Detector::setPath(const QString & _path) {
+
+  if ( ! pathPvSet->isConnected() )
+    return false;
+  if ( path() != _path ) {
+      pathPvSet->set(_path.toAscii().append(char(0)));
+    qtWait(pathPv, SIGNAL(valueUpdated(QVariant)), 500);
+  }
+  return path() == _path ;
+
 }
 
 
