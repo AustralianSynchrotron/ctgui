@@ -136,6 +136,7 @@ private slots:
   void updateUi_serialStep();
   void updateUi_serialMotor();
   void updateUi_ffOnEachScan();
+  void updateUi_serialList();
 
   void updateUi_scanRange();
   void updateUi_scanStep();

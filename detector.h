@@ -103,7 +103,7 @@ signals:
   void periodChanged(double);
   void connectionChanged(bool);
   void pathChanged(const QString &);
-  void parameterChanged(); // exp int num trigM imagM writeSt
+  void parameterChanged(); // trigM imagM writeSt
   void counterChanged(int);
   void totalImagesChanged(int);
   void templateChanged(const QString &);

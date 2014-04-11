@@ -810,6 +810,40 @@ void MainWindow::updateUi_ffOnEachScan() {
 }
 
 
+void MainWindow::updateUi_serialList() {
+  if ( ! sender() ) { // called from the constructor;
+    const char* thisSlot = SLOT(updateUi_serialList());
+    connect(ui->endNumber, SIGNAL(toggled(bool)), thisSlot);
+    connect(ui->nofScans, SIGNAL(valueChanged(int)), thisSlot);
+    connect(ui->irregularStep, SIGNAL(toggled(bool)), thisSlot);
+    connect(ui->serialStep, SIGNAL(valueChanged(double)), thisSlot);
+    connect(serialMotor->motor(), SIGNAL(changedUserHiLimit(double)), thisSlot);
+    connect(serialMotor->motor(), SIGNAL(changedUserLoLimit(double)), thisSlot);
+  }
+
+  ui->irregularStep->setVisible(ui->endNumber->isChecked());
+  ui->serialPositionsList->setEnabled( ui->endNumber->isChecked() &&
+                                       ui->irregularStep->isChecked() );
+
+  if (ui->endNumber->isChecked()) {
+
+    ui->irregularStep->show();
+
+    if ( ui->serialPositionsList->rowCount() != ui->nofScans->value() ) {
+
+    }
+
+    for ( int curr=0 ; curr < ui->serialPositionsList->rowCount() ; curr++ ) {
+
+    }
+
+
+  }
+
+
+}
+
+
 
 void MainWindow::updateUi_scanRange() {
   QCaMotor * mot = thetaMotor->motor();

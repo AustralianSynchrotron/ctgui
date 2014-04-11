@@ -58,7 +58,6 @@ Detector::Detector(QObject * parent) :
   connect(periodPv, SIGNAL(valueChanged(QVariant)), SLOT(updatePeriod()));
   connect(numberPv, SIGNAL(valueChanged(QVariant)), SLOT(updateTotalImages()));
 
-  connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(triggerModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(imageModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
