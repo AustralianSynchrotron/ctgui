@@ -89,6 +89,8 @@ public slots:
   bool setNumber(int val);
   bool setName(const QString & fname);
   bool setNameTemplate(const QString & ntemp);
+  bool setImageMode(int imode);
+  bool setTriggerMode(int tmode);
   bool setHardwareTriggering(bool set);
   bool setPath(const QString & _path);
   bool start();

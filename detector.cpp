@@ -232,10 +232,9 @@ double Detector::period() const {
 bool Detector::setPeriod(double val) {
   if ( ! periodPv->isConnected() || isAcquiring() )
     return false;
-  if (period() != val) {
-    periodPv->set(val);
+  periodPv->set(val);
+  if (period() != val)
     qtWait(periodPv, SIGNAL(valueUpdated(QVariant)), 500);
-  }
   return period() == val;
 }
 
@@ -248,10 +247,7 @@ bool Detector::setNumber(int val) {
   qtWait(numberPv, SIGNAL(valueUpdated(QVariant)), 500);
 
   const int reqIM = val>1 ? 1 : 0;
-  if (imageMode() != reqIM) {
-    imageModePv->set(reqIM);
-    qtWait(imageModePv, SIGNAL(valueUpdated(QVariant)), 500);
-  }
+  setImageMode(reqIM);
 
   if (val == 1)
     setPeriod(0);
@@ -330,25 +326,59 @@ bool Detector::prepareForAcq() {
       return false;
   }
 
-  if (triggerModePv->get() != 0) {
-    triggerModePv->set(0); // AUTO for RUBY
-    qtWait(triggerModePv, SIGNAL(valueUpdated(QVariant)), 500);
-    if (triggerModePv->get() != 0)
-      return false;
-  }
+  if ( ! setTriggerMode(0) )
+    return false;
 
   return true;
 
 }
 
 
-bool Detector::setHardwareTriggering(bool set) {
+bool Detector::setImageMode(int imode) {
+
+  if ( ! imageModePv->isConnected() )
+    return false;
+  if ( imageMode() == imode )
+    return true;
+
+  imageModePv->set(imode);
+  qtWait(imageModePv, SIGNAL(valueUpdated(QVariant)), 500);
+  return imageModePv->get().toInt() == imode;
+
+}
+
+
+bool Detector::setTriggerMode(int tmode) {
+
   if ( ! triggerModePv->isConnected() )
     return false;
-  const int mode = set ? 1 : 0 ;
-  triggerModePv->set(mode);
+  if ( triggerMode() == tmode )
+    return true;
+
+  triggerModePv->set(tmode);
   qtWait(triggerModePv, SIGNAL(valueUpdated(QVariant)), 500);
-  return triggerModePv->get().toInt() == mode;
+  return triggerModePv->get().toInt() == tmode;
+
+}
+
+
+bool Detector::setHardwareTriggering(bool set) {
+
+  int mode = 0; // soft triggered
+  if (set) {
+    switch ( _camera ) {
+    case (PCOedge1) :
+    case (PCOedge2) :
+      mode = 2; // Ext + Soft
+      break;
+    default :
+      mode = 1;
+      break;
+    }
+  }
+
+  return setTriggerMode(mode);
+
 }
 
 
@@ -383,7 +413,7 @@ void Detector::waitWritten() {
 
   QTimer timer;
   timer.setSingleShot(true);
-  timer.setInterval(500); // maximum time to start writing next frame
+  timer.setInterval(1000); // maximum time to start writing next frame
 
   connect(this, SIGNAL(writingStarted()), &timer, SLOT(stop()));
   connect(this, SIGNAL(frameWritingFinished()), &timer, SLOT(start()));

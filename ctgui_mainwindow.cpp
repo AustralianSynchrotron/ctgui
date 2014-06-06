@@ -48,12 +48,6 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->control->setCurrentIndex(0);
 
 
-  /* While triggered CT in debug */
-  ui->label_11->hide();
-  ui->label_21->hide();
-  ui->triggCT->hide();
-  /**/
-
   ColumnResizer * resizer;
   resizer = new ColumnResizer(this);
   ui->preRunScript->addToColumnResizer(resizer);
@@ -110,7 +104,7 @@ MainWindow::MainWindow(QWidget *parent) :
   sh1A = new Shutter1A(ui->tabFF);
 
   tct = new TriggCT(this);
-  tct->setPrefix("CTTEST:");
+  tct->setPrefix("INTEG01:EQU");
 
   updateUi_expPath();
   updateUi_pathSync();
@@ -178,6 +172,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->sampleDesc, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->expPath, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->aqModeButtonGroup, SIGNAL(buttonClicked(int)), SLOT(storeCurrentState()));
+  connect( ui->triggCT, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->checkSerial, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->checkFF, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->checkDyno, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
@@ -332,6 +327,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "syncdetectordir", ui->detPathSync);
   config.setValue("acquisitionmode", ui->stepAndShotMode->isChecked() ?
                     "step-and-shot" : "continious");
+  setInConfig(config, "hwtrigg", ui->triggCT);
   setInConfig(config, "doserialscans", ui->checkSerial);
   setInConfig(config, "doflatfield", ui->checkFF);
   setInConfig(config, "dodyno", ui->checkDyno);
@@ -460,6 +456,7 @@ void MainWindow::loadConfiguration(QString fileName) {
     else if ( config.value("acquisitionmode").toString() == "continious" )
       ui->continiousMode->setChecked(true);
   }
+  restoreFromConfig(config, "hwtrigg", ui->triggCT);
   restoreFromConfig(config, "doserialscans", ui->checkSerial);
   restoreFromConfig(config, "doflatfield", ui->checkFF);
   restoreFromConfig(config, "dodyno", ui->checkDyno);
@@ -668,14 +665,26 @@ void MainWindow::updateUi_triggCT() {
     const char* thisSlot = SLOT(updateUi_triggCT());
     connect( tct, SIGNAL(connectionChanged(bool)), thisSlot);
     connect( tct, SIGNAL(runningChanged(bool)), thisSlot);
+    connect( ui->triggCT, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->continiousMode, SIGNAL(toggled(bool)), thisSlot);
   }
 
   bool isOK =
       ! ui->continiousMode->isChecked()  ||
       ! ui->triggCT->isChecked()  ||
-      ( tct->isConnected()  &&  ! tct->isRunning() );
+      ( tct->isConnected() && ! tct->isRunning() );
   check(ui->triggCT, isOK);
+
+  if ( ui->continiousMode->isChecked() &&
+       ui->triggCT->isChecked() &&
+       tct->isConnected() &&
+       ! tct->motor().isEmpty() ) {
+    if ( tct->motor() != thetaMotor->motor()->getPv() )
+      thetaMotor->motor()->setPv(tct->motor());
+    thetaMotor->lock(true);
+  } else {
+    thetaMotor->lock(false);
+  }
 
   ui->triggCT->setEnabled( ui->continiousMode->isChecked() &&
                            ( ui->triggCT->isChecked() || tct->isConnected() ) );
@@ -996,8 +1005,7 @@ void MainWindow::updateUi_thetaMotor() {
     connect( mot, SIGNAL(changedMaximumSpeed(double)), thisSlot);
     connect( mot, SIGNAL(changedLoLimitStatus(bool)), thisSlot);
     connect( mot, SIGNAL(changedHiLimitStatus(bool)), thisSlot);
-
-    connect(mot, SIGNAL(changedUserPosition(double)),
+    connect( mot, SIGNAL(changedUserPosition(double)),
             ui->scanCurrent, SLOT(setValue(double)));
   }
 
@@ -2344,8 +2352,8 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
   QString ftemplate = "DF_" + ( filetemplate.isEmpty() ? det->name() : filetemplate );
   setenv("CONTRASTTYPE", "DF", 1);
 
-  if (shState != Shutter1A::CLOSED)
-    sh1A->close(true);
+  /*if (shState != Shutter1A::CLOSED)
+    sh1A->close(true); /**/
   if (stopMe) goto onDfExit;
 
   det->setPeriod(0);
@@ -2357,12 +2365,12 @@ onDfExit:
   if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
     det->setName(detfilename) ;
 
-  if (stateToGo == Shutter1A::OPENED)
+/*  if (stateToGo == Shutter1A::OPENED)
     sh1A->open(!stopMe);
   else if (stateToGo == Shutter1A::CLOSED)
     sh1A->close(!stopMe);
   if ( ! stopMe && sh1A->state() != stateToGo)
-    qtWait(sh1A, SIGNAL(stateChanged(Shutter1A::State)), 500);
+    qtWait(sh1A, SIGNAL(stateChanged(Shutter1A::State)), 500); /**/
 
   return ret;
 
@@ -2501,6 +2509,10 @@ void MainWindow::engineRun () {
   foreach(QWidget * tab, ui->control->tabs())
         tab->setEnabled(false);
 
+  const int detimode=det->imageMode();
+  const int dettmode=det->triggerMode();
+  const bool detacq=det->isAcquiring();
+
   inCTtime.restart();
   currentScan=0;
   bool timeToStop=false;
@@ -2512,7 +2524,7 @@ void MainWindow::engineRun () {
   ui->preRunScript->execute();
   if (stopMe) goto onEngineExit;
 
-  sh1A->open(true);
+  /* sh1A->open(true); /**/
 
   do { // serial scanning
 
@@ -2610,8 +2622,9 @@ void MainWindow::engineRun () {
       const double accTime = thetaMotor->motor()->getAcceleration();
       const double accTravel = speed * accTime / 2;
       const double rotDir = copysign(1,thetaRange);
+      const double addTravel = 2*rotDir*accTravel +
+          (doTriggCT ? 2.0 : 0.0);
 
-      det->setPeriod( qAbs(thetaRange) / (totalProjections * speed) );
       prepareDetector("SAMPLE_"+seriesName+"T", totalProjections + doAdd);
       if (stopMe) goto onEngineExit;
 
@@ -2620,9 +2633,12 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
         const double curpos = thetaMotor->motor()->getUserPosition();
         tct->setStartPosition(curpos, true);
-        tct->setStopPosition(curpos + ui->scanRange->value(), true);
-        tct->setStep(ui->scanRange->value()/ui->scanProjections->value(), true);
+        tct->setStep( thetaRange / ui->scanProjections->value(), true);
+        tct->setNofTrigs(totalProjections + doAdd, true);
+        det->setPeriod(0);
         det->setHardwareTriggering(true);
+      } else {
+        det->setPeriod( qAbs(thetaRange) / (totalProjections * speed) );
       }
 
       if ( ! ongoingSeries || ! currentScan || doTriggCT ) {
@@ -2632,30 +2648,40 @@ void MainWindow::engineRun () {
 
         // 2 coefficient in the below string is required to guarantee that the
         // motor has accelerated to the normal speed before the acquisition starts.
-        thetaMotor->motor()->goRelative( -2*rotDir*accTravel, QCaMotor::STOPPED);
+        thetaMotor->motor()->goRelative( -addTravel, QCaMotor::STOPPED);
         if (stopMe) goto onEngineExit;
 
         setMotorSpeed(thetaMotor, speed);
         if (stopMe) goto onEngineExit;
 
-        thetaMotor->motor()->goRelative( thetaRange + 2*rotDir*accTravel );
-        if (stopMe) goto onEngineExit;
-        // accTravel/speed in the below string is required to compensate the coefficient 2
-        // two strings above.
-        // qtWait(1000*(accTime + accTravel/speed));
-        usleep(1000000*(accTime + accTravel/speed));
+        if ( ! doTriggCT ) { // should be started after tct and det
+          thetaMotor->motor()->goRelative( thetaRange + addTravel );
+          if (stopMe) goto onEngineExit;
+          // accTravel/speed in the below string is required to compensate the coefficient 2
+          // two strings above.
+          // qtWait(1000*(accTime + accTravel/speed));
+          usleep(1000000*(accTime + accTravel/speed));
 
-        if (stopMe) goto onEngineExit;
+          if (stopMe) goto onEngineExit;
+        }
 
       }
 
-      if (doTriggCT)
-        tct->start();
       det->start();
+      if (doTriggCT) {
+        tct->start(true);
+        thetaMotor->motor()->goRelative( thetaRange + addTravel );
+      }
 
       if (stopMe) goto onEngineExit;
-      det->waitDone();
+      qtWait( QList<ObjSig> ()
+              << ObjSig(det, SIGNAL(done()))
+              << ObjSig(thetaMotor->motor(), SIGNAL(stopped())) );
       if (stopMe) goto onEngineExit;
+      if (det->isAcquiring()) {
+        qtWait( det, SIGNAL(done()), 1000 );
+        det->stop();
+      }
       det->waitWritten();
       if (stopMe) goto onEngineExit;
 
@@ -2723,7 +2749,7 @@ void MainWindow::engineRun () {
   } while ( ! timeToStop );
 
   ui->postRunScript->execute();
-  sh1A->close();
+  /* sh1A->close(); /**/
 
 onEngineExit:
 
@@ -2764,6 +2790,10 @@ onEngineExit:
 
   det->setName(".temp") ;
   det->setAutoSave(false);
+  det->setImageMode(detimode);
+  det->setTriggerMode(dettmode);
+  if (detacq)
+    det->acquire();
 
   QTimer::singleShot(0, this, SLOT(updateUi_thetaMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
