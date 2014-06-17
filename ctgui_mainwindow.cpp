@@ -115,6 +115,7 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_condtitionScript();
   updateUi_serialStep();
   updateUi_serialMotor();
+  updateUi_serialList();
   updateUi_ffOnEachScan();
   updateUi_scanRange();
   updateUi_aqsPP();
@@ -187,6 +188,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->scanDelay, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( serialMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->serialStep, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->irregularStep, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->serialPositionsList, SIGNAL(itemChanged(QTableWidgetItem*)), SLOT(storeCurrentState()));
   connect( thetaMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->scanRange, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->scanProjections, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -354,6 +357,17 @@ void MainWindow::saveConfiguration(QString fileName) {
     setInConfig(config, "scandelay",ui->scanDelay);
     setInConfig(config, "serialmotor",serialMotor);
     setInConfig(config, "serialstep",ui->serialStep);
+    setInConfig(config, "serialirregularstep",ui->irregularStep);
+    if ( ui->irregularStep->isChecked() ) {
+      config.beginWriteArray("irregularsteps");
+      int index = 0;
+      foreach (QTableWidgetItem * item,
+               ui->serialPositionsList->findItems("", Qt::MatchContains) ) {
+        config.setArrayIndex(index++);
+        config.setValue("position", item ? item->text() : "");
+      }
+      config.endArray();
+    }
     config.endGroup();
   }
 
@@ -483,6 +497,19 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "scandelay",ui->scanDelay);
     restoreFromConfig(config, "serialmotor",serialMotor);
     restoreFromConfig(config, "serialstep",ui->serialStep);
+    restoreFromConfig(config, "serialirregularstep",ui->irregularStep);
+    if ( ui->irregularStep->isChecked() ) {
+      int stepssize = config.beginReadArray("irregularsteps");
+      for (int i = 0; i < stepssize; ++i) {
+        config.setArrayIndex(i);
+        if ( ui->serialPositionsList->item(i, 0) )
+          ui->serialPositionsList->item(i,0)->setText
+              (config.value("position").toString());
+      }
+      config.endArray();
+    }
+
+
     config.endGroup();
   }
 
@@ -748,6 +775,7 @@ void MainWindow::updateUi_serialStep() {
     connect( mot, SIGNAL(changedUserPosition(double)), thisSlot);
     connect( ui->serialStep, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->checkSerial, SIGNAL(toggled(bool)), thisSlot);
+    connect( ui->irregularStep, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->endNumber, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->nofScans, SIGNAL(valueChanged(int)), thisSlot);
   }
@@ -758,15 +786,79 @@ void MainWindow::updateUi_serialStep() {
       ! ui->checkSerial->isChecked() ||
       ! mot->isConnected() ||
       ( ui->serialStep->value() != 0.0  &&
-      ( ! ui->endNumber->isChecked() ||
+      ( ! ui->endNumber->isChecked() || ui->irregularStep->isChecked() ||
         ( endpos > mot->getUserLoLimit() && endpos < mot->getUserHiLimit() ) ) ) ;
   check(ui->serialStep, itemOK);
 
-  ui->serialStep->setEnabled(mot->isConnected());
   if(mot->isConnected()) {
     ui->serialStep->setSuffix(mot->getUnits());
     ui->serialStep->setDecimals(mot->getPrecision());
   }
+
+}
+
+
+void MainWindow::updateUi_serialList() {
+  if ( ! sender() ) { // called from the constructor;
+    const char* thisSlot = SLOT(updateUi_serialList());
+    connect(ui->nofScans, SIGNAL(valueChanged(int)), thisSlot);
+    connect(ui->irregularStep, SIGNAL(toggled(bool)), thisSlot);
+    connect(ui->endNumber, SIGNAL(toggled(bool)), thisSlot);
+    connect(ui->serialStep, SIGNAL(valueChanged(double)), thisSlot);
+    connect(ui->serialPositionsList, SIGNAL(itemChanged(QTableWidgetItem*)), thisSlot);
+    connect(serialMotor->motor(), SIGNAL(changedUserHiLimit(double)), thisSlot);
+    connect(serialMotor->motor(), SIGNAL(changedUserLoLimit(double)), thisSlot);
+    connect(serialMotor->motor(), SIGNAL(changedPv(QString)), thisSlot);
+    connect(serialMotor->motor(), SIGNAL(changedUserPosition(double)), thisSlot);
+    connect(serialMotor->motor(), SIGNAL(changedMoving(bool)), thisSlot);
+
+    ui->serialPositionsList->setItemDelegate(new NTableDelegate(ui->serialPositionsList));
+
+  }
+
+  if (inCT)
+    return;
+
+  ui->serialPositionsList->setVisible( ui->endNumber->isChecked() );
+  ui->irregularStep->setVisible( ui->endNumber->isChecked() );
+  ui->irregularOrLabel->setVisible( ui->endNumber->isChecked() );
+  ui->serialPositionsList->setEnabled( ui->irregularStep->isChecked() );
+  ui->serialStep->setEnabled( ! ui->endNumber->isChecked()  ||
+                              ! ui->irregularStep->isChecked() );
+
+  const int nofScans = ui->nofScans->value();
+  while ( nofScans < ui->serialPositionsList->rowCount() )
+    ui->serialPositionsList->removeRow( ui->serialPositionsList->rowCount()-1 );
+  while ( nofScans > ui->serialPositionsList->rowCount() ) {
+    ui->serialPositionsList->insertRow(ui->serialPositionsList->rowCount());
+    ui->serialPositionsList->setItem(
+          ui->serialPositionsList->rowCount()-1, 0,
+          new QTableWidgetItem( QString::number(serialMotor->motor()->getUserPosition() ) ) );
+  }
+
+  bool allOK=true;
+  foreach (QTableWidgetItem * item,
+           ui->serialPositionsList->findItems("", Qt::MatchContains) ) {
+
+    if ( ! ui->irregularStep->isChecked() ) {
+      if ( ! inCT && ! serialMotor->motor()->isMoving() ) {
+        double pos = serialMotor->motor()->getUserPosition()
+            + item->row() * ui->serialStep->value();
+        if ( pos != item->text().toDouble() )
+          item->setText( QString::number(pos) );
+      }
+    }
+
+    bool isDouble;
+    const double pos = item->text().toDouble(&isDouble);
+    const bool isOK = isDouble &&
+        (pos > serialMotor->motor()->getUserLoLimit() ) &&
+        (pos < serialMotor->motor()->getUserHiLimit() );
+    item->setBackground( isOK ? QBrush() : QBrush(QColor(Qt::red)));
+    allOK &= isOK;
+  }
+
+  check( ui->irregularStep,  ! ui->irregularStep->isChecked() || allOK );
 
 }
 
@@ -819,38 +911,12 @@ void MainWindow::updateUi_ffOnEachScan() {
 }
 
 
-void MainWindow::updateUi_serialList() {
-  if ( ! sender() ) { // called from the constructor;
-    const char* thisSlot = SLOT(updateUi_serialList());
-    connect(ui->endNumber, SIGNAL(toggled(bool)), thisSlot);
-    connect(ui->nofScans, SIGNAL(valueChanged(int)), thisSlot);
-    connect(ui->irregularStep, SIGNAL(toggled(bool)), thisSlot);
-    connect(ui->serialStep, SIGNAL(valueChanged(double)), thisSlot);
-    connect(serialMotor->motor(), SIGNAL(changedUserHiLimit(double)), thisSlot);
-    connect(serialMotor->motor(), SIGNAL(changedUserLoLimit(double)), thisSlot);
-  }
-
-  ui->irregularStep->setVisible(ui->endNumber->isChecked());
-  ui->serialPositionsList->setEnabled( ui->endNumber->isChecked() &&
-                                       ui->irregularStep->isChecked() );
-
-  if (ui->endNumber->isChecked()) {
-
-    ui->irregularStep->show();
-
-    if ( ui->serialPositionsList->rowCount() != ui->nofScans->value() ) {
-
-    }
-
-    for ( int curr=0 ; curr < ui->serialPositionsList->rowCount() ; curr++ ) {
-
-    }
 
 
-  }
 
 
-}
+
+
 
 
 
@@ -2524,7 +2590,18 @@ void MainWindow::engineRun () {
   ui->preRunScript->execute();
   if (stopMe) goto onEngineExit;
 
+  if ( doSerial  &&
+       serialMotor->motor()->isConnected() &&
+       ui->serialPositionsList->isVisible() ) // otherwise is already in the first point
+    serialMotor->motor()->goUserPosition(
+          ui->serialPositionsList->item(currentScan, 0)->text().toDouble(), QCaMotor::STARTED);
+  if (stopMe) goto onEngineExit;
+
   /* sh1A->open(true); /**/
+
+
+
+
 
   do { // serial scanning
 
@@ -2726,9 +2803,14 @@ void MainWindow::engineRun () {
       timeToStop = true;
 
     if ( ! timeToStop ) {
-      if (doSerial  && serialMotor->motor()->isConnected())
-        serialMotor->motor()->goUserPosition
-            ( serialStart + currentScan * ui->serialStep->value(), QCaMotor::STARTED);
+      if (doSerial  && serialMotor->motor()->isConnected()) {
+        const double goal = ui->serialPositionsList->isVisible() ?
+              ui->serialPositionsList->item(currentScan, 0)->text().toDouble() :
+              serialStart + currentScan * ui->serialStep->value();
+
+
+        serialMotor->motor()->goUserPosition(goal, QCaMotor::STARTED);
+      }
       if (stopMe) goto onEngineExit;
       qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
     }

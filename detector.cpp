@@ -39,6 +39,7 @@ Detector::Detector(QObject * parent) :
   lastNamePv(new QEpicsPv(this) ),
   autoSavePv( new QEpicsPv(this) ),
   writeStatusPv( new QEpicsPv(this) ),
+  queUsePv( new QEpicsPv(this) ),
   _con(false),
   _camera(NONE),
   _name(QString())
@@ -57,6 +58,7 @@ Detector::Detector(QObject * parent) :
   connect(exposurePv, SIGNAL(valueChanged(QVariant)), SLOT(updateExposure()));
   connect(periodPv, SIGNAL(valueChanged(QVariant)), SLOT(updatePeriod()));
   connect(numberPv, SIGNAL(valueChanged(QVariant)), SLOT(updateTotalImages()));
+  connect(queUsePv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
 
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(triggerModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
@@ -148,6 +150,7 @@ void Detector::setCamera(const QString & pvName) {
     pathPv->setPV(pvName + ":TIFF:FilePath_RBV");
     pathPvSet->setPV(pvName + ":TIFF:FilePath");
     pathExistsPv->setPV(pvName + ":TIFF:FilePathExists_RBV");
+    queUsePv->setPV(pvName + ":TIFF:QueueUse");
 
   }
 
@@ -217,10 +220,21 @@ void Detector::updateAcq() {
 }
 
 void Detector::updateWriting() {
-  if (isWriting())
+
+  if ( ! writeStatusPv->isConnected() )
+    return;
+
+  if ( sender() == writeStatusPv  && isWriting() ) {
     emit writingStarted();
-  else
-    emit frameWritingFinished();
+    return;
+  }
+
+  if ( ! queUsePv->isConnected() )
+    return;
+
+  if ( ! isWriting() && ! queUsePv->get().toInt() )
+    emit writingFinished();
+
 }
 
 
@@ -411,20 +425,24 @@ void Detector::waitDone() {
 
 void Detector::waitWritten() {
 
+  /*
   QTimer timer;
   timer.setSingleShot(true);
-  timer.setInterval(1000); // maximum time to start writing next frame
+  timer.setInterval(500); // maximum time to start writing next frame
 
   connect(this, SIGNAL(writingStarted()), &timer, SLOT(stop()));
-  connect(this, SIGNAL(frameWritingFinished()), &timer, SLOT(start()));
+  connect(this, SIGNAL(writingFinished()), &timer, SLOT(start()));
   connect(lastNamePv, SIGNAL(valueUpdated(QVariant)), &timer, SLOT(start()));
 
   QEventLoop q;
-  connect(&timer, SIGNAL(timeout()), &q, SLOT(quit()));
+  connect(&timer, SIGNAL(tiksysgmeout()), &q, SLOT(quit()));
+  */
 
-  if (!isWriting())
-    timer.start();
-  q.exec();
+  if ( ! isConnected() )
+    return;
+  if ( isWriting() || queUsePv->get().toInt() )
+    qtWait(this, SIGNAL(writingFinished()));
+  //  timer.start();
 
 }
 

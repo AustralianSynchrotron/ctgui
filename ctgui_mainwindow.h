@@ -188,4 +188,5 @@ signals:
 
 };
 
+
 #endif // CTGUI_MAINWINDOW_H

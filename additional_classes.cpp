@@ -3,6 +3,8 @@
 #include <QDebug>
 #include <QFileDialog>
 #include <QTimer>
+#include <QClipboard>
+#include <QMessageBox>
 
 QSCheckBox::QSCheckBox(QWidget * parent) :
   QCheckBox(parent) {}
@@ -339,5 +341,74 @@ void Script::addToColumnResizer(ColumnResizer * columnizer) {
   columnizer->addWidgetsFromGridLayout(ui->gridLayout, 2);
 }
 
+
+
+
+NTableDelegate::NTableDelegate(QObject *parent) : QStyledItemDelegate(parent)
+{
+}
+
+QWidget* NTableDelegate::createEditor(QWidget* parent,const QStyleOptionViewItem &option,const QModelIndex &index) const
+{
+  QLineEdit* editor = new QLineEdit(parent);
+  QDoubleValidator* val = new QDoubleValidator(editor);
+  val->setBottom(0);
+  val->setNotation(QDoubleValidator::StandardNotation);
+  editor->setValidator(val);
+  return editor;
+}
+
+void NTableDelegate::setEditorData(QWidget *editor, const QModelIndex &index) const
+{
+  double value = index.model()->data(index,Qt::EditRole).toDouble();
+  QLineEdit* line = static_cast<QLineEdit*>(editor);
+  line->setText(QString().setNum(value));
+}
+
+void NTableDelegate::setModelData(QWidget* editor,QAbstractItemModel* model,const QModelIndex &index) const
+{
+  QLineEdit* line = static_cast<QLineEdit*>(editor);
+  QString value = line->text();
+  model->setData(index,value);
+}
+
+void NTableDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const
+{
+  editor->setGeometry(option.rect);
+}
+
+
+
+
+
+void QTableWidgetWithCopyPaste::copy() {
+  QString selected_text;
+  foreach ( QTableWidgetItem * item , selectedItems() )
+    selected_text += item->text() + '\n';
+  qApp->clipboard()->setText(selected_text);
+}
+
+void QTableWidgetWithCopyPaste::paste() {
+
+  QString selected_text = qApp->clipboard()->text();
+  QStringList cells = selected_text.split(QRegExp(QLatin1String("\\n|\\t| ")));
+  if ( cells.empty() )
+    return;
+  int ccell=0;
+  foreach ( QTableWidgetItem * item , selectedItems() )
+    item->setText( ccell < cells.size() ? cells.at(ccell++) : "");
+
+}
+
+void QTableWidgetWithCopyPaste::keyPressEvent(QKeyEvent * event)
+{
+  if(event->matches(QKeySequence::Copy) )
+    copy();
+  else if(event->matches(QKeySequence::Paste) )
+    paste();
+  else
+    QTableWidget::keyPressEvent(event);
+
+}
 
 
