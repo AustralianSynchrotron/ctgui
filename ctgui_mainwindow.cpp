@@ -2531,7 +2531,9 @@ void MainWindow::engineRun () {
       scanTime = QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ),
       projectionDigs = QString::number(totalProjections).size(),
       seriesDigs = QString::number(totalScans).size(),
-      doAdd = ui->scanAdd->isChecked() ? 1 : 0;
+      doAdd = ui->scanAdd->isChecked() ? 1 : 0,
+      detimode=det->imageMode(),
+      dettmode=det->triggerMode();
 
   // Log header
   QString wrt = "# Starting acquisition. " + QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz");
@@ -2575,9 +2577,6 @@ void MainWindow::engineRun () {
   foreach(QWidget * tab, ui->control->tabs())
         tab->setEnabled(false);
 
-  const int detimode=det->imageMode();
-  const int dettmode=det->triggerMode();
-  const bool detacq=det->isAcquiring();
 
   inCTtime.restart();
   currentScan=0;
@@ -2874,8 +2873,7 @@ onEngineExit:
   det->setAutoSave(false);
   det->setImageMode(detimode);
   det->setTriggerMode(dettmode);
-  if (detacq)
-    det->acquire();
+
 
   QTimer::singleShot(0, this, SLOT(updateUi_thetaMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
