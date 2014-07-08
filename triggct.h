@@ -19,6 +19,7 @@ private:
   QEpicsPv * startPosPv;
   QEpicsPv * startPosPvRBV;
   QEpicsPv * stepPv;
+  QEpicsPv * rangePv;
   QEpicsPv * nofTrigsPv;
 
   QString _prefix;
@@ -36,6 +37,7 @@ public:
   const QString & motor() const {return motorPv;}
   double startPosition() const {return startPosPvRBV->get().toDouble();}
   double step() const {return stepPv->get().toDouble();}
+  double range() const {return rangePv->get().toDouble();}
   double trigs() const {return nofTrigsPv->get().toDouble();}
 
 signals:
@@ -47,6 +49,7 @@ public slots:
   bool setPrefix(const QString & prefix, bool wait=false);
   bool setStartPosition(double pos, bool wait=false);
   bool setStep(double stp, bool wait=false);
+  bool setRange(double rng, bool wait=false);
   bool setNofTrigs(int trgs, bool wait=false);
   bool start(bool wait=false);
   bool stop(bool wait=false);

@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent) :
   isLoadingState(false),
   ui(new Ui::MainWindow),
   det(new Detector(this)),
+  tct(new TriggCT(this)),
   inAcquisitionTest(false),
   inDynoTest(false),
   inMultiTest(false),
@@ -103,8 +104,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   sh1A = new Shutter1A(ui->tabFF);
 
-  tct = new TriggCT(this);
-  tct->setPrefix("INTEG01:EQU");
+  tct->setPrefix("SR08ID01SST01:ROTATION:EQU");
 
   updateUi_expPath();
   updateUi_pathSync();
@@ -634,7 +634,7 @@ void MainWindow::updateUi_expPath() {
     const char* thisSlot = SLOT(updateUi_expPath());
     connect( ui->expPath, SIGNAL(textChanged(QString)), SLOT(updateUi_expPath()) );
     connect( ui->detPathSync, SIGNAL(toggled(bool)), thisSlot );
-    connect( det, SIGNAL(pathChanged(QString)), thisSlot);
+    connect( det, SIGNAL(connectionChanged(bool)), thisSlot);
   }
 
   const QString pth = ui->expPath->text();
@@ -2418,7 +2418,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
   QString ftemplate = "DF_" + ( filetemplate.isEmpty() ? det->name() : filetemplate );
   setenv("CONTRASTTYPE", "DF", 1);
 
-  /*if (shState != Shutter1A::CLOSED)
+  if (shState != Shutter1A::CLOSED)
     sh1A->close(true); /**/
   if (stopMe) goto onDfExit;
 
@@ -2431,7 +2431,7 @@ onDfExit:
   if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
     det->setName(detfilename) ;
 
-/*  if (stateToGo == Shutter1A::OPENED)
+  if (stateToGo == Shutter1A::OPENED)
     sh1A->open(!stopMe);
   else if (stateToGo == Shutter1A::CLOSED)
     sh1A->close(!stopMe);
@@ -2596,11 +2596,14 @@ void MainWindow::engineRun () {
           ui->serialPositionsList->item(currentScan, 0)->text().toDouble(), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
 
-  /* sh1A->open(true); /**/
+  if (doTriggCT) {
+    tct->setStartPosition(thetaStart, true);
+    //tct->setStep( thetaRange / ui->scanProjections->value(), true);
+    tct->setRange( thetaRange , true);
+    tct->setNofTrigs(totalProjections + doAdd, true);
+  }
 
-
-
-
+  sh1A->open(true); /**/
 
   do { // serial scanning
 
@@ -2705,12 +2708,6 @@ void MainWindow::engineRun () {
       if (stopMe) goto onEngineExit;
 
       if (doTriggCT) {
-        thetaMotor->motor()->wait_stop();
-        if (stopMe) goto onEngineExit;
-        const double curpos = thetaMotor->motor()->getUserPosition();
-        tct->setStartPosition(curpos, true);
-        tct->setStep( thetaRange / ui->scanProjections->value(), true);
-        tct->setNofTrigs(totalProjections + doAdd, true);
         det->setPeriod(0);
         det->setHardwareTriggering(true);
       } else {
@@ -2830,7 +2827,7 @@ void MainWindow::engineRun () {
   } while ( ! timeToStop );
 
   ui->postRunScript->execute();
-  /* sh1A->close(); /**/
+  sh1A->close(); /**/
 
 onEngineExit:
 
@@ -2848,6 +2845,8 @@ onEngineExit:
 
   if ( logFile ) {
     if ( logFile->isWritable() ) {
+      if (det->isWriting())
+        check(ui->detStatus, false);
       det->waitWritten();
       if ( accumulatedLog.size() )  { // smth left: sdkipped frames
         qDebug() << "Accamulated log is not empty in the end of the CT acquisition."
@@ -2884,7 +2883,7 @@ onEngineExit:
   QTimer::singleShot(0, this, SLOT(updateUi_dyno2Motor()));
   QTimer::singleShot(0, this, SLOT(updateUi_detector()));
   QTimer::singleShot(0, this, SLOT(updateUi_shutterStatus()));
-  QTimer::singleShot(0, this, SLOT(updateUi_expPath()));
+//  QTimer::singleShot(0, this, SLOT(updateUi_expPath()));
 
 
 }

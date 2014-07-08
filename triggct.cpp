@@ -10,6 +10,7 @@ TriggCT::TriggCT(QObject *parent) :
   startPosPv(new QEpicsPv(this)),
   startPosPvRBV(new QEpicsPv(this)),
   stepPv(new QEpicsPv(this)),
+  rangePv(new QEpicsPv(this)),
   nofTrigsPv(new QEpicsPv(this)),
   motorPv(),
   iAmConnected(false)
@@ -48,6 +49,7 @@ bool TriggCT::setPrefix(const QString & prefix, bool wait) {
   startPosPv->setPV(prefix+":START");
   startPosPvRBV->setPV(prefix+":START:RBV");
   stepPv->setPV(prefix+":STEP");
+  rangePv->setPV(prefix+":RANGE");
   nofTrigsPv->setPV(prefix+":NTRIGS");
   updateConnection();
 
@@ -69,6 +71,7 @@ bool TriggCT::setStartPosition(double pos, bool wait) {
     return false;
 
   startPosPv->set(pos);
+
 
   if ( wait ) {
     QTime accTime;
@@ -102,6 +105,28 @@ bool TriggCT::setStep(double stp, bool wait) {
   return step() == stp;
 
 }
+
+
+bool TriggCT::setRange(double rng, bool wait) {
+
+  if ( ! rangePv->isConnected() )
+    return false;
+
+  rangePv->set(rng);
+
+  if ( wait ) {
+    QTime accTime;
+    accTime.start();
+    while ( rangePv->isConnected() &&
+            range() != rng &&
+            accTime.elapsed() < 500 )
+      qtWait(rangePv, SIGNAL(valueUpdated(QVariant)), 500);
+  }
+
+  return range() == rng;
+
+}
+
 
 bool TriggCT::setNofTrigs(int trgs, bool wait) {
   if ( ! nofTrigsPv->isConnected() ||
