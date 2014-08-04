@@ -22,6 +22,7 @@ MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
   isLoadingState(false),
   ui(new Ui::MainWindow),
+  wErrDialog(new QDialog(this)),
   det(new Detector(this)),
   inAcquisitionTest(false),
   inDynoTest(false),
@@ -233,6 +234,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->preAqScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->postAqScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
 
+  connect( det, SIGNAL(writingError(QString)), SLOT(onWriteError(QString)) );
 
   updateProgress();
 
@@ -1739,6 +1741,21 @@ void MainWindow::check(QWidget * obj, bool status) {
 
 
 
+
+
+
+void MainWindow::onWriteError(const QString &name) {
+
+  if ( ! inCT &&
+       ! inFFTest &&
+       ! inMultiTest &&
+       ! inDynoTest &&
+       ! inAcquisitionTest )
+    return;
+
+
+
+}
 
 
 

@@ -52,6 +52,9 @@ private:
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
 
+  QDialog * wErrDialog;
+  QStringList wErrs;
+
   Detector * det;
 
   TriggCT * tct;
@@ -165,6 +168,8 @@ private slots:
   void onDynoSpeedLock();
   void onDynoDirectionLock();
   void onDynoTest();
+
+  void onWriteError(const QString & name);
 
   void updateUi_detector();
   void onDetectorSelection();

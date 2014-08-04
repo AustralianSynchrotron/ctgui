@@ -41,6 +41,7 @@ private:
   QEpicsPv * lastNamePv;
   QEpicsPv * autoSavePv;
   QEpicsPv * writeStatusPv;
+  QEpicsPv * writeProggressPv;
   QEpicsPv * delayPv;
 
 
@@ -76,7 +77,7 @@ public:
   inline const QString & lastName() const {return _lastName;}
   inline bool pathExists() { return pathExistsPv->get().toBool();}
   inline bool isAcquiring() const {return aqPv->get().toInt();}
-  inline bool isWriting() const {return writeStatusPv->get().toInt();}
+  inline bool isWriting() const {return writeProggressPv->get().toInt() ;}
   inline bool isConnected() const {return _con;}
 
   void waitDone();
@@ -107,6 +108,7 @@ signals:
   void writingStarted();
   void frameWritingFinished();
   void done();
+  void writingError(const QString & filename);
 
 private slots:
 
@@ -119,6 +121,7 @@ private slots:
   void updateLastName();
   void updateAcq();
   void updateWriting();
+  void onWritingStatus();
 
 };
 

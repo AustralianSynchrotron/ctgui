@@ -38,6 +38,7 @@ Detector::Detector(QObject * parent) :
   lastNamePv(new QEpicsPv(this) ),
   autoSavePv( new QEpicsPv(this) ),
   writeStatusPv( new QEpicsPv(this) ),
+  writeProggressPv( new QEpicsPv(this) ),
   delayPv( new QEpicsPv(this) ),
   _con(false),
 //  _counter(0),
@@ -54,10 +55,10 @@ Detector::Detector(QObject * parent) :
   connect(namePv, SIGNAL(valueChanged(QVariant)), SLOT(updateName()));
   connect(lastNamePv, SIGNAL(valueChanged(QVariant)), SLOT(updateLastName()));
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SLOT(updateAcq()));
-  connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
+  connect(writeProggressPv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
+  connect(writeStatusPv, SIGNAL(valueUpdated(QVariant)), SLOT(onWritingStatus()));
   connect(exposurePv, SIGNAL(valueChanged(QVariant)), SLOT(updateExposure()));
 
-  connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(exposurePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(periodPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
@@ -66,6 +67,7 @@ Detector::Detector(QObject * parent) :
   connect(imageModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(pathExistsPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(writeProggressPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
 
   updateConnection();
 
@@ -131,7 +133,8 @@ void Detector::setCamera(const QString & pvName, const QString & cam) {
     lastNamePv->setPV(pvName+":TIFF1:FullFileName_RBV");
     fileNumberPv->setPV(pvName+":TIFF1:FileNumber");
     autoSavePv->setPV(pvName+":TIFF1:AutoSave");
-    writeStatusPv->setPV(pvName+":TIFF1:WriteFile_RBV");
+    writeProggressPv->setPV(pvName+":TIFF1:WriteFile_RBV");
+    writeStatusPv->setPV(pvName+":TIFF1:WriteStatus");
     pathPv->setPV(pvName+":TIFF1:FilePath_RBV");
     pathExistsPv->setPV(pvName+":TIFF1:FilePathExists_RBV");
     delayPv->setPV(camBase+":DELAY_TIME"); // BUG?? Only for PCOedge
@@ -198,6 +201,12 @@ void Detector::updateWriting() {
     emit writingStarted();
   else
     emit frameWritingFinished();
+}
+
+
+void Detector::onWritingStatus() {
+  if ( writeStatusPv->get().toInt() )
+    emit writingError( lastName() );
 }
 
 
@@ -353,7 +362,7 @@ bool Detector::setHardwareTriggering(bool set) {
 bool Detector::start() {
 
   qDebug() << "in starting";
-  if ( ! aqPv->isConnected() || ! writeStatusPv->isConnected() || isAcquiring() )
+  if ( ! aqPv->isConnected() || ! writeProggressPv->isConnected() || isAcquiring() )
     return false;
   //writeExpected=true;
   qDebug() << "starting";
