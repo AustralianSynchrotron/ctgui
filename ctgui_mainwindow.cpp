@@ -2591,9 +2591,10 @@ void MainWindow::engineRun () {
 
   if ( doSerial  &&
        serialMotor->motor()->isConnected() &&
-       ui->serialPositionsList->isVisible() ) // otherwise is already in the first point
+       ui->endNumber->isChecked() &&
+       ui->irregularStep->isChecked() ) // otherwise is already in the first point
     serialMotor->motor()->goUserPosition(
-          ui->serialPositionsList->item(currentScan, 0)->text().toDouble(), QCaMotor::STARTED);
+          ui->serialPositionsList->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
 
   if (doTriggCT) {
@@ -2800,11 +2801,9 @@ void MainWindow::engineRun () {
 
     if ( ! timeToStop ) {
       if (doSerial  && serialMotor->motor()->isConnected()) {
-        const double goal = ui->serialPositionsList->isVisible() ?
+        const double goal = (  ui->endNumber->isChecked() &&  ui->irregularStep->isChecked()  )  ?
               ui->serialPositionsList->item(currentScan, 0)->text().toDouble() :
               serialStart + currentScan * ui->serialStep->value();
-
-
         serialMotor->motor()->goUserPosition(goal, QCaMotor::STARTED);
       }
       if (stopMe) goto onEngineExit;
