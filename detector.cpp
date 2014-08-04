@@ -31,6 +31,7 @@ Detector::Detector(QObject * parent) :
   imageModePv( new QEpicsPv(this) ),
   aqPv( new QEpicsPv(this) ),
   pathPv( new QEpicsPv(this) ),
+  pathPvSet( new QEpicsPv(this) ),
   pathExistsPv( new QEpicsPv(this) ),
   namePv( new QEpicsPv(this) ),
   nameTemplatePv( new QEpicsPv(this) ),
@@ -39,11 +40,10 @@ Detector::Detector(QObject * parent) :
   autoSavePv( new QEpicsPv(this) ),
   writeStatusPv( new QEpicsPv(this) ),
   writeProggressPv( new QEpicsPv(this) ),
-  delayPv( new QEpicsPv(this) ),
+  queUsePv( new QEpicsPv(this) ),
   _con(false),
-//  _counter(0),
+  _camera(NONE),
   _name(QString())
-  //writeExpected(false)
 {
 
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -58,11 +58,11 @@ Detector::Detector(QObject * parent) :
   connect(writeProggressPv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
   connect(writeStatusPv, SIGNAL(valueUpdated(QVariant)), SLOT(onWritingStatus()));
   connect(exposurePv, SIGNAL(valueChanged(QVariant)), SLOT(updateExposure()));
+  connect(periodPv, SIGNAL(valueChanged(QVariant)), SLOT(updatePeriod()));
+  connect(numberPv, SIGNAL(valueChanged(QVariant)), SLOT(updateTotalImages()));
+  connect(queUsePv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
 
   connect(aqPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(exposurePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(periodPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(numberPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(triggerModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(imageModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(pathExistsPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
@@ -75,15 +75,19 @@ Detector::Detector(QObject * parent) :
 
 QString Detector::cameraName(Detector::Camera cam) {
   switch(cam) {
-    case ScintX : return "ScintX";
-    case PCOedge1 : return "PCO.Edge 1";
-    case PCOedge2 : return "PCO.Edge 2";
-    default: return QString();
+  case ScintX : return "ScintX";
+  case Hamamatsu : return "Hamamatsu";
+  case PCOedge1 : return "PCO.Edge 1";
+  case PCOedge2 : return "PCO.Edge 2";
+  case Argus : return "Argus";
+  default: return QString();
   }
 }
 
 Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="ScintX") return ScintX;
+  if (_cameraName =="Hamamatsu") return Hamamatsu;
+  if (_cameraName =="Argus") return Argus;
   if (_cameraName =="PCO.Edge 1") return PCOedge1;
   if (_cameraName =="PCO.Edge 2") return PCOedge2;
   return NONE;
@@ -92,6 +96,8 @@ Detector::Camera Detector::camera(const QString & _cameraName) {
 const QList<Detector::Camera> Detector::knownCameras =
     ( QList<Detector::Camera> ()
       << Detector::ScintX
+      << Detector::Hamamatsu
+      << Detector::Argus
       << Detector::PCOedge1
       << Detector::PCOedge2) ;
 
@@ -99,13 +105,24 @@ const QList<Detector::Camera> Detector::knownCameras =
 void Detector::setCamera(Camera _cam) {
   switch (_cam) {
   case ScintX:
-    setCamera("ScintX1", "cam1");
+    _camera = ScintX;
+    setCamera("SR08ID01DET05");
+    break;
+  case Hamamatsu:
+    _camera = Hamamatsu;
+    setCamera("SR08ID01DET04");
+    break;
+  case Argus:
+    _camera = Argus;
+    setCamera("SR08ID01DET03");
     break;
   case PCOedge1:
-    setCamera("SR08ID01DET01", "CAM");
+    _camera = PCOedge1;
+    setCamera("SR08ID01DET01");
     break;
   case PCOedge2:
-    setCamera("SR08ID01DET02", "CAM");
+    _camera = PCOedge2;
+    setCamera("SR08ID01DET02");
     break;
   default:
     foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -115,29 +132,30 @@ void Detector::setCamera(Camera _cam) {
 }
 
 
-void Detector::setCamera(const QString & pvName, const QString & cam) {
-
-  cameraPv=pvName;
-  const QString camBase = cam.isEmpty() ? pvName : pvName + ":" + cam;
+void Detector::setCamera(const QString & pvName) {
 
   if ( ! pvName.isEmpty() ) {
-    exposurePv->setPV(camBase+":AcquireTime_RBV");
-    periodPv->setPV(camBase+":AcquirePeriod");
-    numberPv->setPV(camBase+":NumImages");
-    counterPv->setPV(camBase+":NumImagesCounter_RBV");
-    triggerModePv->setPV(camBase+":TriggerMode");
-    imageModePv->setPV(camBase+":ImageMode");
-    aqPv->setPV(camBase+":Acquire");
-    nameTemplatePv->setPV(pvName+":TIFF1:FileTemplate");
-    namePv->setPV(pvName+":TIFF1:FileName");
-    lastNamePv->setPV(pvName+":TIFF1:FullFileName_RBV");
-    fileNumberPv->setPV(pvName+":TIFF1:FileNumber");
-    autoSavePv->setPV(pvName+":TIFF1:AutoSave");
+
+    exposurePv->setPV(pvName+":CAM:AcquireTime_RBV");
+    periodPv->setPV(pvName+":CAM:AcquirePeriod");
+    numberPv->setPV(pvName+":CAM:NumImages");
+    counterPv->setPV(pvName+":CAM:NumImagesCounter_RBV");
+    triggerModePv->setPV(pvName+":CAM:TriggerMode");
+    imageModePv->setPV(pvName+":CAM:ImageMode");
+    aqPv->setPV(pvName+":CAM:Acquire");
+
+    nameTemplatePv->setPV(pvName + ":TIFF:FileTemplate");
+    namePv->setPV(pvName + ":TIFF:FileName");
+    lastNamePv->setPV(pvName + ":TIFF:FullFileName_RBV");
+    fileNumberPv->setPV(pvName + ":TIFF:FileNumber");
+    autoSavePv->setPV(pvName + ":TIFF:AutoSave");
     writeProggressPv->setPV(pvName+":TIFF1:WriteFile_RBV");
     writeStatusPv->setPV(pvName+":TIFF1:WriteStatus");
-    pathPv->setPV(pvName+":TIFF1:FilePath_RBV");
-    pathExistsPv->setPV(pvName+":TIFF1:FilePathExists_RBV");
-    delayPv->setPV(camBase+":DELAY_TIME"); // BUG?? Only for PCOedge
+    pathPv->setPV(pvName + ":TIFF:FilePath_RBV");
+    pathPvSet->setPV(pvName + ":TIFF:FilePath");
+    pathExistsPv->setPV(pvName + ":TIFF:FilePathExists_RBV");
+    queUsePv->setPV(pvName + ":TIFF:QueueUse");
+
   }
 
 }
@@ -146,20 +164,24 @@ void Detector::setCamera(const QString & pvName, const QString & cam) {
 void Detector::updateConnection() {
   _con = true;
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
-    if (pv!=delayPv)
-      _con &= pv->isConnected();
+    _con &= pv->isConnected();
   emit connectionChanged(_con);
 }
 
 
 void Detector::updatePath() {
   _path = fromVList(pathPv->get());
-  emit parameterChanged();
+  emit pathChanged(_path);
 }
 
 void Detector::updateExposure() {
   if ( exposurePv->isConnected() )
-    emit exposureChanged(exposurePv->get().toInt());
+    emit exposureChanged(exposurePv->get().toDouble());
+}
+
+void Detector::updatePeriod() {
+  if ( periodPv->isConnected() )
+    emit periodChanged(periodPv->get().toDouble());
 }
 
 void Detector::updateName() {
@@ -171,7 +193,6 @@ void Detector::updateLastName() {
   const QString new_lastName = fromVList(lastNamePv->get());
   if (new_lastName != _lastName)
     emit lastNameChanged(_lastName=new_lastName);
-  //_names.push_back(_lastName);
 }
 
 void Detector::updateNameTemplate() {
@@ -185,9 +206,15 @@ void Detector::updateCounter() {
     return;
   int cnt = counterPv->get().toInt();
   emit counterChanged(cnt);
-  //if ( ! cnt )
-  //  _names.clear();
 }
+
+void Detector::updateTotalImages() {
+  if ( ! numberPv->isConnected() )
+    return;
+  int tot = numberPv->get().toInt();
+  emit totalImagesChanged(tot);
+}
+
 
 void Detector::updateAcq() {
   if (!isAcquiring()) {
@@ -199,8 +226,9 @@ void Detector::updateAcq() {
 void Detector::updateWriting() {
   if (isWriting())
     emit writingStarted();
-  else
+  else if ( ! queUsePv->isConnected() || ! queUsePv->get().toInt() )
     emit frameWritingFinished();
+
 }
 
 
@@ -211,43 +239,22 @@ void Detector::onWritingStatus() {
 }
 
 
-// inline double period() const {}
-double Detector::period() const {
-  // The PCO.edge detector has a bug - the acquire period parameter is
-  // unreliable at all. Will replace the period with the delay.
-  // BUG : incomplete areaDetector abstraction
-
-  if (delayPv->isConnected()) { // this is PCOedge
-    return exposure() + delayPv->get().toDouble();
-  } else { // All other detectors
-    return periodPv->get().toDouble();
-  }
 
 }
 
 
+double Detector::period() const {
+  return periodPv->get().toDouble();
+}
+
+
 bool Detector::setPeriod(double val) {
-  // The PCO.Edge detector has a bug - the acquire period parameter is
-  // unreliable at all. Will replace the period with the delay.
-  // BUG : incomplete areaDetector abstraction
-
-  if (delayPv->isConnected()) { // this is PCOedge
-    periodPv->set(0);
-    bool waitupd = period() != val;
-    delayPv->set(val-exposure());
-    if (waitupd)
-      qtWait(delayPv, SIGNAL(valueUpdated(QVariant)), 500);
-  } else { // All other detectors
-    if ( ! periodPv->isConnected() || isAcquiring() )
-      return false;
-    if (period() != val) {
-      periodPv->set(val);
-      qtWait(periodPv, SIGNAL(valueUpdated(QVariant)), 500);
-    }
-  }
-
+  if ( ! periodPv->isConnected() || isAcquiring() )
+    return false;
+  periodPv->set(val);
+  if (period() != val)
+    qtWait(periodPv, SIGNAL(valueUpdated(QVariant)), 500);
   return period() == val;
-
 }
 
 bool Detector::setNumber(int val) {
@@ -259,10 +266,7 @@ bool Detector::setNumber(int val) {
   qtWait(numberPv, SIGNAL(valueUpdated(QVariant)), 500);
 
   const int reqIM = val>1 ? 1 : 0;
-  if (imageMode() != reqIM) {
-    imageModePv->set(reqIM);
-    qtWait(imageModePv, SIGNAL(valueUpdated(QVariant)), 500);
-  }
+  setImageMode(reqIM);
 
   if (val == 1)
     setPeriod(0);
@@ -293,6 +297,18 @@ bool Detector::setName(const QString & fname) {
     qtWait(namePv, SIGNAL(valueUpdated(QVariant)), 500);
   }
   return name() == fname ;
+}
+
+bool Detector::setPath(const QString & _path) {
+
+  if ( ! pathPvSet->isConnected() )
+    return false;
+  if ( path() != _path ) {
+      pathPvSet->set(_path.toAscii().append(char(0)));
+    qtWait(pathPv, SIGNAL(valueUpdated(QVariant)), 500);
+  }
+  return path() == _path ;
+
 }
 
 
@@ -329,44 +345,66 @@ bool Detector::prepareForAcq() {
       return false;
   }
 
-  if (triggerModePv->get() != 0) {
-    triggerModePv->set(0); // AUTO for RUBY
-    qtWait(triggerModePv, SIGNAL(valueUpdated(QVariant)), 500);
-    if (triggerModePv->get() != 0)
-      return false;
-  }
-
-
-  // The RUBY detector has a bug - the acquire period parameter is
-  // unreliable at all. Will replace the period with the delay.
-
-  // BUG : incomplete areaDetector abstraction
-  if (delayPv->isConnected()) { // this is PCOedge
-    setPeriod(period());
-  }
+  if ( ! setTriggerMode(0) )
+    return false;
 
   return true;
 
 }
 
 
-bool Detector::setHardwareTriggering(bool set) {
+bool Detector::setImageMode(int imode) {
+
+  if ( ! imageModePv->isConnected() )
+    return false;
+  if ( imageMode() == imode )
+    return true;
+
+  imageModePv->set(imode);
+  qtWait(imageModePv, SIGNAL(valueUpdated(QVariant)), 500);
+  return imageModePv->get().toInt() == imode;
+
+}
+
+
+bool Detector::setTriggerMode(int tmode) {
+
   if ( ! triggerModePv->isConnected() )
     return false;
-  const int mode = set ? 1 : 0 ;
-  triggerModePv->set(mode);
+  if ( triggerMode() == tmode )
+    return true;
+
+  triggerModePv->set(tmode);
   qtWait(triggerModePv, SIGNAL(valueUpdated(QVariant)), 500);
-  return triggerModePv->get().toInt() == mode;
+  return triggerModePv->get().toInt() == tmode;
+
+}
+
+
+bool Detector::setHardwareTriggering(bool set) {
+
+  int mode = 0; // soft triggered
+  if (set) {
+    switch ( _camera ) {
+    case (PCOedge1) :
+    case (PCOedge2) :
+      mode = 2; // Ext + Soft
+      break;
+    default :
+      mode = 1;
+      break;
+    }
+  }
+
+  return setTriggerMode(mode);
+
 }
 
 
 bool Detector::start() {
 
-  qDebug() << "in starting";
   if ( ! aqPv->isConnected() || ! writeProggressPv->isConnected() || isAcquiring() )
     return false;
-  //writeExpected=true;
-  qDebug() << "starting";
   aqPv->set(1);
   qtWait(aqPv, SIGNAL(valueUpdated(QVariant)), 2000);
   return aqPv->get().toInt();
@@ -392,20 +430,24 @@ void Detector::waitDone() {
 
 void Detector::waitWritten() {
 
+  /*
   QTimer timer;
   timer.setSingleShot(true);
   timer.setInterval(500); // maximum time to start writing next frame
 
   connect(this, SIGNAL(writingStarted()), &timer, SLOT(stop()));
-  connect(this, SIGNAL(frameWritingFinished()), &timer, SLOT(start()));
+  connect(this, SIGNAL(writingFinished()), &timer, SLOT(start()));
   connect(lastNamePv, SIGNAL(valueUpdated(QVariant)), &timer, SLOT(start()));
 
   QEventLoop q;
-  connect(&timer, SIGNAL(timeout()), &q, SLOT(quit()));
+  connect(&timer, SIGNAL(tiksysgmeout()), &q, SLOT(quit()));
+  */
 
-  if (!isWriting())
-    timer.start();
-  q.exec();
+  if ( ! isConnected() )
+    return;
+  if ( isWriting() || queUsePv->get().toInt() )
+    qtWait(this, SIGNAL(writingFinished()));
+  //  timer.start();
 
 }
 

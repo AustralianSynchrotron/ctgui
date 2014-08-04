@@ -36,6 +36,7 @@ private:
   QEpicsPv * imageModePv;//ImageMode
   QEpicsPv * aqPv; //Acquire
   QEpicsPv * pathPv;
+  QEpicsPv * pathPvSet;
   QEpicsPv * pathExistsPv;
   QEpicsPv * namePv;
   QEpicsPv * nameTemplatePv;
@@ -44,11 +45,10 @@ private:
   QEpicsPv * autoSavePv;
   QEpicsPv * writeStatusPv;
   QEpicsPv * writeProggressPv;
-  QEpicsPv * delayPv;
-
-
+  QEpicsPv * queUsePv;
 
   bool _con;
+  Camera _camera;
   QString cameraPv;
   QString _name;
   QString _nameTemplate;
@@ -61,7 +61,7 @@ public:
   Detector(QObject * parent=0);
 
 
-  void setCamera(const QString & pvName, const QString & cam=QString() );
+  void setCamera(const QString & pvName);
   void setCamera(Camera _cam);
 
   inline const QString & pv() const {return cameraPv;}
@@ -80,6 +80,7 @@ public:
   inline bool pathExists() { return pathExistsPv->get().toBool();}
   inline bool isAcquiring() const {return aqPv->get().toInt();}
   inline bool isWriting() const {return writeProggressPv->get().toInt() ;}
+  inline int qued() const { return queUsePv->get().toInt(); }
   inline bool isConnected() const {return _con;}
 
   void waitDone();
@@ -91,7 +92,10 @@ public slots:
   bool setNumber(int val);
   bool setName(const QString & fname);
   bool setNameTemplate(const QString & ntemp);
+  bool setImageMode(int imode);
+  bool setTriggerMode(int tmode);
   bool setHardwareTriggering(bool set);
+  bool setPath(const QString & _path);
   bool start();
   void stop();
   bool acquire();
@@ -101,22 +105,27 @@ public slots:
 signals:
 
   void exposureChanged(double);
+  void periodChanged(double);
   void connectionChanged(bool);
-  void parameterChanged(); // exp int num trigM imagM path writeSt
+  void pathChanged(const QString &);
+  void parameterChanged(); // trigM imagM writeSt
   void counterChanged(int);
+  void totalImagesChanged(int);
   void templateChanged(const QString &);
   void nameChanged(const QString &);
   void lastNameChanged(const QString &);
   void writingStarted();
-  void frameWritingFinished();
+  void writingFinished();
   void done();
   void writingError(const QString & filename);
 
 private slots:
 
   void updateExposure();
+  void updatePeriod();
   void updateConnection();
   void updateCounter();
+  void updateTotalImages();
   void updatePath();
   void updateName();
   void updateNameTemplate();

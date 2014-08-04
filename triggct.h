@@ -2,6 +2,7 @@
 #define TRIGGCT_H
 
 #include <QObject>
+#include <QPair>
 #include <qtpv.h>
 
 class TriggCT : public QObject
@@ -10,35 +11,46 @@ class TriggCT : public QObject
 
 private:
 
-  QEpicsPv * modePv;
-  QEpicsPv * modePvRBV;
-  QEpicsPv * startPosPv;
-  QEpicsPv * stopPosPv;
-  QEpicsPv * stepPv;
-  QEpicsPv * pulseWidthPv;
 
+
+  QEpicsPv * outModePv;
+  QEpicsPv * outModePvRBV;
+  QEpicsPv * startModePv;
+  QEpicsPv * startPosPv;
+  QEpicsPv * startPosPvRBV;
+  QEpicsPv * stepPv;
+  QEpicsPv * rangePv;
+  QEpicsPv * nofTrigsPv;
+
+  QString _prefix;
+  QString motorPv;
   bool iAmConnected;
 
 public:
   explicit TriggCT(QObject *parent = 0);
 
   bool isConnected() const {return iAmConnected;}
-  bool isRunning() const {return isConnected() &&
-        modePvRBV->get().toString() == "Auto";}
 
-  double startPosition() const {return startPosPv->get().toDouble();}
-  double stopPosition() const {return stopPosPv->get().toDouble();}
+  bool isRunning() const {return isConnected() &&
+        outModePvRBV->get().toString() == "Auto";}
+
+  const QString & motor() const {return motorPv;}
+  double startPosition() const {return startPosPvRBV->get().toDouble();}
   double step() const {return stepPv->get().toDouble();}
+  double range() const {return rangePv->get().toDouble();}
+  double trigs() const {return nofTrigsPv->get().toDouble();}
 
 signals:
-  void connectionChanged(bool con);
-  void runningChanged(bool run);
+  void connectionChanged(bool);
+  void runningChanged(bool);
 
 public slots:
+
   bool setPrefix(const QString & prefix, bool wait=false);
   bool setStartPosition(double pos, bool wait=false);
-  bool setStopPosition(double pos, bool wait=false);
-  bool setStep(double _step, bool wait=false);
+  bool setStep(double stp, bool wait=false);
+  bool setRange(double rng, bool wait=false);
+  bool setNofTrigs(int trgs, bool wait=false);
   bool start(bool wait=false);
   bool stop(bool wait=false);
 

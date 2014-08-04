@@ -11,6 +11,7 @@
 #include <QWidgetList>
 #include <QProgressBar>
 #include <QCheckBox>
+#include <QStyledItemDelegate>
 
 #ifndef CTGUIADDITIONALCLASSES
 #define CTGUIADDITIONALCLASSES
@@ -179,6 +180,43 @@ public:
 
 
 };
+
+
+
+// to be used for the doble numbers in the list of positions
+// in the irregular step serial scans.
+
+class NTableDelegate : public QStyledItemDelegate {
+  Q_OBJECT;
+public:
+  NTableDelegate(QObject* parent);
+  QWidget *createEditor(QWidget *parent, const QStyleOptionViewItem &option, const QModelIndex &index) const;
+  void setEditorData(QWidget *editor, const QModelIndex &index) const;
+  void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const;
+  void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const;
+};
+
+// QTableWidget with support for copy and paste added
+// Here copy and paste can copy/paste the entire grid of cells
+class QTableWidgetWithCopyPaste : public QTableWidget
+{
+public:
+  QTableWidgetWithCopyPaste(int rows, int columns, QWidget *parent) :
+      QTableWidget(rows, columns, parent)
+  {};
+
+  QTableWidgetWithCopyPaste(QWidget *parent) :
+    QTableWidget(parent)
+  {};
+
+private:
+  void copy();
+  void paste();
+
+protected:
+  virtual void keyPressEvent(QKeyEvent * event);
+};
+
 
 
 #endif // CTGUIADDITIONALCLASSES

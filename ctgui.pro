@@ -6,7 +6,8 @@
 
 QT       += core gui
 
-TARGET = ctgui
+TARGET = ctgui$$SUFFIX
+TARGET.path = $$PREFIX/
 TEMPLATE = app
 
 

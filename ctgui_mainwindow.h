@@ -117,6 +117,7 @@ private slots:
   void storeCurrentState();
 
   void updateUi_expPath();
+  void updateUi_pathSync(); // important to have this and previous line in this order as the latter one relies on the jobs done in the first.
   void updateUi_triggCT();
 
   void updateUi_checkDyno();
@@ -134,12 +135,14 @@ private slots:
   void updateUi_serialStep();
   void updateUi_serialMotor();
   void updateUi_ffOnEachScan();
+  void updateUi_serialList();
 
   void updateUi_scanRange();
   void updateUi_scanStep();
   void updateUi_aqsPP();
   void updateUi_rotSpeed();
   void updateUi_stepTime();
+  void updateUi_expOverStep();
   void updateUi_thetaMotor();
 
   void updateUi_bgTravel();
@@ -187,5 +190,6 @@ signals:
 
 
 };
+
 
 #endif // CTGUI_MAINWINDOW_H
