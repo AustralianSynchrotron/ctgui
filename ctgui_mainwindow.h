@@ -16,12 +16,9 @@
 #include "detector.h"
 #include "triggct.h"
 
-
-
-
-
 namespace Ui {
   class MainWindow;
+  class writeErrorDialog;
 }
 
 
@@ -32,7 +29,6 @@ class MainWindow : public QMainWindow
 public:
 
   explicit MainWindow(QWidget *parent = 0);
-
   ~MainWindow();
 
 private:
@@ -43,6 +39,9 @@ private:
 
   Ui::MainWindow *ui;
 
+  QDialog * wErrDialog;
+  Ui::writeErrorDialog * wErrUi;
+
   Shutter1A * sh1A;
   QCaMotorGUI * serialMotor;
   QCaMotorGUI * thetaMotor;
@@ -51,9 +50,6 @@ private:
   QCaMotorGUI * subLoopMotor;
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
-
-  QDialog * wErrDialog;
-  QStringList wErrs;
 
   Detector * det;
 
@@ -170,6 +166,8 @@ private slots:
   void onDynoTest();
 
   void onWriteError(const QString & name);
+  void onIgnoreWriteError();
+  void onAbortWriteError();
 
   void updateUi_detector();
   void onDetectorSelection();

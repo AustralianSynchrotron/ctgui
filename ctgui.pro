@@ -14,7 +14,8 @@ SOURCES += main.cpp\
         ctgui_mainwindow.cpp \
     additional_classes.cpp \
     detector.cpp \
-    triggct.cpp
+    triggct.cpp \
+    writeerrordialog.cpp
 
 IMBLEXEC   = $$system(command -v imblgui)
 IMBLORIGIN = $$dirname(IMBLEXEC)
@@ -37,10 +38,12 @@ LIBS +=     -lqtpv -lqtpvwidgets \
 HEADERS  += ctgui_mainwindow.h \
     additional_classes.h \
     detector.h \
-    triggct.h
+    triggct.h \
+    writeerrordialog.h
 
 FORMS    += ctgui_mainwindow.ui \
-    script.ui
+    script.ui \
+    writeerrordialog.ui
 
 RESOURCES += \
     ctgui.qrc

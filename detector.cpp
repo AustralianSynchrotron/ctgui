@@ -205,6 +205,7 @@ void Detector::updateWriting() {
 
 
 void Detector::onWritingStatus() {
+  qDebug() << "WRST" << writeStatusPv->get() << lastName();
   if ( writeStatusPv->get().toInt() )
     emit writingError( lastName() );
 }

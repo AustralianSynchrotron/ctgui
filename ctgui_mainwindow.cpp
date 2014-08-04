@@ -13,6 +13,7 @@
 #include "ctgui_mainwindow.h"
 
 #include "ui_ctgui_mainwindow.h"
+#include "ui_writeerrordialog.h"
 
 
 
@@ -22,7 +23,8 @@ MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
   isLoadingState(false),
   ui(new Ui::MainWindow),
-  wErrDialog(new QDialog(this)),
+  wErrDialog( new QDialog(this) ),
+  wErrUi( new Ui::writeErrorDialog ),
   det(new Detector(this)),
   inAcquisitionTest(false),
   inDynoTest(false),
@@ -47,6 +49,11 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->setupUi(this);
   ui->control->finilize();
   ui->control->setCurrentIndex(0);
+
+
+  wErrUi->setupUi(wErrDialog);
+  connect(wErrDialog, SIGNAL(finished(int)), SLOT(onAbortWriteError()));
+  wErrDialog->hide();
 
 
   /* While triggered CT in debug */
@@ -1746,16 +1753,36 @@ void MainWindow::check(QWidget * obj, bool status) {
 
 void MainWindow::onWriteError(const QString &name) {
 
+  /*
   if ( ! inCT &&
        ! inFFTest &&
        ! inMultiTest &&
        ! inDynoTest &&
        ! inAcquisitionTest )
     return;
+    */
 
-
+  QString newText = wErrUi->plainTextEdit->toPlainText();
+  if ( ! name.isEmpty() && newText.contains(name + "\n") )
+    return;
+  if ( name.isEmpty() && newText.contains("\n\n") )
+    return;
+  newText += name + "\n";
+  wErrUi->plainTextEdit->setPlainText(newText);
+  wErrDialog->show();
 
 }
+
+void MainWindow::onIgnoreWriteError() {
+  wErrUi->plainTextEdit->setPlainText("");
+  wErrDialog->hide();
+}
+
+void MainWindow::onAbortWriteError() {
+  stopAll();
+}
+
+
 
 
 

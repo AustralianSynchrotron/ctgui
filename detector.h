@@ -14,9 +14,11 @@ public:
 
   enum Camera {
     NONE=0,
-    ScintX,
     PCOedge1,
     PCOedge2,
+    ScintX,
+    Hamamatsu,
+    Argus,
     BYPV
   };
 
