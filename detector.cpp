@@ -149,8 +149,8 @@ void Detector::setCamera(const QString & pvName) {
     lastNamePv->setPV(pvName + ":TIFF:FullFileName_RBV");
     fileNumberPv->setPV(pvName + ":TIFF:FileNumber");
     autoSavePv->setPV(pvName + ":TIFF:AutoSave");
-    writeProggressPv->setPV(pvName+":TIFF1:WriteFile_RBV");
-    writeStatusPv->setPV(pvName+":TIFF1:WriteStatus");
+    writeProggressPv->setPV(pvName+":TIFF:WriteFile_RBV");
+    writeStatusPv->setPV(pvName+":TIFF:WriteStatus");
     pathPv->setPV(pvName + ":TIFF:FilePath_RBV");
     pathPvSet->setPV(pvName + ":TIFF:FilePath");
     pathExistsPv->setPV(pvName + ":TIFF:FilePathExists_RBV");
@@ -163,8 +163,9 @@ void Detector::setCamera(const QString & pvName) {
 
 void Detector::updateConnection() {
   _con = true;
-  foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
+  foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() ) {
     _con &= pv->isConnected();
+  }
   emit connectionChanged(_con);
 }
 
@@ -227,7 +228,7 @@ void Detector::updateWriting() {
   if (isWriting())
     emit writingStarted();
   else if ( ! queUsePv->isConnected() || ! queUsePv->get().toInt() )
-    emit frameWritingFinished();
+    emit writingFinished();
 
 }
 
@@ -238,9 +239,6 @@ void Detector::onWritingStatus() {
     emit writingError( lastName() );
 }
 
-
-
-}
 
 
 double Detector::period() const {
