@@ -140,8 +140,6 @@ private slots:
   void updateUi_scanRange();
   void updateUi_scanStep();
   void updateUi_aqsPP();
-  void updateUi_rotSpeed();
-  void updateUi_stepTime();
   void updateUi_expOverStep();
   void updateUi_thetaMotor();
 

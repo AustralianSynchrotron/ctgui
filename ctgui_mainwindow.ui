@@ -596,9 +596,6 @@
         </item>
         <item row="12" column="1">
          <widget class="QTableWidgetWithCopyPaste" name="serialPositionsList">
-          <property name="enabled">
-           <bool>false</bool>
-          </property>
           <property name="horizontalScrollBarPolicy">
            <enum>Qt::ScrollBarAlwaysOff</enum>
           </property>
@@ -659,9 +656,9 @@
          </widget>
         </item>
         <item row="8" column="4">
-         <widget class="QVariantLabel" name="expOverStep">
+         <widget class="QVariantLabel" name="aqsSpeed">
           <property name="text">
-           <string>expOverStep</string>
+           <string>aqspeed</string>
           </property>
          </widget>
         </item>
@@ -682,24 +679,10 @@
           </property>
          </widget>
         </item>
-        <item row="10" column="3">
-         <widget class="QLabel" name="exposureInfoLabel">
-          <property name="text">
-           <string>Exposure</string>
-          </property>
-         </widget>
-        </item>
         <item row="7" column="0" colspan="5">
          <widget class="Line" name="speedsLine">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
-          </property>
-         </widget>
-        </item>
-        <item row="10" column="2">
-         <widget class="QVariantLabel" name="stepTime">
-          <property name="text">
-           <string>stepTime</string>
           </property>
          </widget>
         </item>
@@ -723,24 +706,10 @@
           </property>
          </widget>
         </item>
-        <item row="8" column="3">
-         <widget class="QLabel" name="expOverStepLabel">
-          <property name="text">
-           <string>Exposre/step</string>
-          </property>
-         </widget>
-        </item>
         <item row="1" column="1" colspan="4">
          <widget class="QVariantLabel" name="scanCurrent">
           <property name="text">
            <string>scanCurrent</string>
-          </property>
-         </widget>
-        </item>
-        <item row="10" column="1">
-         <widget class="QLabel" name="stepTimeLabel">
-          <property name="text">
-           <string>Step</string>
           </property>
          </widget>
         </item>
@@ -788,17 +757,10 @@
           </property>
          </spacer>
         </item>
-        <item row="10" column="4">
-         <widget class="QVariantLabel" name="exposureInfo">
-          <property name="text">
-           <string>exposure</string>
-          </property>
-         </widget>
-        </item>
         <item row="9" column="0">
          <widget class="QLabel" name="speedsLabel">
           <property name="text">
-           <string>Speeds</string>
+           <string>Speeds:</string>
           </property>
          </widget>
         </item>
@@ -817,12 +779,12 @@
         <item row="10" column="0">
          <widget class="QLabel" name="timesLabel">
           <property name="text">
-           <string>Times</string>
+           <string>Times:</string>
           </property>
          </widget>
         </item>
         <item row="8" column="1">
-         <widget class="QMDoubleSpinBox" name="rotSpeed">
+         <widget class="QMDoubleSpinBox" name="flyRatio">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
             <horstretch>0</horstretch>
@@ -832,8 +794,20 @@
           <property name="specialValueText">
            <string>invalid</string>
           </property>
+          <property name="decimals">
+           <number>2</number>
+          </property>
           <property name="minimum">
-           <double>0.000000000000000</double>
+           <double>0.010000000000000</double>
+          </property>
+          <property name="maximum">
+           <double>0.990000000000000</double>
+          </property>
+          <property name="singleStep">
+           <double>0.010000000000000</double>
+          </property>
+          <property name="value">
+           <double>0.900000000000000</double>
           </property>
          </widget>
         </item>
@@ -841,13 +815,6 @@
          <widget class="QVariantLabel" name="normalSpeed">
           <property name="text">
            <string>normalSpeed</string>
-          </property>
-         </widget>
-        </item>
-        <item row="8" column="0">
-         <widget class="QLabel" name="rotSpeedLabel">
-          <property name="text">
-           <string>Speed in acquisition</string>
           </property>
          </widget>
         </item>
@@ -895,6 +862,48 @@
           </property>
           <property name="maximum">
            <number>2147483647</number>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="3">
+         <widget class="QLabel" name="rotSpeedLabel">
+          <property name="text">
+           <string>Speed in acquisition</string>
+          </property>
+         </widget>
+        </item>
+        <item row="8" column="0">
+         <widget class="QLabel" name="expOverStepLabel">
+          <property name="text">
+           <string>Exposre/step</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="1">
+         <widget class="QLabel" name="exposureInfoLabel">
+          <property name="text">
+           <string>Exposure</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="2">
+         <widget class="QVariantLabel" name="exposureInfo">
+          <property name="text">
+           <string>exposure</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="4">
+         <widget class="QVariantLabel" name="stepTime">
+          <property name="text">
+           <string>stepTime</string>
+          </property>
+         </widget>
+        </item>
+        <item row="10" column="3">
+         <widget class="QLabel" name="stepTimeLabel">
+          <property name="text">
+           <string>Step</string>
           </property>
          </widget>
         </item>

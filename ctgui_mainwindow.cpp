@@ -83,6 +83,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(load, SIGNAL(clicked()), SLOT(loadConfiguration()));
   ui->statusBar->addPermanentWidget(load);
 
+
   ui->startStop->setText("Start CT");
   ui->scanProgress->hide();
   ui->dynoProgress->hide();
@@ -128,8 +129,6 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_scanRange();
   updateUi_aqsPP();
   updateUi_scanStep();
-  updateUi_rotSpeed();
-  updateUi_stepTime();
   updateUi_expOverStep();
   updateUi_thetaMotor();
   updateUi_bgTravel();
@@ -202,7 +201,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->scanRange, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->scanProjections, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->aqsPP, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
-  connect( ui->rotSpeed, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->flyRatio, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->scanAdd, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->preScanScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->postScanScript, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -388,7 +387,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "add", ui->scanAdd);
   setInConfig(config, "prescan", ui->preScanScript);
   setInConfig(config, "postscan", ui->postScanScript);
-  setInConfig(config, "rotationspeed", ui->rotSpeed);
+  setInConfig(config, "flyratio", ui->flyRatio);
   config.endGroup();
 
   if (ui->checkFF->isChecked()) {
@@ -531,7 +530,7 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "add", ui->scanAdd);
     restoreFromConfig(config, "prescan", ui->preScanScript);
     restoreFromConfig(config, "postscan", ui->postScanScript);
-    restoreFromConfig(config, "rotationspeed", ui->rotSpeed);
+    restoreFromConfig(config, "flyratio", ui->flyRatio);
     config.endGroup();
   }
 
@@ -809,6 +808,7 @@ void MainWindow::updateUi_serialStep() {
 
 void MainWindow::updateUi_serialList() {
   if ( ! sender() ) { // called from the constructor;
+
     const char* thisSlot = SLOT(updateUi_serialList());
     connect(ui->nofScans, SIGNAL(valueChanged(int)), thisSlot);
     connect(ui->irregularStep, SIGNAL(toggled(bool)), thisSlot);
@@ -831,7 +831,7 @@ void MainWindow::updateUi_serialList() {
   ui->serialPositionsList->setVisible( ui->endNumber->isChecked() );
   ui->irregularStep->setVisible( ui->endNumber->isChecked() );
   ui->irregularOrLabel->setVisible( ui->endNumber->isChecked() );
-  ui->serialPositionsList->setEnabled( ui->irregularStep->isChecked() );
+  // ui->serialPositionsList->setEnabled( ui->irregularStep->isChecked() );
   ui->serialStep->setEnabled( ! ui->endNumber->isChecked()  ||
                               ! ui->irregularStep->isChecked() );
 
@@ -848,6 +848,13 @@ void MainWindow::updateUi_serialList() {
   bool allOK=true;
   foreach (QTableWidgetItem * item,
            ui->serialPositionsList->findItems("", Qt::MatchContains) ) {
+
+    ui->serialPositionsList->blockSignals(true);
+    if ( ui->irregularStep->isChecked() )
+      item->setFlags( item->flags() | Qt::ItemIsEditable );
+    else
+      item->setFlags( item->flags() & ~Qt::ItemIsEditable );
+    ui->serialPositionsList->blockSignals(false);
 
     if ( ! ui->irregularStep->isChecked() ) {
       if ( ! inCT && ! serialMotor->motor()->isMoving() ) {
@@ -1000,71 +1007,31 @@ void MainWindow::updateUi_scanStep() {
 
 }
 
-void MainWindow::updateUi_rotSpeed() {
-  QCaMotor * mot = thetaMotor->motor();
-  if ( ! sender() ) { // called from the constructor;
-    const char* thisSlot = SLOT(updateUi_rotSpeed());
-    connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
-    connect( ui->rotSpeed, SIGNAL(valueChanged(double)), thisSlot);
-    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
-    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
-    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
-    connect( mot, SIGNAL(changedNormalSpeed(double)), thisSlot);
-    connect( mot, SIGNAL(changedMaximumSpeed(double)), thisSlot);
-  }
 
-  const bool sasMode = ui->stepAndShotMode->isChecked();
-  ui->rotSpeedLabel->setVisible(!sasMode);
-  ui->rotSpeed->setVisible(!sasMode);
-
-  const bool motIsConnected = mot->isConnected();
-
-  if ( ui->rotSpeed->value()==0.0 )
-    ui->rotSpeed->setValue(mot->getNormalSpeed());
-
-  if ( motIsConnected ) {
-    ui->rotSpeed->setSuffix(mot->getUnits()+"/s");
-    ui->rotSpeed->setDecimals(mot->getPrecision());
-  }
-
-  bool itemOK =
-      sasMode ||
-      ui->rotSpeed->value() > 0 ||
-      ui->rotSpeed->value() <= mot->getMaximumSpeed();
-  check( ui->rotSpeed, itemOK );
-
-}
-
-void MainWindow::updateUi_stepTime() {
-  if ( ! sender() ) { // called from the constructor;
-    const char* thisSlot = SLOT(updateUi_stepTime());
-    connect( ui->rotSpeed, SIGNAL(valueChanged(double)), thisSlot);
-    connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
-    connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
-    connect( det, SIGNAL(exposureChanged(double)), thisSlot);
-  }
-
-  if ( ui->rotSpeed->value() > 0 && ui->scanRange->value() != 0.0 ) {
-    const double stepTime = qAbs(ui->scanRange->value()) /
-        (ui->scanProjections->value() * ui->rotSpeed->value());
-    ui->stepTime->setValue(stepTime);
-    ui->expOverStep->setValue( det->exposure() / stepTime );
-  } else {
-    ui->stepTime->setText("");
-    ui->expOverStep->setText("");
-  }
-}
 
 void MainWindow::updateUi_expOverStep() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_expOverStep());
     connect( ui->stepAndShotMode, SIGNAL(toggled(bool)), thisSlot);
-    connect( ui->expOverStep, SIGNAL(somethingChanged(QString)), thisSlot);
+    connect( ui->flyRatio, SIGNAL(valueChanged(double)), thisSlot);
+    connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
+    connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
+    connect( det, SIGNAL(exposureChanged(double)), thisSlot);
+    connect( thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), thisSlot);
   }
-  bool ok;
-  double num = ui->expOverStep->text().toDouble(&ok);
-  check( ui->expOverStep,  ui->stepAndShotMode->isChecked() ||
-                           ( ok && num > 0 && num < 1.0 ) );
+
+
+  float aqspeed = 0;
+  if ( det->exposure() <= 0.0 )
+    ui->aqsSpeed->setText("nan");
+  else {
+    aqspeed =  ui->scanRange->value() * ui->flyRatio->value() / ( det->exposure() * ui->scanProjections->value() ) ;
+    ui->aqsSpeed->setValue(aqspeed);
+  }
+
+  ui->stepTime->setValue( det->exposure() / ui->flyRatio->value() );
+
+  check( ui->flyRatio,  ui->stepAndShotMode->isChecked()  ||  aqspeed <= thetaMotor->motor()->getMaximumSpeed() );
 
 }
 
@@ -1096,15 +1063,18 @@ void MainWindow::updateUi_thetaMotor() {
   }
   ui->scanCurrent->setValue(mot->getUserPosition());
 
-  const QString units = mot->getUnits();
+  QString units = mot->getUnits();
   ui->scanCurrent->setSuffix(units);
-  ui->normalSpeed->setSuffix(units+"/s");
-  ui->maximumSpeed->setSuffix(units+"/s");
+  units += "/s";
+  ui->normalSpeed->setSuffix(units);
+  ui->maximumSpeed->setSuffix(units);
+  ui->aqsSpeed->setSuffix(units);
 
   const int prec = mot->getPrecision();
   ui->scanCurrent->setDecimals(prec);
   ui->normalSpeed->setDecimals(prec);
   ui->maximumSpeed->setDecimals(prec);
+  ui->aqsSpeed->setDecimals(mot->getPrecision());
 
   ui->normalSpeed->setValue(mot->getNormalSpeed());
   ui->maximumSpeed->setValue(mot->getMaximumSpeed());
@@ -1615,6 +1585,7 @@ void MainWindow::onWorkingDirBrowse() {
 
 void MainWindow::onAcquisitionMode() {
   const bool sasMode = ui->stepAndShotMode->isChecked();
+
   ui->ffOnEachScan->setVisible(!sasMode);
   ui->speedsLine->setVisible(!sasMode);
   ui->speedsLabel->setVisible(!sasMode);
@@ -1623,7 +1594,7 @@ void MainWindow::onAcquisitionMode() {
   ui->normalSpeedLabel->setVisible(!sasMode);
   ui->stepTime->setVisible(!sasMode);
   ui->stepTimeLabel->setVisible(!sasMode);
-  ui->expOverStep->setVisible(!sasMode);
+  ui->flyRatio->setVisible(!sasMode);
   ui->expOverStepLabel->setVisible(!sasMode);
   ui->maximumSpeed->setVisible(!sasMode);
   ui->maximumSpeedLabel->setVisible(!sasMode);
@@ -2742,7 +2713,7 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
       }
 
-      const double speed = ui->rotSpeed->value();
+      const double speed = thetaRange * ui->flyRatio->value() / ( det->exposure() * totalProjections );
       const double accTime = thetaMotor->motor()->getAcceleration();
       const double accTravel = speed * accTime / 2;
       const double rotDir = copysign(1,thetaRange);
