@@ -234,7 +234,6 @@ void Detector::updateWriting() {
 
 
 void Detector::onWritingStatus() {
-  qDebug() << "WRST" << writeStatusPv->get() << lastName();
   if ( writeStatusPv->get().toInt() )
     emit writingError( lastName() );
 }
@@ -343,7 +342,9 @@ bool Detector::prepareForAcq() {
       return false;
   }
 
-  if ( ! setTriggerMode(0) )
+  //// Detector spesific: Argus can operatre in two different modes: TDI and area.
+  //// The mode is predefined by the user
+  if ( _camera != Argus   &&  ! setTriggerMode(0) )
     return false;
 
   return true;
