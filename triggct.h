@@ -21,9 +21,9 @@ private:
   QEpicsPv * stepPv;
   QEpicsPv * rangePv;
   QEpicsPv * nofTrigsPv;
-
-  QString _prefix;
   QString motorPv;
+  QString _prefix;
+
   bool iAmConnected;
 
 public:
@@ -35,6 +35,7 @@ public:
         outModePvRBV->get().toString() == "Auto";}
 
   const QString & motor() const {return motorPv;}
+  const QString & prefix() const {return _prefix;}
   double startPosition() const {return startPosPvRBV->get().toDouble();}
   double step() const {return stepPv->get().toDouble();}
   double range() const {return rangePv->get().toDouble();}
@@ -46,7 +47,7 @@ signals:
 
 public slots:
 
-  bool setPrefix(const QString & prefix, bool wait=false);
+  bool setPrefix(const QString & newprefix, bool wait=false);
   bool setStartPosition(double pos, bool wait=false);
   bool setStep(double stp, bool wait=false);
   bool setRange(double rng, bool wait=false);

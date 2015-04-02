@@ -18,7 +18,6 @@
 
 namespace Ui {
   class MainWindow;
-  class writeErrorDialog;
 }
 
 
@@ -36,11 +35,7 @@ private:
   static const QString storedState;
   bool isLoadingState;
 
-
   Ui::MainWindow *ui;
-
-  QDialog * wErrDialog;
-  Ui::writeErrorDialog * wErrUi;
 
   Shutter1A * sh1A;
   QCaMotorGUI * serialMotor;
@@ -84,6 +79,23 @@ private:
   int totalShots;
   int currentShot;
 
+  enum AqMode {
+    STEPNSHOT = 0,
+    FLYSOFT   = 1,
+    FLYHARD2B = 2,
+    FLYHARD3B = 3,
+    AQMODEEND = 4
+  };
+
+  static inline QString AqModeString(AqMode aqmd) {
+    switch (aqmd) {
+    case STEPNSHOT: return "Step-and-shot";
+    case FLYSOFT  : return "On-the-fly (software)";
+    case FLYHARD2B: return "On-the-fly (harware in 2B)";
+    case FLYHARD3B: return "On-the-fly (harware in 3B)";
+    default       : return "ERROR";
+    }
+  }
 
   enum MsgType {
     LOG,
@@ -102,8 +114,8 @@ private:
   int acquireDF(const QString &filetemplate, Shutter1A::State stateToGo);
   int acquireProjection(const QString &filetemplate);
 
-  QFile * logFile;
-  QStringList accumulatedLog;
+//  QFile * logFile;
+//  QStringList accumulatedLog;
 
   void stopAll();
 
@@ -118,12 +130,9 @@ private slots:
 
   void updateUi_expPath();
   void updateUi_pathSync(); // important to have this and previous line in this order as the latter one relies on the jobs done in the first.
-  void updateUi_triggCT();
+  void updateUi_aqMode();
 
-  void updateUi_checkDyno();
-  void updateUi_checkMulti();
   void onWorkingDirBrowse();
-  void onAcquisitionMode();
   void onSerialCheck();
   void onFFcheck();
   void onDynoCheck();
@@ -166,17 +175,11 @@ private slots:
   void onDynoDirectionLock();
   void onDynoTest();
 
-  void onWriteError(const QString & name);
-  void onIgnoreWriteError();
-  void onAbortWriteError();
-
   void updateUi_detector();
   void onDetectorSelection();
   void onDetectorTest();
 
   void updateProgress();
-  void nameToLog(const QString & fileName);
-  void accumulateLog();
 
   void onStartStop();
 

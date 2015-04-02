@@ -134,6 +134,8 @@ void Detector::setCamera(Camera _cam) {
 
 void Detector::setCamera(const QString & pvName) {
 
+  cameraPv = pvName;
+
   if ( ! pvName.isEmpty() ) {
 
     exposurePv->setPV(pvName+":CAM:AcquireTime_RBV");
@@ -342,11 +344,13 @@ bool Detector::prepareForAcq() {
       return false;
   }
 
-  //// Detector spesific: Argus can operatre in two different modes: TDI and area.
-  //// The mode is predefined by the user
-  if ( _camera != Argus   &&  ! setTriggerMode(0) )
-    return false;
-
+  if ( _camera == Hamamatsu ) {
+     if ( ! setTriggerMode(1) )
+       return false;
+  } else if ( _camera != Argus ) {
+     if ( ! setTriggerMode(0) )
+       return false;
+  }
   return true;
 
 }
@@ -387,7 +391,7 @@ bool Detector::setHardwareTriggering(bool set) {
     switch ( _camera ) {
     case (PCOedge1) :
     case (PCOedge2) :
-      mode = 2; // Ext + Soft
+      mode = 3; // Ext Pulse
       break;
     default :
       mode = 1;

@@ -13,6 +13,7 @@ TriggCT::TriggCT(QObject *parent) :
   rangePv(new QEpicsPv(this)),
   nofTrigsPv(new QEpicsPv(this)),
   motorPv(),
+  _prefix(),
   iAmConnected(false)
 {
 
@@ -26,8 +27,7 @@ void TriggCT::updateConnection() {
   bool con = true;
   foreach(QEpicsPv * pv, findChildren<QEpicsPv*>())
     con &= pv->isConnected();
-  if (con)
-    motorPv=QEpicsPv::get(_prefix+":MOTOR").toString();
+  motorPv  =  con  ?  QEpicsPv::get(_prefix+":MOTOR").toString()  :  "" ;
   if (con != iAmConnected)
     emit connectionChanged(iAmConnected=con);
 }
@@ -40,17 +40,17 @@ void TriggCT::updateMode() {
 }
 
 
-bool TriggCT::setPrefix(const QString & prefix, bool wait) {
+bool TriggCT::setPrefix(const QString & newprefix, bool wait) {
 
-  _prefix = prefix;
-  outModePv->setPV(prefix+":CTRL");
-  outModePvRBV->setPV(prefix+":CTRL:RBV");
-  startModePv->setPV(prefix+":STARTMODE");
-  startPosPv->setPV(prefix+":START");
-  startPosPvRBV->setPV(prefix+":START:RBV");
-  stepPv->setPV(prefix+":STEP");
-  rangePv->setPV(prefix+":RANGE");
-  nofTrigsPv->setPV(prefix+":NTRIGS");
+  _prefix = newprefix;
+  outModePv->setPV(newprefix+":CTRL");
+  outModePvRBV->setPV(newprefix+":CTRL:RBV");
+  startModePv->setPV(newprefix+":STARTMODE");
+  startPosPv->setPV(newprefix+":START");
+  startPosPvRBV->setPV(newprefix+":START:RBV");
+  stepPv->setPV(newprefix+":STEP");
+  rangePv->setPV(newprefix+":RANGE");
+  nofTrigsPv->setPV(newprefix+":NTRIGS");
   updateConnection();
 
   if ( wait && ! isConnected() ) {

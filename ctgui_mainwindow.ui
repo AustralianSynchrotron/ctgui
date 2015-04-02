@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -117,32 +117,12 @@
           </property>
          </widget>
         </item>
-        <item row="7" column="1">
+        <item row="6" column="1">
          <widget class="Script" name="preRunScript" native="true"/>
         </item>
-        <item row="5" column="0" colspan="2">
+        <item row="4" column="0" colspan="2">
          <layout class="QGridLayout" name="gridLayout_6">
-          <item row="2" column="1">
-           <widget class="QSCheckBox" name="checkMulti">
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Visible only in the SaS mode. Always unchecked in the continious mode. Hides/shows &amp;quot;Multishot&amp;quot; tab. If unchecked, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalLoops&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalSubLoops&lt;/span&gt;=0. Otherwise the parametrs are defined in the &amp;quot;Multishot&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="text">
-             <string>Multishot</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QSCheckBox" name="checkSerial">
-            <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, &amp;quot;Serial&amp;quot; tab is hidden, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalScans&lt;/span&gt;=1 and &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;=&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;NUMBER&lt;/span&gt;. Otherwise the parameters are defined in the &amp;quot;Serial&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-            </property>
-            <property name="text">
-             <string>Serial scans</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
+          <item row="1" column="2">
            <widget class="QSCheckBox" name="checkFF">
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Hides/shows &amp;quot;Flat field&amp;quot; tab. If unchecked, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;BGstep&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DFstep&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalBGs&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalDFs&lt;/span&gt;=0. Otherwise the parametrs are defined in the &amp;quot;Flat field&amp;quot; tab&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -152,7 +132,46 @@
             </property>
            </widget>
           </item>
-          <item row="2" column="0">
+          <item row="2" column="2">
+           <widget class="QSCheckBox" name="checkMulti">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Visible only in the SaS mode. Always unchecked in the continious mode. Hides/shows &amp;quot;Multishot&amp;quot; tab. If unchecked, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalLoops&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalSubLoops&lt;/span&gt;=0. Otherwise the parametrs are defined in the &amp;quot;Multishot&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
+            <property name="text">
+             <string>Tiles</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_27">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Acquisition mode:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1" colspan="2">
+           <widget class="QComboBox" name="aqMode"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_26">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="text">
+             <string>Features:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
            <widget class="QSCheckBox" name="checkDyno">
             <property name="toolTip">
              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynamicShot&lt;/span&gt;. Visible only in the SaS mode. Always unchecked in the continious mode. Hides/shows &amp;quot;Dynamic shot&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
@@ -162,10 +181,13 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label_26">
+          <item row="1" column="1">
+           <widget class="QSCheckBox" name="checkSerial">
+            <property name="toolTip">
+             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, &amp;quot;Serial&amp;quot; tab is hidden, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalScans&lt;/span&gt;=1 and &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;=&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;NUMBER&lt;/span&gt;. Otherwise the parameters are defined in the &amp;quot;Serial&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+            </property>
             <property name="text">
-             <string>Features</string>
+             <string>Serial scans</string>
             </property>
            </widget>
           </item>
@@ -188,96 +210,31 @@
           </item>
          </layout>
         </item>
-        <item row="4" column="0" colspan="2">
-         <layout class="QHBoxLayout" name="horizontalLayout_19">
-          <item>
-           <widget class="QLabel" name="label_27">
-            <property name="text">
-             <string>Acquisition mode:</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QRadioButton" name="stepAndShotMode">
-            <property name="toolTip">
-             <string>SaS mode</string>
-            </property>
-            <property name="text">
-             <string>stop-and-shot</string>
-            </property>
-            <property name="checked">
-             <bool>true</bool>
-            </property>
-            <attribute name="buttonGroup">
-             <string notr="true">aqModeButtonGroup</string>
-            </attribute>
-           </widget>
-          </item>
-          <item>
-           <layout class="QHBoxLayout" name="horizontalLayout_12">
-            <item>
-             <widget class="QRadioButton" name="continiousMode">
-              <property name="toolTip">
-               <string>Continious mode</string>
-              </property>
-              <property name="text">
-               <string>on-the-fly</string>
-              </property>
-              <attribute name="buttonGroup">
-               <string notr="true">aqModeButtonGroup</string>
-              </attribute>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_21">
-              <property name="text">
-               <string>(</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QSCheckBox" name="triggCT">
-              <property name="text">
-               <string>hardware triggered</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_11">
-              <property name="text">
-               <string>)</string>
-              </property>
-             </widget>
-            </item>
-           </layout>
-          </item>
-         </layout>
-        </item>
-        <item row="7" column="0">
+        <item row="6" column="0">
          <widget class="QLabel" name="label_7">
           <property name="text">
            <string>Pre-run command</string>
           </property>
          </widget>
         </item>
-        <item row="6" column="0" colspan="2">
+        <item row="5" column="0" colspan="2">
          <widget class="Line" name="line_19">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
           </property>
          </widget>
         </item>
-        <item row="8" column="0">
+        <item row="7" column="0">
          <widget class="QLabel" name="label_15">
           <property name="text">
            <string>Post-run command</string>
           </property>
          </widget>
         </item>
-        <item row="8" column="1">
+        <item row="7" column="1">
          <widget class="Script" name="postRunScript" native="true"/>
         </item>
-        <item row="9" column="0">
+        <item row="8" column="0">
          <spacer name="verticalSpacer_8">
           <property name="orientation">
            <enum>Qt::Vertical</enum>
@@ -1198,7 +1155,7 @@
         <string>Multishot mode parameters. In this mode each projection consists of several acquisitions done in a loop.</string>
        </property>
        <attribute name="title">
-        <string>Multishot</string>
+        <string>Tiles</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -2006,26 +1963,6 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tabMsg">
-       <attribute name="title">
-        <string>Messages</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
-        <item>
-         <widget class="QTextEdit" name="messages">
-          <property name="undoRedoEnabled">
-           <bool>false</bool>
-          </property>
-          <property name="lineWrapMode">
-           <enum>QTextEdit::NoWrap</enum>
-          </property>
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-       </layout>
-      </widget>
      </widget>
     </item>
     <item>
@@ -2059,7 +1996,7 @@
      <x>0</x>
      <y>0</y>
      <width>1163</width>
-     <height>26</height>
+     <height>28</height>
     </rect>
    </property>
   </widget>
@@ -2135,6 +2072,5 @@
   <buttongroup name="dyno2DirButtonGroup"/>
   <buttongroup name="dynoDirButtonGroup"/>
   <buttongroup name="endConditionButtonGroup"/>
-  <buttongroup name="aqModeButtonGroup"/>
  </buttongroups>
 </ui>
