@@ -163,9 +163,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   loadConfiguration(storedState);
 
-  connect( ui->expName, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->expDesc, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
-  connect( ui->sampleDesc, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->expPath, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->aqMode, SIGNAL(currentIndexChanged(int)), SLOT(storeCurrentState()));
   connect( ui->checkSerial, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
@@ -316,9 +314,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   QSettings config(fileName, QSettings::IniFormat);
 
 
-  setInConfig(config, "title", ui->expName);
   setInConfig(config, "description", ui->expDesc);
-  setInConfig(config, "sample", ui->sampleDesc);
   setInConfig(config, "workingdir", ui->expPath);
   setInConfig(config, "syncdetectordir", ui->detPathSync);
   setInConfig(config, "acquisitionmode", ui->aqMode);
@@ -450,9 +446,7 @@ void MainWindow::loadConfiguration(QString fileName) {
 
   QStringList groups = config.childGroups();
 
-  restoreFromConfig(config, "title", ui->expName);
   restoreFromConfig(config, "description", ui->expDesc);
-  restoreFromConfig(config, "sample", ui->sampleDesc);
   restoreFromConfig(config, "workingdir", ui->expPath);
   restoreFromConfig(config, "syncdetectordir", ui->detPathSync);
   restoreFromConfig(config, "acquisitionmode", ui->aqMode);
