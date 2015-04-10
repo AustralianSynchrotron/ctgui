@@ -52,10 +52,10 @@ target.files = $$[TARGET]
 target.path = $$[INSTALLBASE]/bin
 INSTALLS += target
 
-OTHER_FILES += \
-    libexec/ctgui.log.sh
+#OTHER_FILES += \
+#    libexec/ctgui.log.sh
 
-script.files = $$[OTHER_FILES]
+script.files = libexec/ctgui.log.sh 
 script.path = $$[INSTALLBASE]/libexec
 INSTALLS += script
 
