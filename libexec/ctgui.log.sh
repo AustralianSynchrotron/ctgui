@@ -8,7 +8,7 @@ if [ -z "${1}" ] ; then
   exit 1
 fi
 NUMPV="${1}:CAM:NumImagesCounter_RBV"
-IMGPV="${1}:TIFF:FileTemplate"
+IMGPV="${1}:TIFF:FileName"
 AQSPV="${1}:CAM:Acquire_RBV"
 
 if [ -z "${2}" ] ; then
@@ -34,21 +34,23 @@ while read pv date time val ; do
       if [ "$AQS" != "$val"  ] ; then
         AQS="$val"
         if [ "$AQS" == "0" ] ; then
-          echo "${date}_${time} MSG: Acquisition finished."
+          echo "${date}_${time} Acquisition finished."
         else
-          echo "${date}_${time} MSG: Acquisition started with the image file template \"${IMG}\"."
+          echo "${date}_${time} Acquisition started with the image filename prefix \"${IMG}\"."
         fi
       fi
       ;;
     ${ROTPV} ) ROT="$val" ;;
     ${IMGPV} ) IMG="$val" ;;
     ${NUMPV} )
-      if [ "$AQS" == "1" ] ; then
-        echo "${date}_${time} ${val} ${ROT}"
+      if [ "$val" != "0" ] && [ "$AQS" == "1" ] ; then
+        echo "${date}_${time} $(( ${val} - 1 )) ${ROT}"
       fi
       ;;
     *        )  ;;  # TODO: implement OTHERPVS
   esac
 
 done
+
+exit 0
 

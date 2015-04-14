@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>831</width>
+    <width>904</width>
     <height>846</height>
    </rect>
   </property>
@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>3</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -919,23 +919,6 @@
              </layout>
             </widget>
            </item>
-           <item row="13" column="0">
-            <widget class="QLabel" name="label_25">
-             <property name="text">
-              <string>Shutter status</string>
-             </property>
-            </widget>
-           </item>
-           <item row="13" column="1">
-            <widget class="QLabel" name="shutterStatus">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Current status of the BL shutter. Must be valid If &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalDFs&lt;/span&gt;&amp;gt;0&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>status</string>
-             </property>
-            </widget>
-           </item>
            <item row="1" column="1">
             <widget class="QSpinBox" name="nofBGs">
              <property name="toolTip">
@@ -1097,6 +1080,34 @@
             <widget class="QLabel" name="label_38">
              <property name="text">
               <string>Interval</string>
+             </property>
+            </widget>
+           </item>
+           <item row="13" column="1">
+            <layout class="QGridLayout" name="gridLayout_10">
+             <item row="0" column="0">
+              <widget class="QLabel" name="shutterStatus">
+               <property name="toolTip">
+                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Current status of the BL shutter. Must be valid If &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalDFs&lt;/span&gt;&amp;gt;0&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+               </property>
+               <property name="text">
+                <string>status</string>
+               </property>
+              </widget>
+             </item>
+             <item row="0" column="1">
+              <widget class="QCheckBox" name="shutterUse">
+               <property name="text">
+                <string>Do not use shutter (test mode)</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="13" column="0">
+            <widget class="QLabel" name="label_25">
+             <property name="text">
+              <string>Shutter</string>
              </property>
             </widget>
            </item>
@@ -1970,8 +1981,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>831</width>
-     <height>26</height>
+     <width>904</width>
+     <height>28</height>
     </rect>
    </property>
   </widget>

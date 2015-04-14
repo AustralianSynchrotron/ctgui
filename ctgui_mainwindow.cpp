@@ -200,6 +200,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->dfInterval, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->dfIntervalBefore, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->dfIntervalAfter, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->shutterUse, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->singleBg, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( loopMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->loopNumber, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -328,35 +329,34 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "prerun", ui->preRunScript);
   setInConfig(config, "postrun", ui->postRunScript);
 
-  if (ui->checkSerial->isChecked()) {
-    config.beginGroup("serial");
-    if (ui->endNumber->isChecked())
-      config.setValue("endCondition", "number");
-    else if (ui->endTime->isChecked())
-      config.setValue("endCondition", "time");
-    else if (ui->endCondition->isChecked())
-      config.setValue("endCondition", "script");
-    setInConfig(config, "number", ui->nofScans);
-    setInConfig(config, "time", ui->acquisitionTime);
-    setInConfig(config, "script", ui->conditionScript);
-    setInConfig(config, "ongoingseries",ui->ongoingSeries);
-    setInConfig(config, "ffoneachscan",ui->ffOnEachScan);
-    setInConfig(config, "scandelay",ui->scanDelay);
-    setInConfig(config, "serialmotor",serialMotor);
-    setInConfig(config, "serialstep",ui->serialStep);
-    setInConfig(config, "serialirregularstep",ui->irregularStep);
-    if ( ui->irregularStep->isChecked() ) {
-      config.beginWriteArray("irregularsteps");
-      int index = 0;
-      foreach (QTableWidgetItem * item,
-               ui->serialPositionsList->findItems("", Qt::MatchContains) ) {
-        config.setArrayIndex(index++);
-        config.setValue("position", item ? item->text() : "");
-      }
-      config.endArray();
+  config.beginGroup("serial");
+  if (ui->endNumber->isChecked())
+    config.setValue("endCondition", "number");
+  else if (ui->endTime->isChecked())
+    config.setValue("endCondition", "time");
+  else if (ui->endCondition->isChecked())
+    config.setValue("endCondition", "script");
+  setInConfig(config, "number", ui->nofScans);
+  setInConfig(config, "time", ui->acquisitionTime);
+  setInConfig(config, "script", ui->conditionScript);
+  setInConfig(config, "ongoingseries",ui->ongoingSeries);
+  setInConfig(config, "ffoneachscan",ui->ffOnEachScan);
+  setInConfig(config, "scandelay",ui->scanDelay);
+  setInConfig(config, "serialmotor",serialMotor);
+  setInConfig(config, "serialstep",ui->serialStep);
+  setInConfig(config, "serialirregularstep",ui->irregularStep);
+  if ( ui->irregularStep->isChecked() ) {
+    config.beginWriteArray("irregularsteps");
+    int index = 0;
+    foreach (QTableWidgetItem * item,
+             ui->serialPositionsList->findItems("", Qt::MatchContains) ) {
+      config.setArrayIndex(index++);
+      config.setValue("position", item ? item->text() : "");
     }
-    config.endGroup();
+    config.endArray();
   }
+  config.endGroup();
+
 
   config.beginGroup("scan");
   setInConfig(config, "motor", thetaMotor);
@@ -369,61 +369,58 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "flyratio", ui->flyRatio);
   config.endGroup();
 
-  if (ui->checkFF->isChecked()) {
-    config.beginGroup("flatfield");
-    setInConfig(config, "bgs", ui->nofBGs);
-    setInConfig(config, "bginterval", ui->bgInterval);
-    setInConfig(config, "bgBefore", ui->bgIntervalBefore);
-    setInConfig(config, "bgAfter", ui->bgIntervalAfter);
-    setInConfig(config, "motor", bgMotor);
-    setInConfig(config, "bgtravel", ui->bgTravel);
-    setInConfig(config, "dfs", ui->nofDFs);
-    setInConfig(config, "dfinterval", ui->dfInterval);
-    setInConfig(config, "dfBefore", ui->dfIntervalBefore);
-    setInConfig(config, "dfAfter", ui->dfIntervalAfter);
-    config.endGroup();
-  }
+  config.beginGroup("flatfield");
+  setInConfig(config, "bgs", ui->nofBGs);
+  setInConfig(config, "bginterval", ui->bgInterval);
+  setInConfig(config, "bgBefore", ui->bgIntervalBefore);
+  setInConfig(config, "bgAfter", ui->bgIntervalAfter);
+  setInConfig(config, "motor", bgMotor);
+  setInConfig(config, "bgtravel", ui->bgTravel);
+  setInConfig(config, "dfs", ui->nofDFs);
+  setInConfig(config, "dfinterval", ui->dfInterval);
+  setInConfig(config, "dfBefore", ui->dfIntervalBefore);
+  setInConfig(config, "dfAfter", ui->dfIntervalAfter);
+  setInConfig(config, "doNotUseShutter", ui->shutterUse);
+  config.endGroup();
 
-  if (ui->checkMulti->isChecked()) {
-    config.beginGroup("loop");
-    setInConfig(config, "singlebg", ui->singleBg);
-    setInConfig(config, "motor", loopMotor);
-    setInConfig(config, "shots", ui->loopNumber);
-    setInConfig(config, "step", ui->loopStep);
-    setInConfig(config, "preloop", ui->preLoopScript);
-    setInConfig(config, "postloop", ui->postLoopScript);
-    setInConfig(config, "subloop", ui->subLoop);
-    if (ui->subLoop->isChecked()) {
-      config.beginGroup("subloop");
-      setInConfig(config, "motor", subLoopMotor);
-      setInConfig(config, "shots", ui->subLoopNumber);
-      setInConfig(config, "step", ui->subLoopStep);
-      setInConfig(config, "presubloop", ui->preSubLoopScript);
-      setInConfig(config, "postsubloop", ui->postSubLoopScript);
-      config.endGroup();
-    }
-    config.endGroup();
-  }
+  config.beginGroup("loop");
 
-  if (ui->checkDyno->isChecked()) {
-    config.beginGroup("dyno");
-    setInConfig(config, "motor", dynoMotor);
-    setInConfig(config, "speed", ui->dynoSpeed);
-    config.setValue("direction", ui->dynoPos->isChecked() ?
-                      "positive" : "negative");
-    setInConfig(config, "dyno2", ui->dyno2);
-    if (ui->dyno2->isChecked()) {
-      config.beginGroup("dyno2");
-      setInConfig(config, "motor", dyno2Motor);
-      setInConfig(config, "speedLock", ui->dynoSpeedLock);
-      setInConfig(config, "speed", ui->dyno2Speed);
-      setInConfig(config, "dirLock", ui->dynoDirectionLock);
-      config.setValue("direction", ui->dyno2Pos->isChecked() ?
-                        "positive" : "negative");
-      config.endGroup();
-    }
-    config.endGroup();
-  }
+  setInConfig(config, "singlebg", ui->singleBg);
+  setInConfig(config, "motor", loopMotor);
+  setInConfig(config, "shots", ui->loopNumber);
+  setInConfig(config, "step", ui->loopStep);
+  setInConfig(config, "preloop", ui->preLoopScript);
+  setInConfig(config, "postloop", ui->postLoopScript);
+  setInConfig(config, "subloop", ui->subLoop);
+
+  config.beginGroup("subloop");
+  setInConfig(config, "motor", subLoopMotor);
+  setInConfig(config, "shots", ui->subLoopNumber);
+  setInConfig(config, "step", ui->subLoopStep);
+  setInConfig(config, "presubloop", ui->preSubLoopScript);
+  setInConfig(config, "postsubloop", ui->postSubLoopScript);
+  config.endGroup();
+
+  config.endGroup();
+
+  config.beginGroup("dyno");
+
+  setInConfig(config, "motor", dynoMotor);
+  setInConfig(config, "speed", ui->dynoSpeed);
+  config.setValue("direction", ui->dynoPos->isChecked() ?
+                    "positive" : "negative");
+  setInConfig(config, "dyno2", ui->dyno2);
+
+  config.beginGroup("dyno2");
+  setInConfig(config, "motor", dyno2Motor);
+  setInConfig(config, "speedLock", ui->dynoSpeedLock);
+  setInConfig(config, "speed", ui->dyno2Speed);
+  setInConfig(config, "dirLock", ui->dynoDirectionLock);
+  config.setValue("direction", ui->dyno2Pos->isChecked() ?
+                    "positive" : "negative");
+  config.endGroup();
+
+  config.endGroup();
 
   setInConfig(config, "detector", ui->detSelection);
   setInConfig(config, "preacquire", ui->preAqScript);
@@ -457,8 +454,9 @@ void MainWindow::loadConfiguration(QString fileName) {
   restoreFromConfig(config, "prerun", ui->preRunScript);
   restoreFromConfig(config, "postrun", ui->postRunScript);
 
-  if (ui->checkSerial->isChecked() && groups.contains("serial") ) {
+  if ( groups.contains("serial") ) {
     config.beginGroup("serial");
+
     if (config.contains("endCondition")) {
       const QString endCondition = config.value("endCondition").toString();
       if( endCondition == "number" )
@@ -488,7 +486,6 @@ void MainWindow::loadConfiguration(QString fileName) {
       config.endArray();
     }
 
-
     config.endGroup();
   }
 
@@ -506,7 +503,7 @@ void MainWindow::loadConfiguration(QString fileName) {
   }
 
 
-  if (ui->checkFF->isChecked() && groups.contains("flatfield")) {
+  if (groups.contains("flatfield")) {
     config.beginGroup("flatfield");
     restoreFromConfig(config, "bgs", ui->nofBGs);
     restoreFromConfig(config, "bginterval", ui->bgInterval);
@@ -518,10 +515,11 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "dfinterval", ui->dfInterval);
     restoreFromConfig(config, "dfBefore", ui->dfIntervalBefore);
     restoreFromConfig(config, "dfAfter", ui->dfIntervalAfter);
+    restoreFromConfig(config, "doNotUseShutter", ui->shutterUse);
     config.endGroup();
   }
 
-  if (ui->checkMulti->isChecked() && groups.contains("loop")) {
+  if (groups.contains("loop")) {
     config.beginGroup("loop");
     restoreFromConfig(config, "singlebg", ui->singleBg);
     restoreFromConfig(config, "motor", loopMotor);
@@ -530,19 +528,17 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "preloop", ui->preLoopScript);
     restoreFromConfig(config, "postloop", ui->postLoopScript);
     restoreFromConfig(config, "subloop", ui->subLoop);
-    if (ui->subLoop->isChecked()) {
-      config.beginGroup("subloop");
-      restoreFromConfig(config, "motor", subLoopMotor);
-      restoreFromConfig(config, "shots", ui->subLoopNumber);
-      restoreFromConfig(config, "step", ui->subLoopStep);
-      restoreFromConfig(config, "presubloop", ui->preSubLoopScript);
-      restoreFromConfig(config, "postsubloop", ui->postSubLoopScript);
-      config.endGroup();
-    }
+    config.beginGroup("subloop");
+    restoreFromConfig(config, "motor", subLoopMotor);
+    restoreFromConfig(config, "shots", ui->subLoopNumber);
+    restoreFromConfig(config, "step", ui->subLoopStep);
+    restoreFromConfig(config, "presubloop", ui->preSubLoopScript);
+    restoreFromConfig(config, "postsubloop", ui->postSubLoopScript);
+    config.endGroup();
     config.endGroup();
   }
 
-  if (ui->checkDyno->isChecked() && groups.contains("dyno")) {
+  if (groups.contains("dyno")) {
     config.beginGroup("dyno");
     restoreFromConfig(config, "motor", dynoMotor);
     restoreFromConfig(config, "speed", ui->dynoSpeed);
@@ -554,23 +550,23 @@ void MainWindow::loadConfiguration(QString fileName) {
         ui->dynoNeg->setChecked(true);
     }
     restoreFromConfig(config, "dyno2", ui->dyno2);
-    if (ui->dyno2->isChecked()) {
-      config.beginGroup("dyno2");
-      restoreFromConfig(config, "motor", dyno2Motor);
-      restoreFromConfig(config, "speedLock", ui->dynoSpeedLock);
-      if ( ! ui->dynoSpeedLock->isChecked() )
-        restoreFromConfig(config, "speed", ui->dyno2Speed);
-      restoreFromConfig(config, "dirLock", ui->dynoDirectionLock);
-      if ( ! ui->dynoDirectionLock->isChecked() &&
-           config.contains("direction") &&
-           config.value("direction").canConvert(QVariant::String) ) {
-        if (config.value("direction").toString() == "positive")
-          ui->dyno2Pos->setChecked(true);
-        else if (config.value("direction").toString() == "negative")
-          ui->dyno2Neg->setChecked(true);
-      }
-      config.endGroup();
+
+    config.beginGroup("dyno2");
+    restoreFromConfig(config, "motor", dyno2Motor);
+    restoreFromConfig(config, "speedLock", ui->dynoSpeedLock);
+    if ( ! ui->dynoSpeedLock->isChecked() )
+      restoreFromConfig(config, "speed", ui->dyno2Speed);
+    restoreFromConfig(config, "dirLock", ui->dynoDirectionLock);
+    if ( ! ui->dynoDirectionLock->isChecked() &&
+         config.contains("direction") &&
+         config.value("direction").canConvert(QVariant::String) ) {
+      if (config.value("direction").toString() == "positive")
+        ui->dyno2Pos->setChecked(true);
+      else if (config.value("direction").toString() == "negative")
+        ui->dyno2Neg->setChecked(true);
     }
+    config.endGroup();
+
     config.endGroup();
   }
 
@@ -1571,18 +1567,23 @@ void MainWindow::onWorkingDirBrowse() {
 
 void MainWindow::onSerialCheck() {
   ui->control->setTabVisible(ui->tabSerial, ui->checkSerial->isChecked());
+  check( ui->tabSerial, true );
 }
 
 void MainWindow::onFFcheck() {
   ui->control->setTabVisible(ui->tabFF, ui->checkFF->isChecked());
+  check( ui->tabFF, true );
 }
 
 void MainWindow::onDynoCheck() {
   ui->control->setTabVisible(ui->tabDyno, ui->checkDyno->isChecked());
+  check( ui->tabDyno, true );
+
 }
 
 void MainWindow::onMultiCheck() {
   ui->control->setTabVisible(ui->tabMulti, ui->checkMulti->isChecked());
+  check( ui->tabMulti, true );
 }
 
 void MainWindow::onSubLoop() {
@@ -1776,7 +1777,7 @@ void MainWindow::onDetectorTest() {
 
 void MainWindow::check(QWidget * obj, bool status) {
 
-  if ( ! obj )
+  if ( inCT || ! obj )
     return;
 
 
@@ -1784,7 +1785,11 @@ void MainWindow::check(QWidget * obj, bool status) {
   obj->setStyleSheet( status  ?  ""  :  warnStyle );
 
   QWidget * tab = 0;
-  if ( ! preReq.contains(obj) ) {
+  if ( ui->control->tabs().contains(obj) ) {
+
+    tab = obj;
+
+  } else if ( ! preReq.contains(obj) ) {
 
     foreach( QWidget * wdg, ui->control->tabs() )
       if ( wdg->findChildren< const QWidget* >().contains(obj) ) {
@@ -2373,7 +2378,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
   QString ftemplate = "DF_" + ( filetemplate.isEmpty() ? det->name() : filetemplate );
   setenv("CONTRASTTYPE", "DF", 1);
 
-  if (shState != Shutter1A::CLOSED)
+  if ( ! ui->shutterUse->isChecked()  &&  shState != Shutter1A::CLOSED )
     sh1A->close(true); /**/
   if (stopMe) goto onDfExit;
 
@@ -2386,10 +2391,12 @@ onDfExit:
   if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
     det->setName(detfilename) ;
 
-  if (stateToGo == Shutter1A::OPENED)
-    sh1A->open(!stopMe);
-  else if (stateToGo == Shutter1A::CLOSED)
-    sh1A->close(!stopMe);
+  if (! ui->shutterUse->isChecked()) {
+    if (stateToGo == Shutter1A::OPENED)
+      sh1A->open(!stopMe);
+    else if (stateToGo == Shutter1A::CLOSED)
+      sh1A->close(!stopMe);
+  }
   if ( ! stopMe && sh1A->state() != stateToGo)
     qtWait(sh1A, SIGNAL(stateChanged(Shutter1A::State)), 500); /**/
 
@@ -2421,9 +2428,20 @@ void MainWindow::engineRun () {
 
   QProcess logProc(this);
   logProc.setWorkingDirectory(QDir::currentPath());
-  logProc.setStandardOutputFile(logName);
-  logProc.start( QCoreApplication::applicationDirPath().remove( QRegExp("bin/*$") ) + "/libexec/ctgui.log.sh",
-                 QStringList() << det->pv() << thetaMotor->motor()->getPv() );
+  QTemporaryFile logExec(this);
+  if ( ! logExec.open() )
+    qDebug() << "ERROR! Unable to open temporary file for log proccess.";
+  logExec.write( (  QCoreApplication::applicationDirPath().remove( QRegExp("bin/*$") ) + "/libexec/ctgui.log.sh"
+                    + " " + det->pv()
+                    + " " + thetaMotor->motor()->getPv()
+                    + " >> " + logName ).toAscii() );
+  logExec.flush();
+  logProc.start( "/bin/sh " + logExec.fileName() );
+
+  qDebug() << QCoreApplication::applicationDirPath().remove( QRegExp("bin/*$") ) + "/libexec/ctgui.log.sh"
+                      + " " + det->pv()
+                      + " " + thetaMotor->motor()->getPv()
+                      + " >> " + logName;
 
 
   totalProjections = ui->scanProjections->value();
@@ -2495,7 +2513,8 @@ void MainWindow::engineRun () {
     tct->setNofTrigs(totalProjections + doAdd, true);
   }
 
-  sh1A->open(true); /**/
+  if (! ui->shutterUse->isChecked() )
+    sh1A->open(true);
 
   do { // serial scanning
 
@@ -2703,6 +2722,8 @@ void MainWindow::engineRun () {
     }
     if (stopMe) goto onEngineExit;
 
+
+
     if ( timeToStop && ! sasMode && ! ui->ffOnEachScan->isChecked() ) {
       if ( doBG && bgAfter ) {
         acquireBG(seriesName + "AFTER");
@@ -2714,11 +2735,11 @@ void MainWindow::engineRun () {
       }
     }
 
-
   } while ( ! timeToStop );
 
   ui->postRunScript->execute();
-  sh1A->close(); /**/
+  if ( ! ui->shutterUse->isChecked() )
+    sh1A->close();
 
 onEngineExit:
 
@@ -2743,7 +2764,8 @@ onEngineExit:
   det->setImageMode(detimode);
   det->setTriggerMode(dettmode);
 
-  logProc.close();
+  logProc.terminate();
+  logExec.close();
 
   QTimer::singleShot(0, this, SLOT(updateUi_thetaMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
