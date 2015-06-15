@@ -263,6 +263,8 @@ static void setInConfig(QSettings & config, const QString & key, QWidget * wdg) 
     config.setValue(key, dynamic_cast<QTimeEdit*>(wdg)->time());
   else if (dynamic_cast<QCaMotorGUI*>(wdg))
     config.setValue(key, dynamic_cast<QCaMotorGUI*>(wdg)->motor()->getPv());
+  else if ( dynamic_cast<QLabel*>(wdg))
+    config.setValue(key, dynamic_cast<QLabel*>(wdg)->text());
   else
     qDebug() << "Cannot save the value of widget" << wdg << "into config";
 }
@@ -367,6 +369,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "prescan", ui->preScanScript);
   setInConfig(config, "postscan", ui->postScanScript);
   setInConfig(config, "flyratio", ui->flyRatio);
+  setInConfig(config, "aqspeed", ui->aqsSpeed);
   config.endGroup();
 
   config.beginGroup("flatfield");
@@ -422,9 +425,16 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   config.endGroup();
 
-  setInConfig(config, "detector", ui->detSelection);
+  config.beginGroup("detector");
+  setInConfig(config, "box", ui->detSelection);
+  if (det) {
+    config.setValue("pv", det->pv());
+    config.setValue("exposure", det->exposure());
+    config.setValue("path", det->path());
+  }
   setInConfig(config, "preacquire", ui->preAqScript);
   setInConfig(config, "postacquire", ui->postAqScript);
+  config.endGroup();
 
 }
 
@@ -570,9 +580,11 @@ void MainWindow::loadConfiguration(QString fileName) {
     config.endGroup();
   }
 
-  restoreFromConfig(config, "detector", ui->detSelection);
+  config.beginGroup("detector");
+  restoreFromConfig(config, "box", ui->detSelection);
   restoreFromConfig(config, "preacquire", ui->preAqScript);
   restoreFromConfig(config, "postacquire", ui->postAqScript);
+  config.endGroup();
 
 
   if ( ui->expPath->text().isEmpty()  || fileName.isEmpty() )
