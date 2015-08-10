@@ -231,7 +231,6 @@ void Detector::updateWriting() {
     emit writingStarted();
   else if ( ! queUsePv->isConnected() || ! queUsePv->get().toInt() )
     emit writingFinished();
-
 }
 
 

@@ -79,7 +79,8 @@ public:
   inline const QString & lastName() const {return _lastName;}
   inline bool pathExists() { return pathExistsPv->get().toBool();}
   inline bool isAcquiring() const {return aqPv->get().toInt();}
-  inline bool isWriting() const {return writeProggressPv->get().toInt() ;}
+  inline bool isWriting() const { return writeProggressPv->get().toInt() ||
+     ( queUsePv->isConnected() ? queUsePv->get().toInt() : false ) ;}
   inline int qued() const { return queUsePv->get().toInt(); }
   inline bool isConnected() const {return _con;}
 
