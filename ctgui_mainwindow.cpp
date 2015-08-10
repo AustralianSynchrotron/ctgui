@@ -2320,6 +2320,7 @@ void MainWindow::updateProgress () {
 
 
 int MainWindow::acquireProjection(const QString &filetemplate) {
+  det->waitWritten();
   QString ftemplate = "SAMPLE_" + filetemplate;
   setenv("CONTRASTTYPE", "SAMPLE", 1);
   if (ui->checkMulti->isChecked())
@@ -2336,13 +2337,11 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   int ret = -1;
   const int bgs = ui->nofBGs->value();
   const double bgTravel = ui->bgTravel->value();
+  const QString detfilename=det->name();
+  QString ftemplate;
 
   if ( ! bgMotor->motor()->isConnected() || bgs <1 || bgTravel == 0.0 )
     return ret;
-
-  const QString detfilename=det->name();
-  QString ftemplate = "BG_" +  ( filetemplate.isEmpty() ? det->name() : filetemplate );
-  setenv("CONTRASTTYPE", "BG", 1);
 
   bgMotor->motor()->wait_stop();
   const double bgStart = bgMotor->motor()->getUserPosition();
@@ -2350,6 +2349,12 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   bgMotor->motor()->goUserPosition
       ( bgStart + bgTravel, QCaMotor::STOPPED );
   if (stopMe) goto onBgExit;
+
+  det->waitWritten();
+  if (stopMe) goto onBgExit;
+
+  ftemplate = "BG_" +  ( filetemplate.isEmpty() ? det->name() : filetemplate );
+  setenv("CONTRASTTYPE", "BG", 1);
 
   det->setPeriod(0);
   if (ui->checkMulti->isChecked() && ! ui->singleBg->isChecked() )
@@ -2380,19 +2385,23 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
   int ret = -1;
   const int dfs = ui->nofDFs->value();
   const Shutter1A::State shState = sh1A->state();
+  const QString detfilename=det->name();
+  QString ftemplate;
 
   if ( dfs<1 )
     return 0;
   if ( ! sh1A->isEnabled() && shState != Shutter1A::CLOSED )
     return -1 ;
 
-  const QString detfilename=det->name();
-  QString ftemplate = "DF_" + ( filetemplate.isEmpty() ? det->name() : filetemplate );
-  setenv("CONTRASTTYPE", "DF", 1);
-
   if ( ! ui->shutterUse->isChecked()  &&  shState != Shutter1A::CLOSED )
     sh1A->close(true); /**/
   if (stopMe) goto onDfExit;
+
+  det->waitWritten();
+  if (stopMe) goto onDfExit;
+
+  ftemplate = "DF_" + ( filetemplate.isEmpty() ? det->name() : filetemplate );
+  setenv("CONTRASTTYPE", "DF", 1);
 
   det->setPeriod(0);
 
