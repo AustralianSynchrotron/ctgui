@@ -68,6 +68,7 @@ Detector::Detector(QObject * parent) :
   connect(pathExistsPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(writeProggressPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(queUsePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
 
   updateConnection();
 

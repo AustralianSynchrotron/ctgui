@@ -1679,7 +1679,9 @@ void MainWindow::onFFtest() {
     ui->ffWidget->setEnabled(false);
     check(ui->testFF, false);
     acquireBG("");
+    det->waitWritten();
     acquireDF("", sh1A->state());
+    det->waitWritten();
     check(ui->testFF, true);
     det->setAutoSave(false);
     ui->ffWidget->setEnabled(true);
@@ -1700,6 +1702,7 @@ void MainWindow::onLoopTest() {
     check(ui->testMulti, false);
     acquireMulti("",  ( ui->aqMode->currentIndex() == STEPNSHOT  &&  ! ui->checkDyno->isChecked() )  ?
                       ui->aqsPP->value() : 1);
+    det->waitWritten();
     check(ui->testMulti, true);
     inMultiTest=false;
     det->setAutoSave(false);
@@ -1762,6 +1765,7 @@ void MainWindow::onDetectorTest() {
     acquireDetector(det->name(),
                     ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )  ?
                       ui->aqsPP->value() : 1);
+    det->waitWritten();
     check(ui->testDetector, true);
     inAcquisitionTest=false;
     det->setAutoSave(false);
@@ -2785,6 +2789,8 @@ onEngineExit:
   det->setImageMode(detimode);
   det->setTriggerMode(dettmode);
 
+
+  QProcess::execute(  QString("kill $( pgrep -l -P %1 | grep camonitor | cut -d' '  -f 1 )").arg( int(logProc.pid())) );
   logProc.terminate();
   logExec.close();
 
