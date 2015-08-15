@@ -1243,7 +1243,7 @@ void MainWindow::updateUi_shutterStatus() {
 
   check( ui->shutterStatus,
          ! ui->nofDFs->value() || ! ui->checkFF->isChecked() ||
-        ( sh1A->isConnected() && sh1A->isEnabled() && sh1A->state() != Shutter1A::BETWEEN ) );
+        ( sh1A->isConnected() && sh1A->isEnabled() /* && sh1A->state() != Shutter1A::BETWEEN  */ )  );
 
 }
 
@@ -2666,7 +2666,7 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
 
         if ( ! doTriggCT ) { // should be started after tct and det
-          thetaMotor->motor()->goRelative( ( thetaRange + addTravel ) * 1.1 ); // additional 10% are here for safety // goLimit( thetaRange > 0 ? 1 : -1 );
+          thetaMotor->motor()->goRelative( ( thetaRange + addTravel ) * 1.05 ); // additional 10% are here for safety // goLimit( thetaRange > 0 ? 1 : -1 );
           if (stopMe) goto onEngineExit;
           // accTravel/speed in the below string is required to compensate the coefficient 2
           // two strings above.
@@ -2681,7 +2681,7 @@ void MainWindow::engineRun () {
       det->start();
       if (doTriggCT) {
         tct->start(true);
-        thetaMotor->motor()->goRelative( ( thetaRange + addTravel ) * 1.1 ); // additional 10% are here for safety // goLimit( thetaRange > 0 ? 1 : -1 );
+        thetaMotor->motor()->goRelative( ( thetaRange + addTravel ) * 1.05 ); // additional 10% are here for safety // goLimit( thetaRange > 0 ? 1 : -1 );
       }
 
       if (stopMe) goto onEngineExit;
