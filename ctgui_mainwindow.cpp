@@ -725,6 +725,8 @@ void MainWindow::updateUi_aqMode() {
   ui->stepTime->setVisible(!sasmd);
   ui->stepTimeLabel->setVisible(!sasmd);
   ui->flyRatio->setVisible(!sasmd);
+  ui->rotSpeedLabel->setVisible(!sasmd);
+  ui->aqsSpeed->setVisible(!sasmd);
   ui->expOverStepLabel->setVisible(!sasmd);
   ui->maximumSpeed->setVisible(!sasmd);
   ui->maximumSpeedLabel->setVisible(!sasmd);
