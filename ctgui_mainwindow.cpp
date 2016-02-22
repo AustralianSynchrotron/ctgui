@@ -196,6 +196,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->bgIntervalAfter, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( bgMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->bgTravel, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
+  connect( ui->bgExposure, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->nofDFs, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->dfInterval, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->dfIntervalBefore, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
@@ -379,6 +380,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "bgAfter", ui->bgIntervalAfter);
   setInConfig(config, "motor", bgMotor);
   setInConfig(config, "bgtravel", ui->bgTravel);
+  setInConfig(config, "bgexposure", ui->bgExposure);
   setInConfig(config, "dfs", ui->nofDFs);
   setInConfig(config, "dfinterval", ui->dfInterval);
   setInConfig(config, "dfBefore", ui->dfIntervalBefore);
@@ -521,6 +523,7 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "bgAfter", ui->bgIntervalAfter);
     restoreFromConfig(config, "motor", bgMotor);
     restoreFromConfig(config, "bgtravel", ui->bgTravel);
+    restoreFromConfig(config, "bgexposure", ui->bgExposure);
     restoreFromConfig(config, "dfs", ui->nofDFs);
     restoreFromConfig(config, "dfinterval", ui->dfInterval);
     restoreFromConfig(config, "dfBefore", ui->dfIntervalBefore);
@@ -1575,8 +1578,10 @@ void MainWindow::updateUi_detector() {
 
 
 void MainWindow::onWorkingDirBrowse() {
+  QDir startView( QDir::current() );
+  startView.cdUp();
   ui->expPath->setText(
-        QFileDialog::getExistingDirectory(0, "Working directory", QDir::currentPath()) );
+        QFileDialog::getExistingDirectory(0, "Working directory", startView.path() ) );
 }
 
 void MainWindow::onSerialCheck() {
@@ -2343,6 +2348,7 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   int ret = -1;
   const int bgs = ui->nofBGs->value();
   const double bgTravel = ui->bgTravel->value();
+  const double originalExposure = det->exposure();
   const QString detfilename=det->name();
   QString ftemplate;
 
@@ -2362,6 +2368,9 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   ftemplate = "BG_" +  ( filetemplate.isEmpty() ? det->name() : filetemplate );
   setenv("CONTRASTTYPE", "BG", 1);
 
+  if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
+    det->setExposure( ui->bgExposure->value() ) ;
+
   det->setPeriod(0);
   if (ui->checkMulti->isChecked() && ! ui->singleBg->isChecked() )
     ret = acquireMulti(ftemplate, bgs);
@@ -2377,6 +2386,9 @@ onBgExit:
 
   if ( filetemplate.isEmpty() && ! detfilename.isEmpty() )
     det->setName(detfilename) ;
+
+  if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
+    det->setExposure( originalExposure ) ;
 
   if (!stopMe)
     bgMotor->motor()->wait_stop();
@@ -2668,7 +2680,7 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
 
         if ( ! doTriggCT ) { // should be started after tct and det
-          thetaMotor->motor()->goRelative( ( thetaRange + addTravel ) * 1.02 ); // additional 10% are here for safety // goLimit( thetaRange > 0 ? 1 : -1 );
+          thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ); // additional 10% are here for safety */ goLimit( thetaRange > 0 ? 1 : -1 );
           if (stopMe) goto onEngineExit;
           // accTravel/speed in the below string is required to compensate the coefficient 2
           // two strings above.
@@ -2683,7 +2695,7 @@ void MainWindow::engineRun () {
       det->start();
       if (doTriggCT) {
         tct->start(true);
-        thetaMotor->motor()->goRelative( ( thetaRange + addTravel ) * 1.02 ); // additional 10% are here for safety // goLimit( thetaRange > 0 ? 1 : -1 );
+        thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ); // additional 10% are here for safety */ goLimit( thetaRange > 0 ? 1 : -1 );
       }
 
       if (stopMe) goto onEngineExit;

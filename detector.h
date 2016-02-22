@@ -28,6 +28,7 @@ public:
 
 private:
 
+  QEpicsPv * setExposurePv; // AcquireTime
   QEpicsPv * exposurePv; // AcquireTime (_RBV)
   QEpicsPv * periodPv; // AcquirePeriod
   QEpicsPv * numberPv; //NumImages
@@ -89,6 +90,7 @@ public:
 
 public slots:
 
+  bool setExposure(double val);
   bool setPeriod(double val);
   bool setNumber(int val);
   bool setName(const QString & fname);

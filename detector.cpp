@@ -23,6 +23,7 @@ static QString fromVList(const QVariant & vlist) {
 
 Detector::Detector(QObject * parent) :
   QObject(parent),
+  setExposurePv( new QEpicsPv(this) ),
   exposurePv( new QEpicsPv(this) ),
   periodPv( new QEpicsPv(this) ),
   numberPv( new QEpicsPv(this) ),
@@ -139,6 +140,7 @@ void Detector::setCamera(const QString & pvName) {
 
   if ( ! pvName.isEmpty() ) {
 
+    setExposurePv->setPV(pvName+":CAM:AcquireTime");
     exposurePv->setPV(pvName+":CAM:AcquireTime_RBV");
     periodPv->setPV(pvName+":CAM:AcquirePeriod");
     numberPv->setPV(pvName+":CAM:NumImages");
@@ -238,6 +240,20 @@ void Detector::updateWriting() {
 void Detector::onWritingStatus() {
   if ( writeStatusPv->get().toInt() )
     emit writingError( lastName() );
+}
+
+
+
+
+
+
+bool Detector::setExposure(double val) {
+  if ( ! setExposurePv->isConnected() || isAcquiring() )
+    return false;
+  setExposurePv->set(val);
+  if (exposure() != val)
+    qtWait(exposurePv, SIGNAL(valueUpdated(QVariant)), 500);
+  return exposure() == val;
 }
 
 
