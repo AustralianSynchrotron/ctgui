@@ -1685,12 +1685,25 @@ void MainWindow::onFFtest() {
     stopMe=false;
     ui->ffWidget->setEnabled(false);
     check(ui->testFF, false);
+
+    const QString origname = det->name();
+    const int detimode=det->imageMode();
+
+    acquireDetector( "SAMPLE" + origname ,
+                    ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )  ?
+                      ui->aqsPP->value() : 1);
+    det->waitWritten();
+    det->setName(origname);
     acquireBG("");
     det->waitWritten();
     acquireDF("", sh1A->state());
     det->waitWritten();
-    check(ui->testFF, true);
+
     det->setAutoSave(false);
+    det->setName(origname);
+    det->setImageMode(detimode);
+
+    check(ui->testFF, true);
     ui->ffWidget->setEnabled(true);
     inFFTest=false;
     ui->testFF->setText("Test");
@@ -2384,14 +2397,18 @@ int MainWindow::acquireBG(const QString &filetemplate) {
 
 onBgExit:
 
+  if (!stopMe)
+    det->waitWritten();
+
   if ( filetemplate.isEmpty() && ! detfilename.isEmpty() )
     det->setName(detfilename) ;
 
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( originalExposure ) ;
 
-  if (!stopMe)
+  if (!stopMe) 
     bgMotor->motor()->wait_stop();
+  
   return ret;
 
 }
@@ -2427,6 +2444,9 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
 
 onDfExit:
 
+  if (!stopMe) 
+    det->waitWritten();
+
   if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
     det->setName(detfilename) ;
 
@@ -2438,6 +2458,8 @@ onDfExit:
   }
   if ( ! stopMe && sh1A->state() != stateToGo)
     qtWait(sh1A, SIGNAL(stateChanged(Shutter1A::State)), 500); /**/
+
+
 
   return ret;
 

@@ -462,10 +462,11 @@ void Detector::waitWritten() {
   connect(&timer, SIGNAL(tiksysgmeout()), &q, SLOT(quit()));
   */
 
-  if ( ! isConnected() )
-    return;
-  if ( isWriting() || queUsePv->get().toInt() )
-    qtWait(this, SIGNAL(writingFinished()));
+  //if ( ! isConnected() )
+  //  return;
+  while ( isWriting() || queUsePv->get().toInt() )
+    qtWait(this, SIGNAL(writingFinished()), 500);
+
   //  timer.start();
 
 }
