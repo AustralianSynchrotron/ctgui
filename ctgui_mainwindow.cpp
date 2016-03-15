@@ -2499,11 +2499,6 @@ void MainWindow::engineRun () {
   logExec.flush();
   logProc.start( "/bin/sh " + logExec.fileName() );
 
-  qDebug() << QCoreApplication::applicationDirPath().remove( QRegExp("bin/*$") ) + "/libexec/ctgui.log.sh"
-                      + " " + det->pv()
-                      + " " + thetaMotor->motor()->getPv()
-                      + " >> " + logName;
-
 
   totalProjections = ui->scanProjections->value();
 
