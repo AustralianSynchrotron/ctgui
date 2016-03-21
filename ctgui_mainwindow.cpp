@@ -613,7 +613,7 @@ void MainWindow::addMessage(const QString & str) {
 
 static QString lastPathComponent(const QString & pth) {
   QString lastComponent = pth;
-  if ( lastComponent.endsWith("/") )
+  if ( lastComponent.endsWith("/") || lastComponent.endsWith("\\") ) // can be win or lin path delimiter
     lastComponent.chop(1);
   if (lastComponent.contains('/'))
     lastComponent.remove(0, lastComponent.lastIndexOf('/')+1);
@@ -636,7 +636,7 @@ void MainWindow::updateUi_expPath() {
     isOK = fi.isDir() && fi.isWritable();
   } else
     isOK = false;
-
+      
   if (isOK) {
 
     QDir::setCurrent(pth);
@@ -2697,7 +2697,7 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
 
         if ( ! doTriggCT ) { // should be started after tct and det
-          thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ); // additional 10% are here for safety */ goLimit( thetaRange > 0 ? 1 : -1 );
+          thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */ goLimit( thetaRange > 0 ? 1 : -1 );
           if (stopMe) goto onEngineExit;
           // accTravel/speed in the below string is required to compensate the coefficient 2
           // two strings above.
@@ -2712,7 +2712,7 @@ void MainWindow::engineRun () {
       det->start();
       if (doTriggCT) {
         tct->start(true);
-        thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ); // additional 10% are here for safety */ goLimit( thetaRange > 0 ? 1 : -1 );
+        thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */ goLimit( thetaRange > 0 ? 1 : -1 );
       }
 
       if (stopMe) goto onEngineExit;
