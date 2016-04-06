@@ -407,7 +407,8 @@ bool Detector::setHardwareTriggering(bool set) {
     switch ( _camera ) {
     case (PCOedge1) :
     case (PCOedge2) :
-      mode = 2; // Ext + Soft
+      // mode = 2; // Ext + Soft
+      mode = 4; // Ext Only
       break;
     default :
       mode = 1;
