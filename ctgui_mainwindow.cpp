@@ -1580,8 +1580,9 @@ void MainWindow::updateUi_detector() {
 void MainWindow::onWorkingDirBrowse() {
   QDir startView( QDir::current() );
   startView.cdUp();
-  ui->expPath->setText(
-        QFileDialog::getExistingDirectory(0, "Working directory", startView.path() ) );
+  const QString newdir = QFileDialog::getExistingDirectory(0, "Working directory", startView.path() );
+  if ( ! newdir.isEmpty() ) 
+    ui->expPath->setText(newdir);
 }
 
 void MainWindow::onSerialCheck() {
