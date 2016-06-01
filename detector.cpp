@@ -5,6 +5,7 @@
 #include <QApplication>
 
 
+static const QString emptyStr="";
 
 static QString fromVList(const QVariant & vlist) {
   if ( ! vlist.isValid() || vlist.type() != QVariant::List )
@@ -31,46 +32,80 @@ Detector::Detector(QObject * parent) :
   triggerModePv( new QEpicsPv(this) ),
   imageModePv( new QEpicsPv(this) ),
   aqPv( new QEpicsPv(this) ),
-  pathPv( new QEpicsPv(this) ),
-  pathPvSet( new QEpicsPv(this) ),
-  pathExistsPv( new QEpicsPv(this) ),
-  namePv( new QEpicsPv(this) ),
-  nameTemplatePv( new QEpicsPv(this) ),
-  fileNumberPv( new QEpicsPv(this) ),
-  lastNamePv(new QEpicsPv(this) ),
-  autoSavePv( new QEpicsPv(this) ),
-  writeStatusPv( new QEpicsPv(this) ),
-  writeProggressPv( new QEpicsPv(this) ),
-  queUsePv( new QEpicsPv(this) ),
+  enableTiffPv( new QEpicsPv(this) ),
+  pathTiffPv( new QEpicsPv(this) ),
+  pathSetTiffPv( new QEpicsPv(this) ),
+  pathExistsTiffPv( new QEpicsPv(this) ),
+  nameTiffPv( new QEpicsPv(this) ),
+  nameTemplateTiffPv( new QEpicsPv(this) ),
+  fileNumberTiffPv( new QEpicsPv(this) ),
+  lastNameTiffPv(new QEpicsPv(this) ),
+  autoSaveTiffPv( new QEpicsPv(this) ),
+  writeStatusTiffPv( new QEpicsPv(this) ),
+  writeProggressTiffPv( new QEpicsPv(this) ),
+  queUseTiffPv( new QEpicsPv(this) ),
+  enableHdfPv( new QEpicsPv(this) ),
+  pathHdfPv( new QEpicsPv(this) ),
+  pathSetHdfPv( new QEpicsPv(this) ),
+  pathExistsHdfPv( new QEpicsPv(this) ),
+  nameHdfPv( new QEpicsPv(this) ),
+  nameTemplateHdfPv( new QEpicsPv(this) ),
+  lastNameHdfPv( new QEpicsPv(this) ),
+  autoSaveHdfPv( new QEpicsPv(this) ),
+  writeStatusHdfPv( new QEpicsPv(this) ),
+  writeModeHdfPv( new QEpicsPv(this) ),
+  writeProggressHdfPv( new QEpicsPv(this) ),
+  captureTargetHdfPv( new QEpicsPv(this) ),
+  captureProgressHdfPv( new QEpicsPv(this) ),
+  captureHdfPv( new QEpicsPv(this) ),
+  captureStatusHdfPv( new QEpicsPv(this) ),
+  queUseHdfPv( new QEpicsPv(this) ),
   _con(false),
   _camera(NONE),
-  _name(QString())
+  _nameTiff(QString())
 {
+
+  // frequently changing parameters
+  connect(counterPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateCounter()));
+  connect(fileNumberTiffPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateFileNumberTiff()));
+  connect(lastNameTiffPv, SIGNAL(valueUpdated(QVariant)), SLOT(updatelastNameTiff()));
+  connect(queUseTiffPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateQueUseTiff()));
+  connect(lastNameHdfPv, SIGNAL(valueUpdated(QVariant)), SLOT(updatelastNameHdf()));
+  connect(queUseHdfPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateQueUseHdf()));
+
+  // common CAM params
+  connect(exposurePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(periodPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(numberPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(triggerModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(imageModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+
+  // file plugin params
+  connect(enableHdfPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(enableTiffPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(pathExistsTiffPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(pathExistsHdfPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(captureTargetHdfPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(captureStatusHdfPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+
+  // writing-related pvs
+  connect(writeStatusTiffPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateWriting()));
+  connect(writeProggressTiffPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateWriting()));
+  connect(writeStatusHdfPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateWriting()));
+  connect(writeProggressHdfPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateWriting()));
+  connect(captureProgressHdfPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateWriting()));
+
+  // parameters which need additional proc
+  connect(aqPv, SIGNAL(valueChanged(QVariant)), SLOT(updateParameter()));
+  connect(pathTiffPv, SIGNAL(valueChanged(QVariant)), SLOT(updateParameter()));
+  connect(nameTemplateTiffPv, SIGNAL(valueChanged(QVariant)), SLOT(updateParameter()));
+  connect(nameTiffPv, SIGNAL(valueChanged(QVariant)), SLOT(updateParameter()));
+  connect(pathHdfPv, SIGNAL(valueChanged(QVariant)), SLOT(updateParameter()));
+  connect(nameTemplateHdfPv, SIGNAL(valueChanged(QVariant)), SLOT(updateParameter()));
+  connect(nameHdfPv, SIGNAL(valueChanged(QVariant)), SLOT(updateParameter()));
 
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
     connect(pv, SIGNAL(connectionChanged(bool)), SLOT(updateConnection()));
-
-  connect(counterPv, SIGNAL(valueUpdated(QVariant)), SLOT(updateCounter()));
-  connect(pathPv, SIGNAL(valueChanged(QVariant)), SLOT(updatePath()));
-  connect(nameTemplatePv, SIGNAL(valueChanged(QVariant)), SLOT(updateNameTemplate()));
-  connect(namePv, SIGNAL(valueChanged(QVariant)), SLOT(updateName()));
-  connect(lastNamePv, SIGNAL(valueChanged(QVariant)), SLOT(updateLastName()));
-  connect(aqPv, SIGNAL(valueChanged(QVariant)), SLOT(updateAcq()));
-  connect(writeProggressPv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
-  connect(writeStatusPv, SIGNAL(valueUpdated(QVariant)), SLOT(onWritingStatus()));
-  connect(exposurePv, SIGNAL(valueChanged(QVariant)), SLOT(updateExposure()));
-  connect(periodPv, SIGNAL(valueChanged(QVariant)), SLOT(updatePeriod()));
-  connect(numberPv, SIGNAL(valueChanged(QVariant)), SLOT(updateTotalImages()));
-  connect(queUsePv, SIGNAL(valueChanged(QVariant)), SLOT(updateWriting()));
-
-  connect(aqPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(triggerModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(imageModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(pathExistsPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(writeStatusPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(writeProggressPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-  connect(queUsePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
-
   updateConnection();
 
 }
@@ -149,17 +184,35 @@ void Detector::setCamera(const QString & pvName) {
     imageModePv->setPV(pvName+":CAM:ImageMode");
     aqPv->setPV(pvName+":CAM:Acquire");
 
-    nameTemplatePv->setPV(pvName + ":TIFF:FileTemplate");
-    namePv->setPV(pvName + ":TIFF:FileName");
-    lastNamePv->setPV(pvName + ":TIFF:FullFileName_RBV");
-    fileNumberPv->setPV(pvName + ":TIFF:FileNumber");
-    autoSavePv->setPV(pvName + ":TIFF:AutoSave");
-    writeProggressPv->setPV(pvName+":TIFF:WriteFile_RBV");
-    writeStatusPv->setPV(pvName+":TIFF:WriteStatus");
-    pathPv->setPV(pvName + ":TIFF:FilePath_RBV");
-    pathPvSet->setPV(pvName + ":TIFF:FilePath");
-    pathExistsPv->setPV(pvName + ":TIFF:FilePathExists_RBV");
-    queUsePv->setPV(pvName + ":TIFF:QueueUse");
+    enableTiffPv->setPV(pvName + ":TIFF:EnableCallbacks");
+    nameTemplateTiffPv->setPV(pvName + ":TIFF:FileTemplate");
+    nameTiffPv->setPV(pvName + ":TIFF:FileName");
+    lastNameTiffPv->setPV(pvName + ":TIFF:FullFileName_RBV");
+    fileNumberTiffPv->setPV(pvName + ":TIFF:FileNumber");
+    autoSaveTiffPv->setPV(pvName + ":TIFF:AutoSave");
+    writeProggressTiffPv->setPV(pvName+":TIFF:WriteFile_RBV");
+    writeStatusTiffPv->setPV(pvName+":TIFF:WriteStatus");
+    pathTiffPv->setPV(pvName + ":TIFF:FilePath_RBV");
+    pathSetTiffPv->setPV(pvName + ":TIFF:FilePath");
+    pathExistsTiffPv->setPV(pvName + ":TIFF:FilePathExists_RBV");
+    queUseTiffPv->setPV(pvName + ":TIFF:QueueUse");
+
+    enableHdfPv->setPV(pvName + ":HDF:EnableCallbacks");
+    pathHdfPv->setPV(pvName + ":HDF:FilePath_RBV");
+    pathSetHdfPv->setPV(pvName + ":HDF:FilePath");
+    pathExistsHdfPv->setPV(pvName + ":HDF:FilePathExists_RBV");
+    nameHdfPv->setPV(pvName + ":HDF:FileName");
+    nameTemplateHdfPv->setPV(pvName + ":HDF:FileTemplate");
+    lastNameHdfPv->setPV(pvName + ":HDF:FullFileName_RBV");
+    autoSaveHdfPv->setPV(pvName + ":HDF:AutoSave");
+    writeStatusHdfPv->setPV(pvName + ":HDF:WriteStatus");
+    writeModeHdfPv->setPV(pvName + ":HDF:FileWriteMode");
+    writeProggressHdfPv->setPV(pvName + ":HDF:WriteFile_RBV");
+    captureTargetHdfPv->setPV(pvName + ":HDF:NumCapture");
+    captureProgressHdfPv->setPV(pvName + ":HDF:NumCaptured_RBV");
+    captureHdfPv->setPV(pvName + ":HDF:Capture");
+    captureStatusHdfPv->setPV(pvName + ":HDF:Capture_RBV");
+    queUseHdfPv->setPV(pvName + ":HDF:QueueUse");
 
   }
 
@@ -167,84 +220,175 @@ void Detector::setCamera(const QString & pvName) {
 
 
 void Detector::updateConnection() {
-  _con = true;
-  foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() ) {
-    _con &= pv->isConnected();
+  bool new_con = true;
+  foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
+    new_con &= pv->isConnected();
+  if (new_con != _con)
+    emit connectionChanged(_con=new_con);
+}
+
+
+void Detector::updateParameter() {
+
+  if ( sender() == aqPv  &&  ! isAcquiring() ) {
+    emit done();
+    QCoreApplication::processEvents();
   }
-  emit connectionChanged(_con);
+
+  _nameTiff = fromVList(nameTiffPv->get());
+  _nameTemplateTiff = fromVList(nameTemplateTiffPv->get());
+  _pathTiff = fromVList( pathTiffPv->get() );
+  _nameHdf = fromVList(nameHdfPv->get());
+  _nameTemplateHdf = fromVList(nameTemplateHdfPv->get());
+  _pathHdf = fromVList( pathHdfPv->get() );
+
+  emit parameterChanged();
+
 }
 
 
-void Detector::updatePath() {
-  _path = fromVList(pathPv->get());
-  emit pathChanged(_path);
+void Detector::updateWriting() {
+
+  if (isWriting())
+    emit writingStarted();
+  else if ( ! queUseTiffPv->isConnected() || ! queUseTiffPv->get().toInt() ||
+            ! queUseHdfPv->isConnected() || ! queUseHdfPv->get().toInt() )
+    emit writingFinished();
+
+  if ( writeStatusTiffPv->get().toInt())
+    emit writingError(lastName(TIFF));
+  if ( writeStatusHdfPv->get().toInt())
+    emit writingError(lastName(HDF));
+
 }
 
-void Detector::updateExposure() {
-  if ( exposurePv->isConnected() )
-    emit exposureChanged(exposurePv->get().toDouble());
+
+
+void Detector::updatelastNameTiff() {
+  _lastName = fromVList(lastNameTiffPv->get());
+  if (_lastName != _lastNameTiff)
+    emit lastNameChanged(_lastNameTiff=_lastName);
 }
 
-void Detector::updatePeriod() {
-  if ( periodPv->isConnected() )
-    emit periodChanged(periodPv->get().toDouble());
+void Detector::updatelastNameHdf() {
+  _lastName = fromVList(lastNameHdfPv->get());
+  if (_lastName != _lastNameHdf)
+    emit lastNameChanged(_lastNameHdf=_lastName);
 }
 
-void Detector::updateName() {
-  _name = fromVList(namePv->get());
-  emit nameChanged(_name);
+void Detector::updateFileNumberTiff() {
+  emit fileNumberChanged( fileNumberTiffPv->get().toInt() );
 }
 
-void Detector::updateLastName() {
-  const QString new_lastName = fromVList(lastNamePv->get());
-  if (new_lastName != _lastName)
-    emit lastNameChanged(_lastName=new_lastName);
+void Detector::updateQueUseTiff() {
+  emit queTiffChanged( queUseTiffPv->get().toInt() );
 }
 
-void Detector::updateNameTemplate() {
-  _nameTemplate = fromVList(nameTemplatePv->get());
-  emit templateChanged(_nameTemplate);
+void Detector::updateQueUseHdf() {
+  emit queHdfChanged( queUseHdfPv->get().toInt() );
 }
+
+
 
 
 void Detector::updateCounter() {
   if ( ! counterPv->isConnected() )
     return;
-  int cnt = counterPv->get().toInt();
-  emit counterChanged(cnt);
-}
-
-void Detector::updateTotalImages() {
-  if ( ! numberPv->isConnected() )
-    return;
-  int tot = numberPv->get().toInt();
-  emit totalImagesChanged(tot);
-}
-
-
-void Detector::updateAcq() {
-  if (!isAcquiring()) {
-    emit done();
-    QCoreApplication::processEvents();
-  }
-}
-
-void Detector::updateWriting() {
-  if (isWriting())
-    emit writingStarted();
-  else if ( ! queUsePv->isConnected() || ! queUsePv->get().toInt() )
-    emit writingFinished();
-}
-
-
-void Detector::onWritingStatus() {
-  if ( writeStatusPv->get().toInt() )
-    emit writingError( lastName() );
+  emit counterChanged( counterPv->get().toInt() );
 }
 
 
 
 
+Detector::ImageFormat Detector::imageFormat() const {
+  if (enableTiffPv->get().toBool())
+    return TIFF;
+  else if (enableHdfPv->get().toBool())
+    return HDF;
+  else
+    return UNDEFINED;
+}
+
+
+bool Detector::imageFormat(Detector::ImageFormat fmt) const {
+  if (fmt==TIFF)
+    return enableTiffPv->get().toBool();
+  else if (fmt==HDF)
+    return enableHdfPv->get().toBool();
+  else
+    return false;
+}
+
+
+const QString & Detector::path(Detector::ImageFormat fmt) const {
+  if (fmt==TIFF)
+    return _pathTiff;
+  else if (fmt==HDF)
+    return _pathHdf;
+  else
+    return emptyStr;
+}
+
+
+const QString & Detector::nameTemplate(Detector::ImageFormat fmt) const {
+  if (fmt==TIFF)
+    return _nameTemplateTiff;
+  else if (fmt==HDF)
+    return _nameTemplateHdf;
+  else
+    return emptyStr;
+}
+
+const QString & Detector::name(Detector::ImageFormat fmt) const {
+  if (fmt==TIFF)
+    return _nameTiff;
+  else if (fmt==HDF)
+    return _nameHdf;
+  else
+    return emptyStr;
+}
+
+const QString & Detector::lastName(Detector::ImageFormat fmt) const {
+  if (fmt==TIFF)
+    return _lastNameTiff;
+  else if (fmt==HDF)
+    return _lastNameHdf;
+  else
+    return _lastName;
+}
+
+bool Detector::pathExists(Detector::ImageFormat fmt) const {
+  if (fmt==TIFF)
+    return pathExistsTiffPv->get().toBool();
+  else if (fmt==HDF)
+    return pathExistsHdfPv->get().toBool();
+  else
+    return pathExists(TIFF) && pathExists(HDF);
+}
+
+bool Detector::isWriting(Detector::ImageFormat fmt) const {
+  if (fmt==TIFF)
+    return writeProggressTiffPv->get().toInt() || ( queUseTiffPv->isConnected() ? queUseTiffPv->get().toInt() : false );
+  else if (fmt==HDF)
+    return writeProggressHdfPv->get().toInt() || ( queUseHdfPv->isConnected() ? queUseHdfPv->get().toInt() : false );
+  else
+    return isWriting(TIFF) || isWriting(HDF);
+}
+
+
+
+
+
+
+bool Detector::setImageFormat(Detector::ImageFormat fmt) {
+  if (fmt == UNDEFINED)
+    return false;
+  enableTiffPv->set(fmt == TIFF);
+  qtWait(enableTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
+  enableHdfPv->set(fmt == HDF);
+  qtWait(enableHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+  return imageFormat() == fmt;
+}
 
 
 bool Detector::setExposure(double val) {
@@ -256,11 +400,6 @@ bool Detector::setExposure(double val) {
   return exposure() == val;
 }
 
-
-
-double Detector::period() const {
-  return periodPv->get().toDouble();
-}
 
 
 bool Detector::setPeriod(double val) {
@@ -292,72 +431,103 @@ bool Detector::setNumber(int val) {
 
 }
 
-bool Detector::setNameTemplate(const QString & ntemp) {
+bool Detector::setNameTemplate(ImageFormat fmt, const QString & ntemp) {
 
-  if ( ! nameTemplatePv->isConnected() || isAcquiring() )
+  if ( isAcquiring() )
     return false;
-  if ( nameTemplate() != ntemp ) {
-    nameTemplatePv->set(ntemp.toAscii().append(char(0)));
-    qtWait(nameTemplatePv, SIGNAL(valueUpdated(QVariant)), 500);
+  if (nameTemplate(fmt) == ntemp)
+    return true;
+
+  if ( fmt == TIFF  && nameTemplateTiffPv->isConnected() ) {
+    nameTemplateTiffPv->set(ntemp.toAscii().append(char(0)));
+    qtWait(nameTemplateTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
+  } else if ( fmt == HDF  && nameTemplateHdfPv->isConnected() ) {
+    nameTemplateHdfPv->set(ntemp.toAscii().append(char(0)));
+    qtWait(nameTemplateHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+  } else {
+    return setNameTemplate(TIFF, ntemp) && setNameTemplate(HDF, ntemp);
   }
-  return nameTemplate() == ntemp ;
+  return nameTemplate(fmt) == ntemp ;
+
 }
 
-bool Detector::setName(const QString & fname) {
+bool Detector::setName(ImageFormat fmt, const QString & fname) {
 
-  if ( ! namePv->isConnected() || isAcquiring() )
+  if ( isAcquiring() )
     return false;
-  if ( name() != fname ) {
-      namePv->set(fname.toAscii().append(char(0)));
-    qtWait(namePv, SIGNAL(valueUpdated(QVariant)), 500);
+  if (name(fmt) == fname)
+    return true;
+
+  if ( fmt == TIFF  && nameTiffPv->isConnected() ) {
+    nameTiffPv->set(fname.toAscii().append(char(0)));
+    qtWait(nameTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
+  } else if ( fmt == HDF  && nameHdfPv->isConnected() ) {
+    nameHdfPv->set(fname.toAscii().append(char(0)));
+    qtWait(nameHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+  } else {
+    return setName(TIFF, fname) & setName(HDF, fname);
   }
-  return name() == fname ;
+  return name(fmt) == fname ;
+
 }
 
 bool Detector::setPath(const QString & _path) {
 
-  if ( ! pathPvSet->isConnected() )
-    return false;
-  if ( path() != _path ) {
-      pathPvSet->set(_path.toAscii().append(char(0)));
-    qtWait(pathPv, SIGNAL(valueUpdated(QVariant)), 500);
+  if ( pathSetTiffPv->isConnected()  &&  path(TIFF) != _path ) {
+    pathSetTiffPv->set(_path.toAscii().append(char(0)));
+    qtWait(pathTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   }
-  return path() == _path ;
+  if ( pathSetHdfPv->isConnected()  &&  path(HDF) != _path ) {
+    pathSetHdfPv->set(_path.toAscii().append(char(0)));
+    qtWait(pathHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+  }
+  return path(TIFF) == _path  &&  path(HDF) == _path;
 
 }
-
 
 
 bool Detector::setAutoSave(bool autoSave) {
-  if ( ! autoSavePv->isConnected() )
-    return false;
-  if ( autoSavePv->get().toBool() != autoSave ) {
-    autoSavePv->set(autoSave ? 1 : 0);
-    qtWait(autoSavePv, SIGNAL(valueUpdated(QVariant)), 500);
-    if ( autoSavePv->get().toBool() != autoSave )
-      return false;
+  if ( autoSaveTiffPv->get().toBool() != autoSave ) {
+    autoSaveTiffPv->set(autoSave ? 1 : 0);
+    qtWait(autoSaveTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   }
-  return true;
+  if ( autoSaveHdfPv->get().toBool() != autoSave ) {
+    autoSaveHdfPv->set(autoSave ? 1 : 0);
+    qtWait(autoSaveHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+  }
+  return autoSaveTiffPv->get().toBool() != autoSave  &&  autoSaveHdfPv->get().toBool() != autoSave;
 }
 
 
 
-bool Detector::prepareForAcq() {
-  if ( ! fileNumberPv->isConnected() || ! autoSavePv->isConnected() || isAcquiring() )
+bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
+
+  if ( isAcquiring() || fmt == UNDEFINED )
     return false;
 
-  if (fileNumberPv->get().toInt() !=0 ) {
-    fileNumberPv->set(0);
-    qtWait(fileNumberPv, SIGNAL(valueUpdated(QVariant)), 500);
-    if ( fileNumberPv->get().toInt() !=0 )
-      return false;
-  }
+  setImageFormat(fmt);
 
-  if ( ! autoSavePv->get().toBool() ) {
-    autoSavePv->set(1);
-    qtWait(autoSavePv, SIGNAL(valueUpdated(QVariant)), 500);
-    if ( ! autoSavePv->get().toBool() )
+  if ( fmt == TIFF ) {
+
+    if (fileNumberTiffPv->get().toInt() !=0 ) {
+      fileNumberTiffPv->set(0);
+      qtWait(fileNumberTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
+      if ( fileNumberTiffPv->get().toInt() !=0 )
+        return false;
+    }
+
+    if ( ! autoSaveTiffPv->get().toBool() ) {
+      autoSaveTiffPv->set(1);
+      qtWait(autoSaveTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
+      if ( ! autoSaveTiffPv->get().toBool() )
+        return false;
+    }
+
+  } else if (fmt == HDF) {
+
+    if ( nofFrames <= 0 )
       return false;
+
   }
 
   if ( _camera == Hamamatsu ) {
@@ -423,7 +593,7 @@ bool Detector::setHardwareTriggering(bool set) {
 
 bool Detector::start() {
 
-  if ( ! aqPv->isConnected() || ! writeProggressPv->isConnected() || isAcquiring() )
+  if ( ! aqPv->isConnected() || ! writeProggressTiffPv->isConnected() || isAcquiring() )
     return false;
   aqPv->set(1);
   qtWait(aqPv, SIGNAL(valueUpdated(QVariant)), 2000);
@@ -465,7 +635,7 @@ void Detector::waitWritten() {
 
   //if ( ! isConnected() )
   //  return;
-  while ( isWriting() || queUsePv->get().toInt() )
+  while ( isWriting() || queUseTiffPv->get().toInt() )
     qtWait(this, SIGNAL(writingFinished()), 500);
 
   //  timer.start();

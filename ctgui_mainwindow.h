@@ -32,6 +32,8 @@ public:
 
 private:
 
+  Detector::ImageFormat uiImageFormat() const;
+
   static const QString storedState;
   bool isLoadingState;
 

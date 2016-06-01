@@ -234,8 +234,7 @@ MainWindow::MainWindow(QWidget *parent) :
 }
 
 
-MainWindow::~MainWindow()
-{
+MainWindow::~MainWindow() {
   delete ui;
 }
 
@@ -321,6 +320,11 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "description", ui->expDesc);
   setInConfig(config, "workingdir", ui->expPath);
   setInConfig(config, "syncdetectordir", ui->detPathSync);
+  switch (uiImageFormat()) {
+    case Detector::TIFF : config.setValue("imageFormat", "TIFF"); break;
+    case Detector::HDF  : config.setValue("imageFormat", "HDF");  break;
+    default : config.setValue("imageFormat", "undefined");  break;
+  }
   setInConfig(config, "acquisitionmode", ui->aqMode);
   setInConfig(config, "doserialscans", ui->checkSerial);
   setInConfig(config, "doflatfield", ui->checkFF);
@@ -432,7 +436,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   if (det) {
     config.setValue("pv", det->pv());
     config.setValue("exposure", det->exposure());
-    config.setValue("path", det->path());
+    config.setValue("path", det->path(uiImageFormat()));
   }
   setInConfig(config, "preacquire", ui->preAqScript);
   setInConfig(config, "postacquire", ui->postAqScript);
@@ -457,7 +461,12 @@ void MainWindow::loadConfiguration(QString fileName) {
 
   restoreFromConfig(config, "description", ui->expDesc);
   restoreFromConfig(config, "workingdir", ui->expPath);
-  restoreFromConfig(config, "syncdetectordir", ui->detPathSync);
+  restoreFromConfig(config, "syncdetectordir", ui->detPathSync);  
+  const QString imgFmt = config.value("imageFormat").toString();
+  if (imgFmt == "TIFF")
+    ui->tiffFormat->setChecked(true);
+  else if (imgFmt == "HDF")
+    ui->hdfFormat->setChecked(true);
   restoreFromConfig(config, "acquisitionmode", ui->aqMode);
   restoreFromConfig(config, "doserialscans", ui->checkSerial);
   restoreFromConfig(config, "doflatfield", ui->checkFF);
@@ -604,6 +613,17 @@ void MainWindow::storeCurrentState() {
 }
 
 
+Detector::ImageFormat MainWindow::uiImageFormat() const {
+  if (ui->tiffFormat->isChecked())
+    return Detector::TIFF;
+  else if (ui->hdfFormat->isChecked())
+    return Detector::HDF;
+  else
+    return Detector::UNDEFINED; // should never happen
+}
+
+
+
 void MainWindow::addMessage(const QString & str) {
   str.size();
 //  ui->messages->append(
@@ -623,7 +643,7 @@ static QString lastPathComponent(const QString & pth) {
 void MainWindow::updateUi_expPath() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_expPath());
-    connect( ui->expPath, SIGNAL(textChanged(QString)), SLOT(updateUi_expPath()) );
+    connect( ui->expPath, SIGNAL(textChanged(QString)), thisSlot );
     connect( ui->detPathSync, SIGNAL(toggled(bool)), thisSlot );
     connect( det, SIGNAL(connectionChanged(bool)), thisSlot);
   }
@@ -641,7 +661,7 @@ void MainWindow::updateUi_expPath() {
 
     QDir::setCurrent(pth);
 
-    /* using "*.[tT][iI][fF][fF]" can very time consuming if many files are present */
+    /* using "*.[tT][iI][fF][fF]" can be very time consuming if many files are present */
     bool sampleFileExists = false;
     QString zlab;
     while ( ! sampleFileExists  &&  (zlab += "0").size() < 10 )
@@ -653,7 +673,7 @@ void MainWindow::updateUi_expPath() {
     if ( ui->detPathSync->isChecked() && det->isConnected() ) {
 
       QString lastComponent = lastPathComponent(pth);
-      QString detDir = det->path();
+      QString detDir = det->path(uiImageFormat());
       if ( detDir.endsWith("/") || detDir.endsWith("\\") ) // can be win or lin path delimiter
         detDir.chop(1);
       const int delidx = detDir.lastIndexOf( QRegExp("[/\\\\]") );
@@ -677,10 +697,9 @@ void MainWindow::updateUi_pathSync() {
     connect( ui->detPathSync, SIGNAL(toggled(bool)), thisSlot );
     connect( det, SIGNAL(pathChanged(QString)), thisSlot);
   }
-
-  check( ui->detPathSync, ! ui->detPathSync->isChecked() ||
-         lastPathComponent(det->path()) == lastPathComponent(ui->expPath->text()));
-
+  check( ui->detPathSync,
+         ! ui->detPathSync->isChecked()  ||
+         lastPathComponent(det->path(uiImageFormat())) == lastPathComponent(ui->expPath->text()));
 }
 
 
@@ -1533,19 +1552,12 @@ void MainWindow::updateUi_detector() {
   if ( ! sender() ) {
     const char* thisSlot = SLOT(updateUi_detector());
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
+    connect(ui->imageFormatGroup, SIGNAL(buttonClicked(int)), thisSlot);
     connect(det, SIGNAL(connectionChanged(bool)), thisSlot);
-    connect(det, SIGNAL(parameterChanged()), thisSlot);
+    connect(det, SIGNAL(parameterChanged()), thisSlot);   
     connect(det, SIGNAL(counterChanged(int)), ui->detProgress, SLOT(setValue(int)));
-    connect(det, SIGNAL(totalImagesChanged(int)), ui->detProgress, SLOT(setMaximum(int)));
     connect(det, SIGNAL(counterChanged(int)), ui->detImageCounter, SLOT(setValue(int)));
-    connect(det, SIGNAL(totalImagesChanged(int)), ui->detTotalImages, SLOT(setValue(int)));
-    connect(det, SIGNAL(exposureChanged(double)), ui->exposureInfo, SLOT(setValue(double)));
-    connect(det, SIGNAL(exposureChanged(double)), ui->detExposure, SLOT(setValue(double)));
-    connect(det, SIGNAL(periodChanged(double)), ui->detPeriod, SLOT(setValue(double)));
-    connect(det, SIGNAL(nameChanged(QString)), ui->detFileName, SLOT(setText(QString)));
     connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
-    connect(det, SIGNAL(templateChanged(QString)), ui->detFileTemplate, SLOT(setText(QString)));
-    connect(det, SIGNAL(pathChanged(QString)), ui->detPath, SLOT(setText(QString)));
   }
 
   totalShots = det->number();
@@ -1561,14 +1573,41 @@ void MainWindow::updateUi_detector() {
     ui->detStatus->setText("idle");
 
   if (  det->isConnected() ) {
+
+    bool enabme = det->imageFormat(Detector::TIFF);
+    ui->tiffEnabled->setText( enabme ? "enabled" : "disabled" );
+    ui->detFileNameTiff->setEnabled(enabme);
+    ui->detFileTemplateTiff->setEnabled(enabme);
+    ui->detPathTiff->setEnabled(enabme);
+
+    enabme = det->imageFormat(Detector::HDF);
+    ui->hdfEnabled->setText( enabme ? "enabled" : "disabled" );
+    ui->detFileNameHdf->setEnabled(enabme);
+    ui->detFileTemplateHdf->setEnabled(enabme);
+    ui->detPathHdf->setEnabled(enabme);
+
+    ui->detProgress->setMaximum(det->number());
+    ui->detTotalImages->setValue(det->number());
+    ui->exposureInfo->setValue(det->exposure());
+    ui->detExposure->setValue(det->exposure());
+    ui->detPeriod->setValue(det->period());
     ui->detTriggerMode->setText(det->triggerModeString());
     ui->detImageMode->setText(det->imageModeString());
     ui->detTotalImages->setValue(det->number());
+
+    ui->detFileNameTiff->setText(det->name(Detector::TIFF));
+    ui->detFileNameHdf->setText(det->name(Detector::HDF));
+    ui->detFileTemplateTiff->setText(det->nameTemplate(Detector::TIFF));
+    ui->detFileTemplateHdf->setText(det->nameTemplate(Detector::HDF));
+    ui->detPathTiff->setText(det->path(Detector::TIFF));
+    ui->detPathHdf->setText(det->path(Detector::HDF));
+
   }
 
   check (ui->detStatus, det->isConnected() &&
          ( inCT || ( ! det->isAcquiring() && ! det->isWriting() ) ) );
-  check (ui->detPath, det->pathExists() );
+  check (ui->detPathTiff, uiImageFormat() != Detector::TIFF  ||  det->pathExists(Detector::TIFF) );
+  check (ui->detPathHdf, uiImageFormat() != Detector::HDF  ||  det->pathExists(Detector::HDF) );
 
 
 }
@@ -1580,8 +1619,9 @@ void MainWindow::updateUi_detector() {
 void MainWindow::onWorkingDirBrowse() {
   QDir startView( QDir::current() );
   startView.cdUp();
-  ui->expPath->setText(
-        QFileDialog::getExistingDirectory(0, "Working directory", startView.path() ) );
+  const QString npath = QFileDialog::getExistingDirectory(0, "Working directory", startView.path() );
+  if ( ! npath.isEmpty() )
+    ui->expPath->setText( npath );
 }
 
 void MainWindow::onSerialCheck() {
@@ -1686,21 +1726,21 @@ void MainWindow::onFFtest() {
     ui->ffWidget->setEnabled(false);
     check(ui->testFF, false);
 
-    const QString origname = det->name();
+    const QString origname = det->name(uiImageFormat());
     const int detimode=det->imageMode();
 
     acquireDetector( "SAMPLE" + origname ,
                     ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )  ?
                       ui->aqsPP->value() : 1);
     det->waitWritten();
-    det->setName(origname);
+    det->setName(uiImageFormat(), origname);
     acquireBG("");
     det->waitWritten();
     acquireDF("", sh1A->state());
     det->waitWritten();
 
     det->setAutoSave(false);
-    det->setName(origname);
+    det->setName(uiImageFormat(), origname);
     det->setImageMode(detimode);
 
     check(ui->testFF, true);
@@ -1782,7 +1822,7 @@ void MainWindow::onDetectorTest() {
     inAcquisitionTest=true;
     stopMe=false;
     check(ui->testDetector, false);
-    acquireDetector(det->name(),
+    acquireDetector(det->name(uiImageFormat()),
                     ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )  ?
                       ui->aqsPP->value() : 1);
     det->waitWritten();
@@ -1903,17 +1943,22 @@ void MainWindow::check(QWidget * obj, bool status) {
 
 
 bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
+  const Detector::ImageFormat fmt = uiImageFormat();
   QString fileT = "%s%s";
-  if (count>1)
-    fileT += "_%0" + QString::number(QString::number(count).length()) + "d";
-  fileT+= ".tif";
+  if (fmt == Detector::TIFF) {
+    if (count>1)
+      fileT += "_%0" + QString::number(QString::number(count).length()) + "d";
+    fileT+= ".tif";
+  } else if (fmt == Detector::HDF) {
+    fileT+= ".hdf";
+  }
 
   return
-      det->setNameTemplate(fileT) &&
       det->isConnected() &&
+      det->setNameTemplate(fmt, fileT) &&
       det->setNumber(count) &&
-      det->setName(filetemplate) &&
-      det->prepareForAcq() ;
+      det->setName(fmt, filetemplate) &&
+      det->prepareForAcq(fmt, count) ;
 
 }
 
@@ -2007,7 +2052,7 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
       if (stopMe) goto acquireDynoExit;
     }
 
-    ftemplate = filetemplate.isEmpty() ? det->name() : filetemplate;
+    ftemplate = filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate;
     if (count>1)
       ftemplate += QString("_N%1").arg(curr, QString::number(count).length(), 10, QChar('0'));
     // two stopMes below are reqiuired for the case it changes while the detector is being prepared
@@ -2042,7 +2087,7 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
 acquireDynoExit:
 
   if ( filetemplate.isEmpty() && ! ftemplate.isEmpty() )
-    det->setName(ftemplate) ;
+    det->setName(uiImageFormat(), ftemplate) ;
 
   setMotorSpeed(dynoMotor, dnSpeed);
   if ( dynoMotor->motor()->getUserGoal() != dStart )
@@ -2100,7 +2145,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
       lStart = loopMotor->motor()->getUserPosition(),
       slStart = subLoopMotor->motor()->getUserPosition();
 
-  const QString ftemplate = ( filetemplate.isEmpty() ? det->name() : filetemplate );
+  const QString ftemplate = ( filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate );
 
   for ( currentLoop = 0; currentLoop < totalLoops; currentLoop++) {
 
@@ -2158,7 +2203,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
 acquireMultiExit:
 
   if ( filetemplate.isEmpty()  &&  ! ftemplate.isEmpty() )
-    det->setName(ftemplate) ;
+    det->setName(uiImageFormat(), ftemplate) ;
 
   if (moveLoop) {
     loopMotor->motor()->goUserPosition(lStart, QCaMotor::STARTED);
@@ -2362,7 +2407,7 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   const int bgs = ui->nofBGs->value();
   const double bgTravel = ui->bgTravel->value();
   const double originalExposure = det->exposure();
-  const QString detfilename=det->name();
+  const QString detfilename=det->name(uiImageFormat());
   QString ftemplate;
 
   if ( ! bgMotor->motor()->isConnected() || bgs <1 || bgTravel == 0.0 )
@@ -2378,7 +2423,7 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   det->waitWritten();
   if (stopMe) goto onBgExit;
 
-  ftemplate = "BG_" +  ( filetemplate.isEmpty() ? det->name() : filetemplate );
+  ftemplate = "BG_" +  ( filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate );
   setenv("CONTRASTTYPE", "BG", 1);
 
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
@@ -2401,7 +2446,7 @@ onBgExit:
     det->waitWritten();
 
   if ( filetemplate.isEmpty() && ! detfilename.isEmpty() )
-    det->setName(detfilename) ;
+    det->setName(uiImageFormat(), detfilename) ;
 
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( originalExposure ) ;
@@ -2420,7 +2465,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
   int ret = -1;
   const int dfs = ui->nofDFs->value();
   const Shutter1A::State shState = sh1A->state();
-  const QString detfilename=det->name();
+  const QString detfilename=det->name(uiImageFormat());
   QString ftemplate;
 
   if ( dfs<1 )
@@ -2435,7 +2480,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
   det->waitWritten();
   if (stopMe) goto onDfExit;
 
-  ftemplate = "DF_" + ( filetemplate.isEmpty() ? det->name() : filetemplate );
+  ftemplate = "DF_" + ( filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate );
   setenv("CONTRASTTYPE", "DF", 1);
 
   det->setPeriod(0);
@@ -2448,7 +2493,7 @@ onDfExit:
     det->waitWritten();
 
   if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
-    det->setName(detfilename) ;
+    det->setName(uiImageFormat(), detfilename) ;
 
   if (! ui->shutterUse->isChecked()) {
     if (stateToGo == Shutter1A::OPENED)
@@ -2815,7 +2860,7 @@ onEngineExit:
 
   det->stop();
   det->waitWritten();
-  det->setName(".temp") ;
+  det->setName(uiImageFormat(), ".temp") ;
   det->setAutoSave(false);
   det->setImageMode(detimode);
   det->setTriggerMode(dettmode);
