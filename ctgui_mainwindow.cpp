@@ -1245,6 +1245,7 @@ void MainWindow::updateUi_shutterStatus() {
     const char* thisSlot = SLOT(updateUi_shutterStatus());
     connect( ui->checkFF, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->nofDFs, SIGNAL(valueChanged(int)), thisSlot);
+    connect( ui->shutterUse, SIGNAL(toggled(bool)), thisSlot);
     connect(sh1A, SIGNAL(stateChanged(Shutter1A::State)), thisSlot);
     connect(sh1A, SIGNAL(enabledChanged(bool)), thisSlot);
     connect(sh1A, SIGNAL(connectionChanged(bool)), thisSlot);
@@ -1266,7 +1267,7 @@ void MainWindow::updateUi_shutterStatus() {
     }
 
   check( ui->shutterStatus,
-         ! ui->nofDFs->value() || ! ui->checkFF->isChecked() ||
+         ! ui->nofDFs->value() || ! ui->checkFF->isChecked() || ui->shutterUse->isChecked() ||
         ( sh1A->isConnected() && sh1A->isEnabled() /* && sh1A->state() != Shutter1A::BETWEEN  */ )  );
 
 }
@@ -1619,9 +1620,9 @@ void MainWindow::updateUi_detector() {
 void MainWindow::onWorkingDirBrowse() {
   QDir startView( QDir::current() );
   startView.cdUp();
-  const QString npath = QFileDialog::getExistingDirectory(0, "Working directory", startView.path() );
-  if ( ! npath.isEmpty() )
-    ui->expPath->setText( npath );
+  const QString newdir = QFileDialog::getExistingDirectory(0, "Working directory", startView.path() );
+  if ( ! newdir.isEmpty() ) 
+    ui->expPath->setText(newdir);
 }
 
 void MainWindow::onSerialCheck() {
