@@ -352,7 +352,6 @@ QWidget* NTableDelegate::createEditor(QWidget* parent,const QStyleOptionViewItem
 {
   QLineEdit* editor = new QLineEdit(parent);
   QDoubleValidator* val = new QDoubleValidator(editor);
-  val->setBottom(0);
   val->setNotation(QDoubleValidator::StandardNotation);
   editor->setValidator(val);
   return editor;
