@@ -328,6 +328,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "acquisitionmode", ui->aqMode);
   setInConfig(config, "doserialscans", ui->checkSerial);
   setInConfig(config, "doflatfield", ui->checkFF);
+  setInConfig(config, "doflatfield", ui->checkExtTrig);
   setInConfig(config, "dodyno", ui->checkDyno);
   setInConfig(config, "domulti", ui->checkMulti);
   // setInConfig(config, "sampleFile", ui->sampleFile);
@@ -470,6 +471,7 @@ void MainWindow::loadConfiguration(QString fileName) {
   restoreFromConfig(config, "acquisitionmode", ui->aqMode);
   restoreFromConfig(config, "doserialscans", ui->checkSerial);
   restoreFromConfig(config, "doflatfield", ui->checkFF);
+  restoreFromConfig(config, "doflatfield", ui->checkExtTrig);
   restoreFromConfig(config, "dodyno", ui->checkDyno);
   restoreFromConfig(config, "domulti", ui->checkMulti);
   restoreFromConfig(config, "prerun", ui->preRunScript);
