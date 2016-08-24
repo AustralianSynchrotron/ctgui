@@ -158,7 +158,7 @@ private slots:
   void updateUi_bgInterval();
   void updateUi_dfInterval();
   void updateUi_bgMotor();
-  void updateUi_shutterStatus();
+  // void updateUi_shutterStatus();
   void onFFtest();
 
   void updateUi_loopStep();

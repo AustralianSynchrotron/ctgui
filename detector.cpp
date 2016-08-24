@@ -387,6 +387,9 @@ bool Detector::setImageFormat(Detector::ImageFormat fmt) {
   qtWait(enableTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   enableHdfPv->set(fmt == HDF);
   qtWait(enableHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+  //if ( fmt==HDF )
+  //  writeModeHdfPv->se ();
+
   return imageFormat() == fmt;
 }
 
@@ -502,7 +505,7 @@ bool Detector::setAutoSave(bool autoSave) {
 
 bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
 
-  if ( isAcquiring() || fmt == UNDEFINED )
+  if ( isAcquiring() || fmt == UNDEFINED || nofFrames <= 0 )
     return false;
 
   setImageFormat(fmt);
@@ -525,8 +528,25 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
 
   } else if (fmt == HDF) {
 
-    if ( nofFrames <= 0 )
+    if ( captureStatusHdfPv->get().toInt() == 1 ) // capturing
       return false;
+
+    captureTargetHdfPv->set(nofFrames);
+    if ( captureTargetHdfPv->get() !=nofFrames ) {
+      qtWait(captureTargetHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+      if ( captureTargetHdfPv->get() !=nofFrames )
+        return false;
+    }
+
+
+    if ( ! autoSaveTiffPv->get().toBool() ) {
+      autoSaveTiffPv->set(1);
+      qtWait(autoSaveTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
+      if ( ! autoSaveTiffPv->get().toBool() )
+        return false;
+    }
+
+
 
   }
 

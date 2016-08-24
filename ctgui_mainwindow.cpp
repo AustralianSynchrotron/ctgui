@@ -125,7 +125,7 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_bgInterval();
   updateUi_dfInterval();
   updateUi_bgMotor();
-  updateUi_shutterStatus();
+  //updateUi_shutterStatus();
   updateUi_loopStep();
   updateUi_loopMotor();
   updateUi_subLoopStep();
@@ -714,12 +714,16 @@ void MainWindow::updateUi_aqMode() {
   const AqMode aqmd = (AqMode) ui->aqMode->currentIndex();
 
   if ( sender() == ui->aqMode ) {
-    if ( aqmd == FLYHARD2B )
+    if ( aqmd == FLYHARD2B ) {
       tct->setPrefix("SR08ID01SST24:ROTATION:EQU");
-    else if ( aqmd == FLYHARD3B )
+      ui->checkExtTrig->setVisible(false);
+    } else if ( aqmd == FLYHARD3B ) {
       tct->setPrefix("SR08ID01SST01:ROTATION:EQU");
-    else
+      ui->checkExtTrig->setVisible(false);
+    } else {
       tct->setPrefix("");
+      ui->checkExtTrig->setVisible(true);
+    }
   }
 
   bool isOK = tct->prefix().isEmpty() ||
@@ -1240,6 +1244,8 @@ void MainWindow::updateUi_bgMotor() {
 
 }
 
+
+/*
 void MainWindow::updateUi_shutterStatus() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_shutterStatus());
@@ -1268,9 +1274,10 @@ void MainWindow::updateUi_shutterStatus() {
 
   check( ui->shutterStatus,
          ! ui->nofDFs->value() || ! ui->checkFF->isChecked() || ui->shutterUse->isChecked() ||
-        ( sh1A->isConnected() && sh1A->isEnabled() /* && sh1A->state() != Shutter1A::BETWEEN  */ )  );
+        ( sh1A->isConnected() && sh1A->isEnabled() )  );
 
 }
+*/
 
 void MainWindow::updateUi_loopStep() {
   QCaMotor * mot = loopMotor->motor();
@@ -1959,7 +1966,9 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
       det->setNameTemplate(fmt, fileT) &&
       det->setNumber(count) &&
       det->setName(fmt, filetemplate) &&
-      det->prepareForAcq(fmt, count) ;
+      det->prepareForAcq(fmt, count) &&
+      ( ui->checkExtTrig->isVisible() && ui->checkExtTrig->isChecked() ?
+          det->setHardwareTriggering(true) : true ) ;
 
 }
 
