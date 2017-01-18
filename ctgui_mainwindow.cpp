@@ -2536,7 +2536,7 @@ void MainWindow::engineRun () {
   int attempt=0;
   while ( QFile::exists(cfgName) || QFile::exists(logName) ) {
     QString prefix = "acquisition." + QString::number(++attempt);
-    cfgName = prefix + ".config";
+    cfgName = prefix + ".configuration";
     logName = prefix + ".log";
   }
 
