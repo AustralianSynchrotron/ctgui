@@ -2861,7 +2861,8 @@ onEngineExit:
   thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
 
   if (doSerial && serialMotor->motor()->isConnected()) {
-    serialMotor->motor()->stop(QCaMotor::STOPPED);
+    if (serialMotor->motor()->isMoving())
+      serialMotor->motor()->stop(QCaMotor::STOPPED);
     serialMotor->motor()->goUserPosition(serialStart, QCaMotor::STARTED);
   }
 
