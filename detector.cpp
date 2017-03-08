@@ -220,6 +220,8 @@ void Detector::setCamera(const QString & pvName) {
 
 
 void Detector::updateConnection() {
+  if ( ! _camera )
+    return;
   bool new_con = true;
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
     new_con &= pv->isConnected();
@@ -229,6 +231,9 @@ void Detector::updateConnection() {
 
 
 void Detector::updateParameter() {
+
+  if ( ! _camera )
+    return;
 
   if ( sender() == aqPv  &&  ! isAcquiring() ) {
     emit done();
@@ -249,6 +254,9 @@ void Detector::updateParameter() {
 
 void Detector::updateWriting() {
 
+  if ( ! _camera )
+    return;
+
   if (isWriting())
     emit writingStarted();
   else if ( ! queUseTiffPv->isConnected() || ! queUseTiffPv->get().toInt() ||
@@ -265,26 +273,36 @@ void Detector::updateWriting() {
 
 
 void Detector::updatelastNameTiff() {
+  if ( ! _camera )
+    return;
   _lastName = fromVList(lastNameTiffPv->get());
   if (_lastName != _lastNameTiff)
     emit lastNameChanged(_lastNameTiff=_lastName);
 }
 
 void Detector::updatelastNameHdf() {
+  if ( ! _camera )
+    return;
   _lastName = fromVList(lastNameHdfPv->get());
   if (_lastName != _lastNameHdf)
     emit lastNameChanged(_lastNameHdf=_lastName);
 }
 
 void Detector::updateFileNumberTiff() {
+  if ( ! _camera )
+    return;
   emit fileNumberChanged( fileNumberTiffPv->get().toInt() );
 }
 
 void Detector::updateQueUseTiff() {
+  if ( ! _camera )
+    return;
   emit queTiffChanged( queUseTiffPv->get().toInt() );
 }
 
 void Detector::updateQueUseHdf() {
+  if ( ! _camera )
+    return;
   emit queHdfChanged( queUseHdfPv->get().toInt() );
 }
 
@@ -292,6 +310,8 @@ void Detector::updateQueUseHdf() {
 
 
 void Detector::updateCounter() {
+  if ( ! _camera )
+    return;
   if ( ! counterPv->isConnected() )
     return;
   emit counterChanged( counterPv->get().toInt() );
@@ -301,6 +321,8 @@ void Detector::updateCounter() {
 
 
 Detector::ImageFormat Detector::imageFormat() const {
+  if ( ! _camera )
+    return UNDEFINED;
   if (enableTiffPv->get().toBool())
     return TIFF;
   else if (enableHdfPv->get().toBool())
@@ -311,6 +333,8 @@ Detector::ImageFormat Detector::imageFormat() const {
 
 
 bool Detector::imageFormat(Detector::ImageFormat fmt) const {
+  if ( ! _camera )
+    return false;
   if (fmt==TIFF)
     return enableTiffPv->get().toBool();
   else if (fmt==HDF)
@@ -358,6 +382,8 @@ const QString & Detector::lastName(Detector::ImageFormat fmt) const {
 }
 
 bool Detector::pathExists(Detector::ImageFormat fmt) const {
+  if ( ! _camera )
+    return true;
   if (fmt==TIFF)
     return pathExistsTiffPv->get().toBool();
   else if (fmt==HDF)
@@ -367,6 +393,8 @@ bool Detector::pathExists(Detector::ImageFormat fmt) const {
 }
 
 bool Detector::isWriting(Detector::ImageFormat fmt) const {
+  if ( ! _camera )
+    return false;
   if (fmt==TIFF)
     return writeProggressTiffPv->get().toInt() || ( queUseTiffPv->isConnected() ? queUseTiffPv->get().toInt() : false );
   else if (fmt==HDF)
@@ -381,6 +409,8 @@ bool Detector::isWriting(Detector::ImageFormat fmt) const {
 
 
 bool Detector::setImageFormat(Detector::ImageFormat fmt) {
+  if ( ! _camera )
+    return true;
   if (fmt == UNDEFINED)
     return false;
   enableTiffPv->set(fmt == TIFF);
@@ -395,6 +425,8 @@ bool Detector::setImageFormat(Detector::ImageFormat fmt) {
 
 
 bool Detector::setExposure(double val) {
+  if ( ! _camera )
+    return true;
   if ( ! setExposurePv->isConnected() || isAcquiring() )
     return false;
   setExposurePv->set(val);
@@ -406,6 +438,8 @@ bool Detector::setExposure(double val) {
 
 
 bool Detector::setPeriod(double val) {
+  if ( ! _camera )
+    return true;
   if ( ! periodPv->isConnected() || isAcquiring() )
     return false;
   periodPv->set(val);
@@ -415,6 +449,10 @@ bool Detector::setPeriod(double val) {
 }
 
 bool Detector::setNumber(int val) {
+
+  setenv("DETAQNUM", QString::number(val).toAscii(), 1);
+  if ( ! _camera )
+    return true;
 
   if ( ! numberPv->isConnected() || isAcquiring() || val < 1)
     return false;
@@ -436,6 +474,8 @@ bool Detector::setNumber(int val) {
 
 bool Detector::setNameTemplate(ImageFormat fmt, const QString & ntemp) {
 
+  if ( ! _camera )
+    return true;
   if ( isAcquiring() )
     return false;
   if (nameTemplate(fmt) == ntemp)
@@ -456,6 +496,10 @@ bool Detector::setNameTemplate(ImageFormat fmt, const QString & ntemp) {
 
 bool Detector::setName(ImageFormat fmt, const QString & fname) {
 
+  qDebug() << "DETFILENAME" << fname;
+  setenv("DETFILENAME", fname.toAscii(), 1);
+  if ( ! _camera )
+    return true;
   if ( isAcquiring() )
     return false;
   if (name(fmt) == fname)
@@ -476,6 +520,9 @@ bool Detector::setName(ImageFormat fmt, const QString & fname) {
 
 bool Detector::setPath(const QString & _path) {
 
+  if ( ! _camera )
+    return true;
+
   if ( pathSetTiffPv->isConnected()  &&  path(TIFF) != _path ) {
     pathSetTiffPv->set(_path.toAscii().append(char(0)));
     qtWait(pathTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
@@ -490,6 +537,8 @@ bool Detector::setPath(const QString & _path) {
 
 
 bool Detector::setAutoSave(bool autoSave) {
+  if ( ! _camera )
+    return true;
   if ( autoSaveTiffPv->get().toBool() != autoSave ) {
     autoSaveTiffPv->set(autoSave ? 1 : 0);
     qtWait(autoSaveTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
@@ -505,6 +554,8 @@ bool Detector::setAutoSave(bool autoSave) {
 
 bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
 
+  if ( ! _camera )
+    return true;
   if ( isAcquiring() || fmt == UNDEFINED || nofFrames <= 0 )
     return false;
 
@@ -564,6 +615,8 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
 
 bool Detector::setImageMode(int imode) {
 
+  if ( ! _camera )
+    return true;
   if ( ! imageModePv->isConnected() )
     return false;
   if ( imageMode() == imode )
@@ -578,6 +631,8 @@ bool Detector::setImageMode(int imode) {
 
 bool Detector::setTriggerMode(int tmode) {
 
+  if ( ! _camera )
+    return true;
   if ( ! triggerModePv->isConnected() )
     return false;
   if ( triggerMode() == tmode )
@@ -591,6 +646,9 @@ bool Detector::setTriggerMode(int tmode) {
 
 
 bool Detector::setHardwareTriggering(bool set) {
+
+  if ( ! _camera )
+    return true;
 
   int mode = 0; // soft triggered
   if (set) {
@@ -613,6 +671,8 @@ bool Detector::setHardwareTriggering(bool set) {
 
 bool Detector::start() {
 
+  if ( ! _camera )
+    return true;
   if ( ! aqPv->isConnected() || ! writeProggressTiffPv->isConnected() || isAcquiring() )
     return false;
   aqPv->set(1);
@@ -626,6 +686,8 @@ void Detector::stop() {
 }
 
 bool Detector::acquire() {
+  if ( ! _camera )
+    return true;
   if ( ! start() )
     return false;
   waitDone();
@@ -633,12 +695,17 @@ bool Detector::acquire() {
 }
 
 void Detector::waitDone() {
+  if ( ! _camera )
+    return;
   if (isAcquiring())
     qtWait(this, SIGNAL(done()));
 }
 
 
 void Detector::waitWritten() {
+
+  if ( ! _camera )
+    return;
 
   /*
   QTimer timer;

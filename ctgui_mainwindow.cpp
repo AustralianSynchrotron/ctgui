@@ -87,6 +87,7 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->exposureInfo->setSuffix("s");
   ui->detExposure->setSuffix("s");
   ui->detPeriod->setSuffix("s");
+  ui->detSelection->addItem("Dummy");
   foreach (Detector::Camera cam , Detector::knownCameras)
     ui->detSelection->addItem(Detector::cameraName(cam));
 
@@ -328,9 +329,9 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "acquisitionmode", ui->aqMode);
   setInConfig(config, "doserialscans", ui->checkSerial);
   setInConfig(config, "doflatfield", ui->checkFF);
-  setInConfig(config, "doflatfield", ui->checkExtTrig);
   setInConfig(config, "dodyno", ui->checkDyno);
   setInConfig(config, "domulti", ui->checkMulti);
+  setInConfig(config, "useExtTrig", ui->checkExtTrig);
   // setInConfig(config, "sampleFile", ui->sampleFile);
   // setInConfig(config, "backgroundFile", ui->bgFile);
   // setInConfig(config, "darkfieldFile", ui->dfFile);
@@ -471,9 +472,9 @@ void MainWindow::loadConfiguration(QString fileName) {
   restoreFromConfig(config, "acquisitionmode", ui->aqMode);
   restoreFromConfig(config, "doserialscans", ui->checkSerial);
   restoreFromConfig(config, "doflatfield", ui->checkFF);
-  restoreFromConfig(config, "doflatfield", ui->checkExtTrig);
   restoreFromConfig(config, "dodyno", ui->checkDyno);
   restoreFromConfig(config, "domulti", ui->checkMulti);
+  restoreFromConfig(config, "useExtTrig", ui->checkExtTrig);
   restoreFromConfig(config, "prerun", ui->preRunScript);
   restoreFromConfig(config, "postrun", ui->postRunScript);
 
@@ -697,10 +698,11 @@ void MainWindow::updateUi_pathSync() {
     const char* thisSlot = SLOT(updateUi_pathSync());
     connect( ui->expPath, SIGNAL(textChanged(QString)), thisSlot );
     connect( ui->detPathSync, SIGNAL(toggled(bool)), thisSlot );
-    connect( det, SIGNAL(pathChanged(QString)), thisSlot);
+    connect( det, SIGNAL(parameterChanged()), thisSlot);
   }
   check( ui->detPathSync,
          ! ui->detPathSync->isChecked()  ||
+         ! ui->detSelection->currentIndex() ||
          lastPathComponent(det->path(uiImageFormat())) == lastPathComponent(ui->expPath->text()));
 }
 
@@ -1040,20 +1042,21 @@ void MainWindow::updateUi_expOverStep() {
     connect( ui->flyRatio, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
-    connect( det, SIGNAL(exposureChanged(double)), thisSlot);
+    connect( det, SIGNAL(parameterChanged()), thisSlot);
     connect( thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), thisSlot);
   }
 
 
   float aqspeed = 0;
-  if ( det->exposure() <= 0.0 )
-    ui->aqsSpeed->setText("nan");
-  else {
+  if ( det->exposure() <= 0.0 ) {
+    aqspeed =  ui->flyRatio->value() * thetaMotor->motor()->getNormalSpeed() ;
+    ui->aqsSpeed->setValue(aqspeed);
+    ui->stepTime->setValue( ui->scanRange->value() / ( ui->flyRatio->value() * thetaMotor->motor()->getNormalSpeed() * ui->scanProjections->value() ) );
+  } else {
     aqspeed =  ui->scanRange->value() * ui->flyRatio->value() / ( det->exposure() * ui->scanProjections->value() ) ;
     ui->aqsSpeed->setValue(aqspeed);
+    ui->stepTime->setValue(  det->exposure() / ui->flyRatio->value() );
   }
-
-  ui->stepTime->setValue( det->exposure() / ui->flyRatio->value() );
 
   check( ui->flyRatio,  ui->aqMode->currentIndex() == STEPNSHOT  ||
                         aqspeed <= thetaMotor->motor()->getMaximumSpeed() );
@@ -1561,8 +1564,9 @@ void MainWindow::updateUi_dyno2Motor() {
 void MainWindow::updateUi_detector() {
   if ( ! sender() ) {
     const char* thisSlot = SLOT(updateUi_detector());
-    connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
     connect(ui->imageFormatGroup, SIGNAL(buttonClicked(int)), thisSlot);
+    connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
+    connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), thisSlot);
     connect(det, SIGNAL(connectionChanged(bool)), thisSlot);
     connect(det, SIGNAL(parameterChanged()), thisSlot);   
     connect(det, SIGNAL(counterChanged(int)), ui->detProgress, SLOT(setValue(int)));
@@ -1573,7 +1577,9 @@ void MainWindow::updateUi_detector() {
   totalShots = det->number();
   currentShot  =  det->isAcquiring() ? det->counter() : -1;
 
-  if ( ! det->isConnected() )
+  if ( ! ui->detSelection->currentIndex() )
+    ui->detStatus->setText("always ready");
+  else if ( ! det->isConnected() )
     ui->detStatus->setText("no link");
   else if ( det->isAcquiring() )
     ui->detStatus->setText("acquiring");
@@ -1614,10 +1620,10 @@ void MainWindow::updateUi_detector() {
 
   }
 
-  check (ui->detStatus, det->isConnected() &&
-         ( inCT || ( ! det->isAcquiring() && ! det->isWriting() ) ) );
-  check (ui->detPathTiff, uiImageFormat() != Detector::TIFF  ||  det->pathExists(Detector::TIFF) );
-  check (ui->detPathHdf, uiImageFormat() != Detector::HDF  ||  det->pathExists(Detector::HDF) );
+  check (ui->detStatus, ! ui->detSelection->currentIndex() || ( det->isConnected() &&
+         ( inCT || ( ! det->isAcquiring() && ! det->isWriting() ) ) ) );
+  check (ui->detPathTiff, uiImageFormat() != Detector::TIFF  ||  det->pathExists(Detector::TIFF) || ! ui->detSelection->currentIndex() );
+  check (ui->detPathHdf, uiImageFormat() != Detector::HDF  ||  det->pathExists(Detector::HDF) || ! ui->detSelection->currentIndex());
 
 
 }
@@ -1737,7 +1743,7 @@ void MainWindow::onFFtest() {
     check(ui->testFF, false);
 
     const QString origname = det->name(uiImageFormat());
-    const int detimode=det->imageMode();
+    const int detimode = det->imageMode();
 
     acquireDetector( "SAMPLE" + origname ,
                     ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )  ?
@@ -1805,7 +1811,7 @@ void MainWindow::onDynoTest() {
 
 void MainWindow::onDetectorSelection() {
   const QString currentText = ui->detSelection->currentText();
-  if (currentText.isEmpty()) {
+  if (currentText.isEmpty() || currentText == "Dummy") {
     det->setCamera(Detector::NONE);
     setenv("DETECTORPV", det->pv().toAscii(), 1);
     return;
@@ -1969,8 +1975,8 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
       det->setNumber(count) &&
       det->setName(fmt, filetemplate) &&
       det->prepareForAcq(fmt, count) &&
-      ( ui->checkExtTrig->isVisible() && ui->checkExtTrig->isChecked() ?
-          det->setHardwareTriggering(true) : true ) ;
+      ui->checkExtTrig->isVisible() && ui->checkExtTrig->isChecked() ?
+        det->setHardwareTriggering(true) : true ;
 
 }
 
@@ -2392,7 +2398,7 @@ void MainWindow::updateProgress () {
   } else
     ui->multiProgress->setVisible(false);
 
-  ui->detProgress->setVisible( currentShot>=0 && totalShots>1 && det->imageMode() == 1 );
+  ui->detProgress->setVisible( ui->detSelection->currentIndex() && currentShot>=0 && totalShots>1 && det->imageMode() == 1 );
 
   QTimer::singleShot(50, this, SLOT(updateProgress()));
 
@@ -2577,7 +2583,8 @@ void MainWindow::engineRun () {
       doDF = ui->checkFF->isChecked() && ui->nofDFs->value(),
       sasMode = (ui->aqMode->currentIndex() == STEPNSHOT),
       ongoingSeries = doSerial && ui->ongoingSeries->isChecked(),
-      doTriggCT = ! tct->prefix().isEmpty();
+      doTriggCT = ! tct->prefix().isEmpty(),
+      dummyDet = ! ui->detSelection->currentIndex();
 
   totalScans = doSerial ?
     ( ui->endNumber->isChecked() ? ui->nofScans->value() : 0 ) : 1 ;
@@ -2721,7 +2728,9 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
       }
 
-      const double speed = thetaRange * ui->flyRatio->value() / ( det->exposure() * totalProjections );
+      const double speed = dummyDet  ?
+            thetaSpeed * ui->flyRatio->value() :
+            thetaRange * ui->flyRatio->value() / ( det->exposure() * totalProjections );
       const double accTime = thetaMotor->motor()->getAcceleration();
       const double accTravel = speed * accTime / 2;
       const double rotDir = copysign(1,thetaRange);
@@ -2766,6 +2775,8 @@ void MainWindow::engineRun () {
 
       }
 
+      setenv("CONTRASTTYPE", "SAMPLE", 1);
+      ui->preAqScript->execute();
       det->start();
       if (doTriggCT) {
         tct->start(true);
@@ -2775,13 +2786,15 @@ void MainWindow::engineRun () {
       if (stopMe) goto onEngineExit;
       qtWait( QList<ObjSig> ()
               << ObjSig(det, SIGNAL(done()))
-              << ObjSig(thetaMotor->motor(), SIGNAL(stopped())) );
+              << ObjSig(thetaMotor->motor(), SIGNAL(stopped())) ,
+              dummyDet ? 1000 * thetaRange / speed  : -1 );
       if (stopMe) goto onEngineExit;
       if (det->isAcquiring()) {
         qtWait( det, SIGNAL(done()), 1000 );
         det->stop();
-      }
+      }      
       if (stopMe) goto onEngineExit;
+      ui->postAqScript->execute();
 
       if ( ! ongoingSeries ) {
 
@@ -2878,8 +2891,8 @@ onEngineExit:
   det->setImageMode(detimode);
   det->setTriggerMode(dettmode);
 
-
-  QProcess::execute(  QString("kill $( pgrep -l -P %1 | grep camonitor | cut -d' '  -f 1 )").arg( int(logProc.pid())) );
+  QProcess::execute("killall -9 camonitor");
+  //QProcess::execute(  QString("kill $( pgrep -l -P %1 | grep camonitor | cut -d' '  -f 1 )").arg( int(logProc.pid())) );
   logProc.terminate();
   logExec.close();
 
@@ -2891,7 +2904,7 @@ onEngineExit:
   QTimer::singleShot(0, this, SLOT(updateUi_dynoMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_dyno2Motor()));
   QTimer::singleShot(0, this, SLOT(updateUi_detector()));
-  QTimer::singleShot(0, this, SLOT(updateUi_shutterStatus()));
+//  QTimer::singleShot(0, this, SLOT(updateUi_shutterStatus()));
 //  QTimer::singleShot(0, this, SLOT(updateUi_expPath()));
 
 

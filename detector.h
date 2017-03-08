@@ -96,16 +96,16 @@ public:
   void setCamera(Camera _cam);
 
   inline const QString & pv() const {return cameraPv;}
-  inline double exposure() const {return exposurePv->get().toDouble();}
-  inline double period() const { return periodPv->get().toDouble(); }
-  inline int number() const {return numberPv->get().toInt();}
-  inline int counter() const {return counterPv->get().toInt();}
-  inline int triggerMode() const {return triggerModePv->get().toInt();}
-  inline const QString & triggerModeString() const {return triggerModePv->getEnumString();}
-  inline int imageMode() const {return imageModePv->get().toInt();}
-  inline const QString & imageModeString() const {return imageModePv->getEnumString();}
-  inline bool isAcquiring() const {return aqPv->get().toInt();}
-  inline bool isConnected() const {return _con;}
+  inline double exposure() const {return _camera ? exposurePv->get().toDouble() : 0 ;}
+  inline double period() const { return _camera ? periodPv->get().toDouble() : 0 ; }
+  inline int number() const {return _camera ? numberPv->get().toInt() : 0 ;}
+  inline int counter() const {return _camera ? counterPv->get().toInt() : 0 ;}
+  inline int triggerMode() const {return _camera ? triggerModePv->get().toInt() : 0 ;}
+  inline const QString triggerModeString() const {return _camera ? triggerModePv->getEnumString() : QString() ;}
+  inline int imageMode() const {return _camera ? imageModePv->get().toInt() : 0 ;}
+  inline const QString imageModeString() const {return _camera ? imageModePv->getEnumString() : QString() ;}
+  inline bool isAcquiring() const {return _camera  ? aqPv->get().toInt() : false ;}
+  inline bool isConnected() const {return ! _camera || _con;}
 
   ImageFormat imageFormat() const;
   bool imageFormat(ImageFormat fmt) const;
