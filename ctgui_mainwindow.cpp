@@ -1975,7 +1975,8 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
       det->setNumber(count) &&
       det->setName(fmt, filetemplate) &&
       det->prepareForAcq(fmt, count) &&
-      ui->checkExtTrig->isVisible() && ui->checkExtTrig->isChecked() ?
+      ui->checkExtTrig->isVisible() &&
+      ui->checkExtTrig->isChecked() ?
         det->setHardwareTriggering(true) : true ;
 
 }
