@@ -2743,11 +2743,11 @@ void MainWindow::engineRun () {
       prepareDetector("SAMPLE_"+seriesName+"T", totalProjections + doAdd);
       if (stopMe) goto onEngineExit;
 
-      if (doTriggCT) {
-        det->setPeriod(0);
+      if (doTriggCT || ui->checkExtTrig->isChecked() ) { 
         det->setHardwareTriggering(true);
+        det->setPeriod(0);
       } else {
-        det->setPeriod( qAbs(thetaRange) / (totalProjections * speed) );
+        det->setPeriod( qAbs(thetaRange) / (totalProjections * speed)  ) ;
       }
 
       if ( ! ongoingSeries || ! currentScan || doTriggCT ) {
