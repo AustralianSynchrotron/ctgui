@@ -1079,6 +1079,8 @@ void MainWindow::updateUi_thetaMotor() {
             ui->scanCurrent, SLOT(setValue(double)));
   }
 
+  setenv("ROTATIONMOTORPV", mot->getPv().toAscii() , 1);
+
   check(thetaMotor->setupButton(),
         mot->isConnected() &&
         ! mot->isMoving() );
