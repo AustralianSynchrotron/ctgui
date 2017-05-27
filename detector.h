@@ -19,6 +19,7 @@ public:
     ScintX,
     Hamamatsu,
     Argus,
+    CPro,
     BYPV
   };
 
@@ -52,6 +53,7 @@ private:
   QEpicsPv * fileNumberTiffPv;
   QEpicsPv * lastNameTiffPv;
   QEpicsPv * autoSaveTiffPv;
+  QEpicsPv * autoIncrementTiffPv;
   QEpicsPv * writeStatusTiffPv;
   QEpicsPv * writeProggressTiffPv;
   QEpicsPv * queUseTiffPv;
@@ -64,6 +66,7 @@ private:
   QEpicsPv * nameTemplateHdfPv;
   QEpicsPv * lastNameHdfPv;
   QEpicsPv * autoSaveHdfPv;
+  QEpicsPv * autoIncrementHdfPv;
   QEpicsPv * writeStatusHdfPv;
   QEpicsPv * writeModeHdfPv;
   QEpicsPv * writeProggressHdfPv;

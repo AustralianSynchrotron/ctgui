@@ -202,7 +202,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect( ui->dfInterval, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
   connect( ui->dfIntervalBefore, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->dfIntervalAfter, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
-  connect( ui->shutterUse, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
+  connect( ui->omitShutter, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( ui->singleBg, SIGNAL(toggled(bool)), SLOT(storeCurrentState()));
   connect( loopMotor->motor(), SIGNAL(changedPv()), SLOT(storeCurrentState()));
   connect( ui->loopNumber, SIGNAL(editingFinished()), SLOT(storeCurrentState()));
@@ -391,7 +391,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "dfinterval", ui->dfInterval);
   setInConfig(config, "dfBefore", ui->dfIntervalBefore);
   setInConfig(config, "dfAfter", ui->dfIntervalAfter);
-  setInConfig(config, "doNotUseShutter", ui->shutterUse);
+  setInConfig(config, "doNotUseShutter", ui->omitShutter);
   config.endGroup();
 
   config.beginGroup("loop");
@@ -540,7 +540,7 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "dfinterval", ui->dfInterval);
     restoreFromConfig(config, "dfBefore", ui->dfIntervalBefore);
     restoreFromConfig(config, "dfAfter", ui->dfIntervalAfter);
-    restoreFromConfig(config, "doNotUseShutter", ui->shutterUse);
+    restoreFromConfig(config, "doNotUseShutter", ui->omitShutter);
     config.endGroup();
   }
 
@@ -2491,10 +2491,10 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
 
   if ( dfs<1 )
     return 0;
-  if ( ! sh1A->isEnabled() && shState != Shutter1A::CLOSED )
+  if ( ! ui->omitShutter->isChecked() && ! sh1A->isEnabled() && shState != Shutter1A::CLOSED )
     return -1 ;
 
-  if ( ! ui->shutterUse->isChecked()  &&  shState != Shutter1A::CLOSED )
+  if ( ! ui->omitShutter->isChecked()  &&  shState != Shutter1A::CLOSED )
     sh1A->close(true); /**/
   if (stopMe) goto onDfExit;
 
@@ -2516,7 +2516,7 @@ onDfExit:
   if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
     det->setName(uiImageFormat(), detfilename) ;
 
-  if (! ui->shutterUse->isChecked()) {
+  if (! ui->omitShutter->isChecked()) {
     if (stateToGo == Shutter1A::OPENED)
       sh1A->open(!stopMe);
     else if (stateToGo == Shutter1A::CLOSED)
@@ -2636,7 +2636,7 @@ void MainWindow::engineRun () {
     tct->setNofTrigs(totalProjections + doAdd, true);
   }
 
-  if (! ui->shutterUse->isChecked() )
+  if (! ui->omitShutter->isChecked() )
     sh1A->open(true);
 
   do { // serial scanning
@@ -2867,7 +2867,7 @@ void MainWindow::engineRun () {
   } while ( ! timeToStop );
 
   ui->postRunScript->execute();
-  if ( ! ui->shutterUse->isChecked() )
+  if ( ! ui->omitShutter->isChecked() )
     sh1A->close();
 
 onEngineExit:

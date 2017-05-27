@@ -41,6 +41,7 @@ Detector::Detector(QObject * parent) :
   fileNumberTiffPv( new QEpicsPv(this) ),
   lastNameTiffPv(new QEpicsPv(this) ),
   autoSaveTiffPv( new QEpicsPv(this) ),
+  autoIncrementTiffPv( new QEpicsPv(this) ),
   writeStatusTiffPv( new QEpicsPv(this) ),
   writeProggressTiffPv( new QEpicsPv(this) ),
   queUseTiffPv( new QEpicsPv(this) ),
@@ -52,6 +53,7 @@ Detector::Detector(QObject * parent) :
   nameTemplateHdfPv( new QEpicsPv(this) ),
   lastNameHdfPv( new QEpicsPv(this) ),
   autoSaveHdfPv( new QEpicsPv(this) ),
+  autoIncrementHdfPv( new QEpicsPv(this) ),
   writeStatusHdfPv( new QEpicsPv(this) ),
   writeModeHdfPv( new QEpicsPv(this) ),
   writeProggressHdfPv( new QEpicsPv(this) ),
@@ -117,6 +119,7 @@ QString Detector::cameraName(Detector::Camera cam) {
   case PCOedge1 : return "PCO.Edge 1";
   case PCOedge2 : return "PCO.Edge 2";
   case Argus : return "Argus";
+  case CPro : return "CPro" ;
   default: return QString();
   }
 }
@@ -127,6 +130,7 @@ Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="Argus") return Argus;
   if (_cameraName =="PCO.Edge 1") return PCOedge1;
   if (_cameraName =="PCO.Edge 2") return PCOedge2;
+  if (_cameraName =="CPro") return CPro;
   return NONE;
 }
 
@@ -136,7 +140,9 @@ const QList<Detector::Camera> Detector::knownCameras =
       << Detector::Hamamatsu
       << Detector::Argus
       << Detector::PCOedge1
-      << Detector::PCOedge2) ;
+      << Detector::PCOedge2
+      << Detector::CPro
+      ) ;
 
 
 void Detector::setCamera(Camera _cam) {
@@ -160,6 +166,10 @@ void Detector::setCamera(Camera _cam) {
   case PCOedge2:
     _camera = PCOedge2;
     setCamera("SR08ID01DET02");
+    break;
+  case CPro:
+    _camera = CPro;
+    setCamera("SR08ID01DETIOC06");
     break;
   default:
     foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -190,6 +200,7 @@ void Detector::setCamera(const QString & pvName) {
     lastNameTiffPv->setPV(pvName + ":TIFF:FullFileName_RBV");
     fileNumberTiffPv->setPV(pvName + ":TIFF:FileNumber");
     autoSaveTiffPv->setPV(pvName + ":TIFF:AutoSave");
+    autoIncrementTiffPv->setPV(pvName + ":TIFF:AutoIncrement");
     writeProggressTiffPv->setPV(pvName+":TIFF:WriteFile_RBV");
     writeStatusTiffPv->setPV(pvName+":TIFF:WriteStatus");
     pathTiffPv->setPV(pvName + ":TIFF:FilePath_RBV");
@@ -205,6 +216,7 @@ void Detector::setCamera(const QString & pvName) {
     nameTemplateHdfPv->setPV(pvName + ":HDF:FileTemplate");
     lastNameHdfPv->setPV(pvName + ":HDF:FullFileName_RBV");
     autoSaveHdfPv->setPV(pvName + ":HDF:AutoSave");
+    autoIncrementHdfPv->setPV(pvName + ":HDF:AutoIncrement");
     writeStatusHdfPv->setPV(pvName + ":HDF:WriteStatus");
     writeModeHdfPv->setPV(pvName + ":HDF:FileWriteMode");
     writeProggressHdfPv->setPV(pvName + ":HDF:WriteFile_RBV");
@@ -496,7 +508,6 @@ bool Detector::setNameTemplate(ImageFormat fmt, const QString & ntemp) {
 
 bool Detector::setName(ImageFormat fmt, const QString & fname) {
 
-  qDebug() << "DETFILENAME" << fname;
   setenv("DETFILENAME", fname.toAscii(), 1);
   if ( ! _camera )
     return true;
@@ -543,11 +554,17 @@ bool Detector::setAutoSave(bool autoSave) {
     autoSaveTiffPv->set(autoSave ? 1 : 0);
     qtWait(autoSaveTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   }
+  autoIncrementTiffPv->set(1);
   if ( autoSaveHdfPv->get().toBool() != autoSave ) {
     autoSaveHdfPv->set(autoSave ? 1 : 0);
     qtWait(autoSaveHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
   }
-  return autoSaveTiffPv->get().toBool() != autoSave  &&  autoSaveHdfPv->get().toBool() != autoSave;
+  autoIncrementHdfPv->set(1);
+  return
+      autoSaveTiffPv->get().toBool() == autoSave  &&
+      autoIncrementTiffPv->get().toBool() &&
+      autoSaveHdfPv->get().toBool() == autoSave &&
+      autoIncrementHdfPv->get().toBool() ;
 }
 
 
@@ -560,6 +577,8 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
     return false;
 
   setImageFormat(fmt);
+  if ( ! setAutoSave(true) )
+    return false;
 
   if ( fmt == TIFF ) {
 
@@ -567,13 +586,6 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
       fileNumberTiffPv->set(0);
       qtWait(fileNumberTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
       if ( fileNumberTiffPv->get().toInt() !=0 )
-        return false;
-    }
-
-    if ( ! autoSaveTiffPv->get().toBool() ) {
-      autoSaveTiffPv->set(1);
-      qtWait(autoSaveTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
-      if ( ! autoSaveTiffPv->get().toBool() )
         return false;
     }
 
@@ -588,16 +600,6 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
       if ( captureTargetHdfPv->get() !=nofFrames )
         return false;
     }
-
-
-    if ( ! autoSaveTiffPv->get().toBool() ) {
-      autoSaveTiffPv->set(1);
-      qtWait(autoSaveTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
-      if ( ! autoSaveTiffPv->get().toBool() )
-        return false;
-    }
-
-
 
   }
 
