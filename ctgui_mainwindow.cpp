@@ -636,10 +636,13 @@ void MainWindow::addMessage(const QString & str) {
 
 static QString lastPathComponent(const QString & pth) {
   QString lastComponent = pth;
-  if ( lastComponent.endsWith("/") || lastComponent.endsWith("\\") ) // can be win or lin path delimiter
+  if ( lastComponent.endsWith("\\") ) {
     lastComponent.chop(1);
-  if (lastComponent.contains('/'))
-    lastComponent.remove(0, lastComponent.lastIndexOf('/')+1);
+    return lastComponent.remove(0, lastComponent.lastIndexOf('/')+1);
+  }
+  if ( lastComponent.endsWith("/") ) // can be win or lin path delimiter
+    lastComponent.chop(1);
+  lastComponent = QFileInfo(lastComponent).fileName();
   return lastComponent;
 }
 
