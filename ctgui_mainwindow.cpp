@@ -351,9 +351,10 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "ongoingseries",ui->ongoingSeries);
   setInConfig(config, "ffoneachscan",ui->ffOnEachScan);
   setInConfig(config, "scandelay",ui->scanDelay);
-  setInConfig(config, "serialmotor",serialMotor);
-  setInConfig(config, "serialstep",ui->serialStep);
-  setInConfig(config, "serialirregularstep",ui->irregularStep);
+  setInConfig(config, "motor",serialMotor);
+  config.setValue("motorposition", serialMotor->motor()->getUserPosition());
+  setInConfig(config, "step",ui->serialStep);
+  setInConfig(config, "irregularstep",ui->irregularStep);
   if ( ui->irregularStep->isChecked() ) {
     config.beginWriteArray("irregularsteps");
     int index = 0;
@@ -369,6 +370,7 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   config.beginGroup("scan");
   setInConfig(config, "motor", thetaMotor);
+  config.setValue("motorposition", thetaMotor->motor()->getUserPosition());
   setInConfig(config, "range", ui->scanRange);
   setInConfig(config, "steps", ui->scanProjections);
   setInConfig(config, "aquisitionsperprojection", ui->aqsPP);
@@ -385,6 +387,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   setInConfig(config, "bgBefore", ui->bgIntervalBefore);
   setInConfig(config, "bgAfter", ui->bgIntervalAfter);
   setInConfig(config, "motor", bgMotor);
+  config.setValue("motorposition", bgMotor->motor()->getUserPosition());
   setInConfig(config, "bgtravel", ui->bgTravel);
   setInConfig(config, "bgexposure", ui->bgExposure);
   setInConfig(config, "dfs", ui->nofDFs);
@@ -398,6 +401,7 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   setInConfig(config, "singlebg", ui->singleBg);
   setInConfig(config, "motor", loopMotor);
+  config.setValue("motorposition", loopMotor->motor()->getUserPosition());
   setInConfig(config, "shots", ui->loopNumber);
   setInConfig(config, "step", ui->loopStep);
   setInConfig(config, "preloop", ui->preLoopScript);
@@ -406,6 +410,7 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   config.beginGroup("subloop");
   setInConfig(config, "motor", subLoopMotor);
+  config.setValue("motorposition", subLoopMotor->motor()->getUserPosition());
   setInConfig(config, "shots", ui->subLoopNumber);
   setInConfig(config, "step", ui->subLoopStep);
   setInConfig(config, "presubloop", ui->preSubLoopScript);
@@ -417,6 +422,7 @@ void MainWindow::saveConfiguration(QString fileName) {
   config.beginGroup("dyno");
 
   setInConfig(config, "motor", dynoMotor);
+  config.setValue("motorposition", dynoMotor->motor()->getUserPosition());
   setInConfig(config, "speed", ui->dynoSpeed);
   config.setValue("direction", ui->dynoPos->isChecked() ?
                     "positive" : "negative");
@@ -424,6 +430,7 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   config.beginGroup("dyno2");
   setInConfig(config, "motor", dyno2Motor);
+  config.setValue("motorposition", dyno2Motor->motor()->getUserPosition());
   setInConfig(config, "speedLock", ui->dynoSpeedLock);
   setInConfig(config, "speed", ui->dyno2Speed);
   setInConfig(config, "dirLock", ui->dynoDirectionLock);
@@ -463,7 +470,7 @@ void MainWindow::loadConfiguration(QString fileName) {
 
   restoreFromConfig(config, "description", ui->expDesc);
   restoreFromConfig(config, "workingdir", ui->expPath);
-  restoreFromConfig(config, "syncdetectordir", ui->detPathSync);  
+  restoreFromConfig(config, "syncdetectordir", ui->detPathSync);
   const QString imgFmt = config.value("imageFormat").toString();
   if (imgFmt == "TIFF")
     ui->tiffFormat->setChecked(true);
@@ -496,9 +503,9 @@ void MainWindow::loadConfiguration(QString fileName) {
     restoreFromConfig(config, "ongoingseries",ui->ongoingSeries);
     restoreFromConfig(config, "ffoneachscan",ui->ffOnEachScan);
     restoreFromConfig(config, "scandelay",ui->scanDelay);
-    restoreFromConfig(config, "serialmotor",serialMotor);
-    restoreFromConfig(config, "serialstep",ui->serialStep);
-    restoreFromConfig(config, "serialirregularstep",ui->irregularStep);
+    restoreFromConfig(config, "motor",serialMotor);
+    restoreFromConfig(config, "step",ui->serialStep);
+    restoreFromConfig(config, "irregularstep",ui->irregularStep);
     if ( ui->irregularStep->isChecked() ) {
       int stepssize = config.beginReadArray("irregularsteps");
       for (int i = 0; i < stepssize; ++i) {
@@ -662,7 +669,7 @@ void MainWindow::updateUi_expPath() {
     isOK = fi.isDir() && fi.isWritable();
   } else
     isOK = false;
-      
+
   if (isOK) {
 
     QDir::setCurrent(pth);
@@ -724,8 +731,11 @@ void MainWindow::updateUi_aqMode() {
     if ( aqmd == FLYHARD2B ) {
       tct->setPrefix("SR08ID01SST24:ROTATION:EQU");
       ui->checkExtTrig->setVisible(false);
-    } else if ( aqmd == FLYHARD3B ) {
+    } else if ( aqmd == FLYHARD3BTABL ) {
       tct->setPrefix("SR08ID01SST01:ROTATION:EQU");
+      ui->checkExtTrig->setVisible(false);
+    } else if ( aqmd == FLYHARD3BLAPS ) {
+      tct->setPrefix("SR08ID01ROB01:ROTATION:EQU");
       ui->checkExtTrig->setVisible(false);
     } else {
       tct->setPrefix("");
@@ -1042,27 +1052,36 @@ void MainWindow::updateUi_expOverStep() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_expOverStep());
     connect( ui->aqMode, SIGNAL(currentIndexChanged(int)), thisSlot);
-    connect( ui->flyRatio, SIGNAL(valueChanged(double)), thisSlot);
+    connect( ui->flyRatio, SIGNAL(editingFinished()), thisSlot);
+    connect( ui->stepTime, SIGNAL(editingFinished()), thisSlot);
     connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( det, SIGNAL(parameterChanged()), thisSlot);
     connect( thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), thisSlot);
   }
 
+  ui->stepTime->setMinimum( det->exposure() > 0  ?  det->exposure() : 0);
 
-  float aqspeed = 0;
-  if ( det->exposure() <= 0.0 ) {
-    aqspeed =  ui->flyRatio->value() * thetaMotor->motor()->getNormalSpeed() ;
-    ui->aqsSpeed->setValue(aqspeed);
-    ui->stepTime->setValue( ui->scanRange->value() / ( ui->flyRatio->value() * thetaMotor->motor()->getNormalSpeed() * ui->scanProjections->value() ) );
+  if ( sender() == ui->stepTime ) {
+    const float ratio = det->exposure() > 0  ?
+          det->exposure() / ui->stepTime->value()  :
+          ui->scanRange->value() / ( ui->stepTime->value() * thetaMotor->motor()->getNormalSpeed() * ui->scanProjections->value() ) ;
+    ui->flyRatio->setValue(ratio);
   } else {
-    aqspeed =  ui->scanRange->value() * ui->flyRatio->value() / ( det->exposure() * ui->scanProjections->value() ) ;
-    ui->aqsSpeed->setValue(aqspeed);
-    ui->stepTime->setValue(  det->exposure() / ui->flyRatio->value() );
+    const float step = det->exposure() > 0  ?
+          det->exposure() / ui->flyRatio->value():
+          ui->scanRange->value() / ( ui->flyRatio->value() * thetaMotor->motor()->getNormalSpeed() * ui->scanProjections->value() ) ;
+    ui->stepTime->setValue( step );
   }
 
-  check( ui->flyRatio,  ui->aqMode->currentIndex() == STEPNSHOT  ||
-                        aqspeed <= thetaMotor->motor()->getMaximumSpeed() );
+  const float aqspeed = det->exposure() > 0  ?
+        ui->scanRange->value() * ui->flyRatio->value() / ( det->exposure() * ui->scanProjections->value() ) :
+        ui->flyRatio->value() * thetaMotor->motor()->getNormalSpeed();
+  ui->aqsSpeed->setValue(aqspeed);
+
+  bool isOK = ui->aqMode->currentIndex() == STEPNSHOT  ||  aqspeed <= thetaMotor->motor()->getMaximumSpeed();
+  check( ui->flyRatio, isOK );
+  check( ui->stepTime, isOK );
 
 }
 
@@ -1573,7 +1592,7 @@ void MainWindow::updateUi_detector() {
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), thisSlot);
     connect(det, SIGNAL(connectionChanged(bool)), thisSlot);
-    connect(det, SIGNAL(parameterChanged()), thisSlot);   
+    connect(det, SIGNAL(parameterChanged()), thisSlot);
     connect(det, SIGNAL(counterChanged(int)), ui->detProgress, SLOT(setValue(int)));
     connect(det, SIGNAL(counterChanged(int)), ui->detImageCounter, SLOT(setValue(int)));
     connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
@@ -1641,7 +1660,7 @@ void MainWindow::onWorkingDirBrowse() {
   QDir startView( QDir::current() );
   startView.cdUp();
   const QString newdir = QFileDialog::getExistingDirectory(0, "Working directory", startView.path() );
-  if ( ! newdir.isEmpty() ) 
+  if ( ! newdir.isEmpty() )
     ui->expPath->setText(newdir);
 }
 
@@ -2475,9 +2494,9 @@ onBgExit:
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( originalExposure ) ;
 
-  if (!stopMe) 
+  if (!stopMe)
     bgMotor->motor()->wait_stop();
-  
+
   return ret;
 
 }
@@ -2513,7 +2532,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter1A::State stateToG
 
 onDfExit:
 
-  if (!stopMe) 
+  if (!stopMe)
     det->waitWritten();
 
   if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
@@ -2748,7 +2767,7 @@ void MainWindow::engineRun () {
       prepareDetector("SAMPLE_"+seriesName+"T", totalProjections + doAdd);
       if (stopMe) goto onEngineExit;
 
-      if (doTriggCT || ui->checkExtTrig->isChecked() ) { 
+      if (doTriggCT || ui->checkExtTrig->isChecked() ) {
         det->setHardwareTriggering(true);
         det->setPeriod(0);
       } else {
@@ -2798,7 +2817,7 @@ void MainWindow::engineRun () {
       if (det->isAcquiring()) {
         qtWait( det, SIGNAL(done()), 1000 );
         det->stop();
-      }      
+      }
       if (stopMe) goto onEngineExit;
       ui->postAqScript->execute();
 

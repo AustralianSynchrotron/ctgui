@@ -85,8 +85,9 @@ private:
     STEPNSHOT = 0,
     FLYSOFT   = 1,
     FLYHARD2B = 2,
-    FLYHARD3B = 3,
-    AQMODEEND = 4
+    FLYHARD3BTABL = 3,
+    FLYHARD3BLAPS = 4,
+    AQMODEEND = 5
   };
 
   static inline QString AqModeString(AqMode aqmd) {
@@ -94,7 +95,8 @@ private:
     case STEPNSHOT: return "Step-and-shot";
     case FLYSOFT  : return "On-the-fly (software)";
     case FLYHARD2B: return "On-the-fly (harware in 2B)";
-    case FLYHARD3B: return "On-the-fly (harware in 3B)";
+    case FLYHARD3BTABL: return "On-the-fly (harware in 3B on table)";
+    case FLYHARD3BLAPS: return "On-the-fly (harware in 3B on LAPS)";
     default       : return "ERROR";
     }
   }
