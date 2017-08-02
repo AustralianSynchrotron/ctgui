@@ -2777,6 +2777,8 @@ void MainWindow::engineRun () {
       if ( ! ongoingSeries || ! currentScan || doTriggCT ) {
 
         thetaMotor->motor()->wait_stop();
+        if (doTriggCT)
+          tct->stop(false);
         if (stopMe) goto onEngineExit;
 
         // 2 coefficient in the below string is required to guarantee that the
