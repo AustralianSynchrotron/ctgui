@@ -12,9 +12,10 @@
 #include <QTime>
 #include <QThread>
 
-#include <imbl/shutter1A.h>
+#include "shutter.h"
 #include "detector.h"
 #include "triggct.h"
+#include "positionlist.h"
 
 namespace Ui {
   class MainWindow;
@@ -38,19 +39,18 @@ private:
   bool isLoadingState;
 
   Ui::MainWindow *ui;
+  QHash<QObject*, QString> configNames;
 
-  Shutter1A * sh1A;
-  QCaMotorGUI * serialMotor;
+  Shutter * shutter;
+  Detector * det;
+  TriggCT * tct;
+
   QCaMotorGUI * thetaMotor;
   QCaMotorGUI * bgMotor;
   QCaMotorGUI * loopMotor;
   QCaMotorGUI * subLoopMotor;
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
-
-  Detector * det;
-
-  TriggCT * tct;
 
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <const QObject*,  ReqP > preReq;
@@ -59,7 +59,6 @@ private:
   void check(QWidget * obj, bool status);
 
   void engineRun();
-
 
   bool inAcquisitionTest;
   bool inDynoTest;
@@ -70,8 +69,10 @@ private:
   bool readyToStartCT;
   bool stopMe;
 
-  int totalScans;
-  int currentScan;
+  int totalScans1D;
+  int totalScans2D;
+  int currentScan1D;
+  int currentScan2D;
   int totalProjections;
   int currentProjection;
   int totalLoops;
@@ -115,7 +116,7 @@ private:
   int acquireDyno(const QString & filetemplate, int count=1);
   int acquireMulti(const QString & filetemplate, int count=1);
   int acquireBG(const QString &filetemplate);
-  int acquireDF(const QString &filetemplate, Shutter1A::State stateToGo);
+  int acquireDF(const QString &filetemplate, Shutter::State stateToGo);
   int acquireProjection(const QString &filetemplate);
 
 //  QFile * logFile;
@@ -142,13 +143,9 @@ private slots:
   void onDynoCheck();
   void onMultiCheck();
 
-  void updateUi_nofScans();
-  void updateUi_acquisitionTime();
-  void updateUi_condtitionScript();
-  void updateUi_serialStep();
-  void updateUi_serialMotor();
+  void updateUi_serials();
   void updateUi_ffOnEachScan();
-  void updateUi_serialList();
+  void onSwapSerial();
 
   void updateUi_scanRange();
   void updateUi_scanStep();

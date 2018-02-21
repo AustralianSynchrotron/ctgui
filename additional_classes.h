@@ -12,6 +12,9 @@
 #include <QProgressBar>
 #include <QCheckBox>
 #include <QStyledItemDelegate>
+#include "ui_upvorcom.h"
+
+#include <qtpv.h>
 
 #ifndef CTGUIADDITIONALCLASSES
 #define CTGUIADDITIONALCLASSES
@@ -125,60 +128,142 @@ protected:
 };
 
 
-
-namespace Ui {
-class Script;
-}
-
-class Script : public QWidget {
+class Script : public QObject {
   Q_OBJECT;
 
 private:
-  Ui::Script *ui;
   QProcess proc;
   QTemporaryFile fileExec;
+  QString _path;
+  static const QString shell;
 
 public:
-  explicit Script(QWidget *parent = 0);
-  ~Script();
+  explicit Script(QObject *parent = 0);
 
-  void setPath(const QString & _path);
+  const QString & path() const {return _path;}
   const QString out() {return proc.readAllStandardOutput();}
   const QString err() {return proc.readAllStandardError();}
+  int exitCode() const { return proc.exitCode(); }
   int waitStop();
-  bool isRunning() const { return proc.pid(); };
-  const QString path() const;
-
-  void addToColumnResizer(ColumnResizer * columnizer);
+  bool isRunning() const { return proc.state() != QProcess::NotRunning; }
+  int evaluate(const QString & par = QString());
 
 public slots:
-  bool start();
-  int execute() { return start() ? waitStop() : -1 ; };
-  void stop() {if (isRunning()) proc.kill();};
+  bool start(const QString & par = QString());
+  void stop() {if (isRunning()) proc.kill();}
+  int execute( const QString & par = QString() ) { return start(par) ? waitStop() : -1 ; }
+  const QString & setPath( const QString & _p );
 
 private slots:
-  void browse();
-  void evaluate();
   void onState(QProcess::ProcessState state);
-  void onStartStop() { if (isRunning()) stop(); else start(); };
 
 signals:
-  void editingFinished();
-  void executed();
+  void pathSet(const QString & newPath);
   void finished(int status);
   void started();
 
 };
 
 
-class MotorPosition : public QWidget {
+
+namespace Ui {
+class UScript;
+}
+
+class UScript : public QWidget {
   Q_OBJECT;
+
+private:
+  Ui::UScript *ui;
+
+public:
+  Script * script;
+
+public:
+  explicit UScript(QWidget *parent = 0);
+  ~UScript();
+
+  void addToColumnResizer(ColumnResizer * columnizer);
+
+private slots:
+  void browse();
+  void onStartStop() { if (script->isRunning()) script->stop(); else script->start(); }
+  void updateState();
+  void updatePath();
+
+
+signals:
+  void editingFinished();
+
+};
+
+
+
+
+class PVorCOM : public QObject {
+  Q_OBJECT;
+
+  QEpicsPv * pv;
+  Script * sr;
 
 public:
 
+  enum WhoAmI {
+    EPICSPV,
+    GOODSCRIPT,
+    BADSCRIPT,
+    RUNNINGSCRIPT
+  };
+
+  PVorCOM(QObject *parent = 0);
+
+public slots:
+
+  void setName( const QString & nm = QString() );
+  const QString & getName() const { return pv->pv(); }
+  void put( const QString & val = QString() ) ;
+  const QString get() const  { return pv->isConnected()  ?  pv->get().toString()  :  sr->out();  }
+  WhoAmI state();
+
+signals:
+
+  void valueUpdated( const QString & );
+  void nameUpdated( const QString & );
+  void stateUpdated(PVorCOM::WhoAmI);
+
+private slots:
+
+  void updateVal() { emit valueUpdated(get()); }
+  void updateState() { emit stateUpdated(state());}
+
+};
+
+
+namespace Ui {
+class UPVorCOM;
+}
+
+
+class UPVorCOM : public QWidget {
+  Q_OBJECT;
+private:
+  Ui::UPVorCOM *ui;
+public:
+  PVorCOM * pvc;
+  UPVorCOM (QWidget *parent = 0);
+private slots:
+  void setValueText(const QString & txt);
+  void setPVCname() { pvc->setName(ui->name->text()); }
+  void indicateState(PVorCOM::WhoAmI state);
+  void evaluateScript();
+};
+
+
+
+class MotorPosition : public QWidget {
+  Q_OBJECT;
+public:
   explicit MotorPosition(QWidget *parent = 0);
-
-
 };
 
 

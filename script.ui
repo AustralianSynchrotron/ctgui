@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Script</class>
- <widget class="QWidget" name="Script">
+ <class>UScript</class>
+ <widget class="QWidget" name="UScript">
   <property name="geometry">
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>218</width>
-    <height>29</height>
+    <width>263</width>
+    <height>38</height>
    </rect>
   </property>
   <property name="windowTitle">

@@ -10,24 +10,33 @@ SOURCES += main.cpp \
     ctgui_mainwindow.cpp \
     additional_classes.cpp \
     detector.cpp \
-    triggct.cpp
-IMBLEXEC = $$system(command -v imblgui)
-IMBLORIGIN = $$dirname(IMBLEXEC)
-IMBLRPATH = $$system(objdump -x $${IMBLEXEC} | grep RPATH | sed -e \"s/RPATH//g\" -e \"s/^ *//g\" -e \"s \\\$ORIGIN $${IMBLORIGIN} g\" | cut -d':' -f1 )
-QMAKE_LFLAGS += -Wl,-rpath,$$IMBLRPATH
-LIBS += -lqtpv \
-    -lqtpvwidgets \
-    -lqcamotor \
-    -lqcamotorgui \
-    -L$$IMBLRPATH \
-    -lshutter1A \
-    -lcomponent
+    triggct.cpp \
+    shutter.cpp \
+    positionlist.cpp
 HEADERS += ctgui_mainwindow.h \
     additional_classes.h \
     detector.h \
-    triggct.h
+    triggct.h \
+    shutter.h \
+    positionlist.h
 FORMS += ctgui_mainwindow.ui \
-    script.ui
+    script.ui \
+    shutter.ui \
+    ushutterconf.ui \
+    upvorcom.ui \
+    positionlist.ui
+
+#IMBLEXEC = $$system(command -v imblgui)
+#IMBLORIGIN = $$dirname(IMBLEXEC)
+#IMBLRPATH = $$system(objdump -x $${IMBLEXEC} | grep RPATH | sed -e \"s/RPATH//g\" -e \"s/^ *//g\" -e \"s \\\$ORIGIN $${IMBLORIGIN} g\" | cut -d':' -f1 )
+#QMAKE_LFLAGS += -Wl,-rpath,$$IMBLRPATH
+LIBS += -lqtpv \
+    -lqtpvwidgets \
+    -lqcamotor \
+    -lqcamotorgui
+#    -L$$IMBLRPATH \
+#    -lshutter1A \
+#    -lcomponent
 RESOURCES += ctgui.qrc
 
 # OTHER_FILES +=

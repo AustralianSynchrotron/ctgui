@@ -82,6 +82,10 @@ bool ColumnResizer::eventFilter(QObject*, QEvent* event) {
 
 
 void ColumnResizer::addWidgetsFromGridLayout(QGridLayout* layout, int column) {
+  if (!layout) {
+    qDebug() << "no layout to resize";
+    return;
+  }
   for (int row = 0; row < layout->rowCount(); ++row) {
     QLayoutItem* item = layout->itemAtPosition(row, column);
     if (!item) {
@@ -247,16 +251,22 @@ void CTprogressBar::resizeEvent(QResizeEvent * event) {
 
 
 
-Script::Script(QWidget *parent) :
-  QWidget(parent),
-  ui(new Ui::Script),
-  fileExec(this)
+
+
+
+
+
+
+
+
+const QString Script::shell = getenv("SHELL") ? getenv("SHELL") : "/bin/sh";
+
+Script::Script(QObject *parent) :
+  QObject(parent),
+  proc(this),
+  fileExec(),
+  _path()
 {
-  ui->setupUi(this);
-  connect(ui->path, SIGNAL(textChanged(QString)), SLOT(evaluate()));
-  connect(ui->browse, SIGNAL(clicked()), SLOT(browse()));
-  connect(ui->execute, SIGNAL(clicked()), SLOT(onStartStop()));
-  connect(ui->path, SIGNAL(editingFinished()), SIGNAL(editingFinished()));
   connect(&proc, SIGNAL(stateChanged(QProcess::ProcessState)),
           SLOT(onState(QProcess::ProcessState)));
   if ( ! fileExec.open() )
@@ -264,48 +274,19 @@ Script::Script(QWidget *parent) :
 }
 
 
-Script::~Script() {
-  delete ui;
+void Script::onState(QProcess::ProcessState state) {
+  if (state==QProcess::NotRunning)
+    emit finished(proc.exitCode());
+  else if (state==QProcess::Running)
+    emit started();
 }
 
-void Script::setPath(const QString & _path) {
-  ui->path->setText(_path);
-}
-
-const QString Script::path() const {
-  return ui->path->text();
-}
-
-void Script::browse() {
-  ui->path->setText(
-        QFileDialog::getOpenFileName(0, "Command", QDir::currentPath()) );
-}
-
-
-void Script::evaluate() {
-
-  if ( ! fileExec.isOpen() || isRunning() )
-    return;
-  ui->execute->setStyleSheet("");
-
-  fileExec.resize(0);
-  fileExec.write( ui->path->text().toAscii() );
-  fileExec.flush();
-
-  QProcess tempproc;
-  tempproc.start("/bin/sh -n " + fileExec.fileName());
-  tempproc.waitForFinished();
-  ui->path->setStyleSheet( tempproc.exitCode() ? "color: rgb(255, 0, 0);" : "");
-
-}
-
-
-bool Script::start() {
+bool Script::start(const QString & par) {
   if ( ! fileExec.isOpen() || isRunning() )
     return false;
-  if (ui->path->text().isEmpty())
+  if (path().isEmpty())
     return true;
-  proc.start("/bin/sh " + fileExec.fileName());
+  proc.start(shell + " " + fileExec.fileName() + " " + par );
   return isRunning();
 }
 
@@ -317,29 +298,162 @@ int Script::waitStop() {
   return proc.exitCode();
 }
 
-void Script::onState(QProcess::ProcessState state) {
 
-  ui->browse->setEnabled( state==QProcess::NotRunning );
-  ui->path->setEnabled( state==QProcess::NotRunning );
-  ui->execute->setText( state==QProcess::NotRunning ?
-                         "Execute" : "Stop" );
-
-  if (state==QProcess::NotRunning) {
-    ui->execute->setStyleSheet( proc.exitCode() ? "color: rgb(255, 0, 0);" : "");
-    emit finished(proc.exitCode());
-  } else if (state==QProcess::Running) {
-    emit started();
-  }
-
-};
+const QString & Script::setPath(const QString &_p) {
+  if ( ! fileExec.isOpen() || isRunning() )
+    return path();
+  fileExec.resize(0);
+  fileExec.write( _p.toAscii() );
+  fileExec.write( " $@\n" );
+  fileExec.flush();
+  _path=_p;
+  emit pathSet(path());
+  return path();
+}
 
 
-void Script::addToColumnResizer(ColumnResizer * columnizer) {
+int Script::evaluate(const QString & par) {
+  QProcess tempproc;
+  tempproc.start(shell + " -n " + fileExec.fileName() + " " + par);
+  tempproc.waitForFinished();
+  return tempproc.exitCode();
+}
+
+
+namespace Ui {
+class UScript;
+}
+
+
+UScript::UScript(QWidget *parent) :
+  QWidget(parent),
+  ui(new Ui::UScript),
+  script (new Script(this))
+{
+
+  ui->setupUi(this);
+
+  connect(ui->path, SIGNAL(textChanged(QString)), script, SLOT(setPath(QString)));
+  connect(ui->browse, SIGNAL(clicked()), SLOT(browse()));
+  connect(ui->execute, SIGNAL(clicked()), SLOT(onStartStop()));
+  connect(ui->path, SIGNAL(editingFinished()), SIGNAL(editingFinished()));
+
+  connect(script, SIGNAL(started()), SLOT(updateState()));
+  connect(script, SIGNAL(finished(int)), SLOT(updateState()));
+  connect(script, SIGNAL(pathSet(QString)), SLOT(updatePath()));
+
+}
+
+
+UScript::~UScript() {
+  delete ui;
+}
+
+
+void UScript::browse() {
+  ui->path->setText(
+        QFileDialog::getOpenFileName(0, "Command", QDir::currentPath()) );
+}
+
+void UScript::addToColumnResizer(ColumnResizer * columnizer) {
   if ( ! columnizer )
     return;
   columnizer->addWidgetsFromGridLayout(ui->gridLayout, 1);
   columnizer->addWidgetsFromGridLayout(ui->gridLayout, 2);
 }
+
+
+
+void UScript::updateState() {
+  ui->browse->setEnabled( ! script->isRunning() );
+  ui->path->setEnabled( ! script->isRunning() );
+  ui->execute->setText( script->isRunning() ? "Stop" : "Execute" );
+  ui->execute->setStyleSheet( ! script->isRunning() && script->exitCode()
+                              ? "color: rgb(255, 0, 0);" : "");
+}
+
+void UScript::updatePath() {
+  ui->path->setText(script->path());
+  ui->execute->setStyleSheet("");
+  ui->path->setStyleSheet( script->evaluate() ? "color: rgb(255, 0, 0);" : "");
+}
+
+
+
+
+PVorCOM::PVorCOM(QObject *parent)
+  : QObject(parent)
+  , pv(new QEpicsPv(this))
+  , sr(new Script(this))
+{
+  setName();
+  connect(pv, SIGNAL(valueUpdated(QVariant)), SLOT(updateVal()));
+  connect(sr, SIGNAL(finished(int)), SLOT(updateVal()));
+  connect(pv, SIGNAL(connectionChanged(bool)), SLOT(updateState()));
+  connect(sr, SIGNAL(started()), SLOT(updateState()));
+  connect(sr, SIGNAL(finished(int)), SLOT(updateState()));
+
+}
+
+
+void PVorCOM::setName( const QString & nm) {
+  pv->setPV(nm);
+  sr->setPath(nm);
+  emit nameUpdated(nm);
+}
+
+
+void PVorCOM::put( const QString & val) {
+  if ( ! pv->isConnected()) sr->execute(val);
+  else if ( ! val.isEmpty() ) pv->set(val);
+}
+
+PVorCOM::WhoAmI PVorCOM::state() {
+  if (pv->isConnected())
+    return EPICSPV;
+  if (sr->isRunning())
+    return RUNNINGSCRIPT;
+  if (sr->exitCode())
+    return BADSCRIPT;
+  return GOODSCRIPT;
+}
+
+
+
+UPVorCOM::UPVorCOM (QWidget *parent)
+  : QWidget(parent)
+  , ui(new Ui::UPVorCOM)
+  , pvc (new PVorCOM(this))
+{
+  ui->setupUi(this);
+  connect(ui->name, SIGNAL(editingFinished()), SLOT(setPVCname()));
+  connect(ui->name, SIGNAL(textChanged(QString)), SLOT(evaluateScript()));
+  connect(ui->val, SIGNAL(clicked()), pvc, SLOT(put()));
+  connect(pvc, SIGNAL(valueUpdated(QString)), SLOT(setValueText(QString)));
+  connect(pvc, SIGNAL(nameUpdated(QString)), ui->name, SLOT(setText(QString)));
+  connect(pvc, SIGNAL(stateUpdated(PVorCOM::WhoAmI)), SLOT(indicateState(PVorCOM::WhoAmI)));
+}
+
+void UPVorCOM::setValueText(const QString & txt) {
+  ui->val->setToolTip(txt);
+  QString btxt=txt.trimmed();
+  btxt = btxt.left( qMin(10, btxt.indexOf(QRegExp("[\a\f\r\n\s\t\w]"))));
+  if ( btxt.size() < txt.size() - 1 ) // -1 here to allow last \n
+    btxt += " ...";
+  ui->val->setText(btxt);
+}
+
+
+void UPVorCOM::indicateState(PVorCOM::WhoAmI state) {
+  ui->val->setEnabled( state == PVorCOM::GOODSCRIPT || state == PVorCOM::BADSCRIPT );
+  ui->val->setStyleSheet( state == PVorCOM::BADSCRIPT ? "color: rgb(255, 0, 0);" : "" );
+}
+
+void UPVorCOM::evaluateScript() {
+
+}
+
+
 
 
 
@@ -352,6 +466,7 @@ QWidget* NTableDelegate::createEditor(QWidget* parent,const QStyleOptionViewItem
 {
   QLineEdit* editor = new QLineEdit(parent);
   QDoubleValidator* val = new QDoubleValidator(editor);
+  val->setBottom(0);
   val->setNotation(QDoubleValidator::StandardNotation);
   editor->setValidator(val);
   return editor;
