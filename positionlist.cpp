@@ -3,10 +3,10 @@
 
 PositionList::PositionList(QWidget *parent)
   : QWidget(parent)
-  , motui(0)
   , allOK(false)
   , freezListUpdates(false)
   , ui(new Ui::PositionList)
+  , motui(0)
 {
 
   ui->setupUi(this);

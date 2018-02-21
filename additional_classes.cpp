@@ -437,7 +437,7 @@ UPVorCOM::UPVorCOM (QWidget *parent)
 void UPVorCOM::setValueText(const QString & txt) {
   ui->val->setToolTip(txt);
   QString btxt=txt.trimmed();
-  btxt = btxt.left( qMin(10, btxt.indexOf(QRegExp("[\a\f\r\n\s\t\w]"))));
+  btxt = btxt.left( qMin(10, btxt.indexOf(QRegExp("[\a\f\r\n\t]"))));
   if ( btxt.size() < txt.size() - 1 ) // -1 here to allow last \n
     btxt += " ...";
   ui->val->setText(btxt);

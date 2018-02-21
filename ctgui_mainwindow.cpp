@@ -2183,7 +2183,7 @@ onDfExit:
 
 
 
-
+#define currentScan (currentScan1D * totalScans2D + currentScan2D)
 
 void MainWindow::engineRun () {
 
@@ -2239,7 +2239,7 @@ void MainWindow::engineRun () {
       dfAfter = ui->dfIntervalAfter->isChecked(),
       doDF = ui->checkFF->isChecked() && ui->nofDFs->value(),
       sasMode = (ui->aqMode->currentIndex() == STEPNSHOT),
-      ongoingSeries = (doSerial1D || doSerial2D) && ui->ongoingSeries->isChecked(),
+      ongoingSeries = doSerial1D && ui->ongoingSeries->isChecked(),
       doTriggCT = ! tct->prefix().isEmpty(),
       dummyDet = ! ui->detSelection->currentIndex();
 
@@ -2254,29 +2254,25 @@ void MainWindow::engineRun () {
       scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
       scanTime = QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ),
       projectionDigs = QString::number(totalProjections).size(),
-      series1Digs = QString::number(totalScans1D).size(),
-      series2Digs = QString::number(totalScans2D).size(),
+      series1Digs = QString::number(totalScans1D-1).size(),
+      series2Digs = QString::number(totalScans2D-1).size(),
       doAdd = ui->scanAdd->isChecked() ? 1 : 0,
       detimode=det->imageMode(),
       dettmode=det->triggerMode();
 
   stopMe = false;
   inCT = true;
+  foreach(PositionList * lst, findChildren<PositionList*>())
+    lst->freezList(true);
   foreach(QWidget * tab, ui->control->tabs())
         tab->setEnabled(false);
-
-
   inCTtime.restart();
   currentScan1D=0;
-  currentScan2D=0;
   bool timeToStop=false;
 
   int
       beforeBG = 0,
       beforeDF = 0;
-
-  ui->preRunScript->script->execute();
-  if (stopMe) goto onEngineExit;
 
   if ( doSerial1D  &&  ui->endNumber->isChecked() &&
        outSMotor->isConnected() &&  outerList->ui->irregular->isChecked() ) // otherwise is already in the first point
@@ -2297,6 +2293,9 @@ void MainWindow::engineRun () {
     tct->setNofTrigs(totalProjections + doAdd, true);
   }
 
+  ui->preRunScript->script->execute();
+  if (stopMe) goto onEngineExit;
+
   shutter->open(true);
 
   do { // serial scanning 1D
@@ -2315,6 +2314,7 @@ void MainWindow::engineRun () {
       outSMotor->wait_stop();
     if (stopMe) goto onEngineExit;
 
+    currentScan2D=0;
     if(doSerial2D)
       ui->pre2DScript->script->execute();
     if (stopMe) goto onEngineExit;
@@ -2323,8 +2323,6 @@ void MainWindow::engineRun () {
 
       if (totalScans2D>1)
         seriesName += QString("Z%1_").arg(currentScan2D, series2Digs, 10, QChar('0') );
-      else if (totalScans2D!=1)
-        seriesName += "Z" + QString::number(currentScan2D) + "_";
 
       setenv("CURRENTSCAN2D", QString::number(currentScan2D).toAscii(), 1);
 
@@ -2397,11 +2395,11 @@ void MainWindow::engineRun () {
 
       } else { // CONTINIOUS
 
-        if ( doDF && dfBefore && (ui->ffOnEachScan->isChecked() || ! currentScan2D ) ) {
+        if ( doDF && dfBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
           acquireDF(seriesName + "BEFORE", Shutter::OPEN);
           if (stopMe) goto onEngineExit;
         }
-        if ( doBG  && bgBefore && (ui->ffOnEachScan->isChecked() || ! currentScan2D ) ) {
+        if ( doBG  && bgBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
           acquireBG(seriesName + "BEFORE");
           if (stopMe) goto onEngineExit;
         }
@@ -2413,6 +2411,9 @@ void MainWindow::engineRun () {
         const double accTravel = speed * accTime / 2;
         const double rotDir = copysign(1,thetaRange);
         const double addTravel = 2*rotDir*accTravel + (doTriggCT ? 2.0 : 0.0);
+        // 2 coefficient in the above string is required to guarantee that the
+        // motor has accelerated to the normal speed before the acquisition starts.
+
 
         det->waitWritten();
         if (stopMe) goto onEngineExit;
@@ -2427,15 +2428,13 @@ void MainWindow::engineRun () {
           det->setPeriod( qAbs(thetaRange) / (totalProjections * speed)  ) ;
         }
 
-        if ( ! ongoingSeries || ! currentScan2D || doTriggCT ) {
+        if ( ! ongoingSeries || ! currentScan || doTriggCT ) {
 
           thetaMotor->motor()->wait_stop();
           if (doTriggCT)
             tct->stop(false);
           if (stopMe) goto onEngineExit;
 
-          // 2 coefficient in the below string is required to guarantee that the
-          // motor has accelerated to the normal speed before the acquisition starts.
           thetaMotor->motor()->goRelative( -addTravel, QCaMotor::STOPPED);
           if (stopMe) goto onEngineExit;
 
@@ -2443,10 +2442,11 @@ void MainWindow::engineRun () {
           if (stopMe) goto onEngineExit;
 
           if ( ! doTriggCT ) { // should be started after tct and det
-            thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */ goLimit( thetaRange > 0 ? 1 : -1 );
+            thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */
+                goLimit( thetaRange > 0 ? 1 : -1 );
             if (stopMe) goto onEngineExit;
-            // accTravel/speed in the below string is required to compensate the coefficient 2
-            // two strings above.
+            // accTravel/speed in the below string is required to compensate
+            // for the coefficient 2 in addTravel
             // qtWait(1000*(accTime + accTravel/speed));
             usleep(1000000*(accTime + accTravel/speed));
 
@@ -2460,7 +2460,8 @@ void MainWindow::engineRun () {
         det->start();
         if (doTriggCT) {
           tct->start(true);
-          thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */ goLimit( thetaRange > 0 ? 1 : -1 );
+          thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */
+              goLimit( thetaRange > 0 ? 1 : -1 );
         }
 
         if (stopMe) goto onEngineExit;
@@ -2475,6 +2476,7 @@ void MainWindow::engineRun () {
         }
         if (stopMe) goto onEngineExit;
         ui->postAqScript->script->execute();
+        if (stopMe) goto onEngineExit;
 
         if ( ! ongoingSeries ) {
 
@@ -2510,16 +2512,12 @@ void MainWindow::engineRun () {
           || ( ui->endCondition->isChecked()  &&  ui->conditionScript->script->execute() );
 
       if ( ! timeToStop ) {
-        if (doSerial2D  && inSMotor->isConnected()) {
-          const double goal =  innearList->ui->irregular->isChecked()  ?
-                innearList->ui->list->item(currentScan2D, 0)->text().toDouble() :
-                inSerialStart + currentScan2D * innearList->ui->step->value();
-          inSMotor->goUserPosition(goal, QCaMotor::STARTED);
-        }
+        if (doSerial2D  && inSMotor->isConnected())
+          inSMotor->goUserPosition( innearList->ui->list->item(currentScan2D, 0)->text().toDouble(), QCaMotor::STARTED);
         if (stopMe) goto onEngineExit;
         qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
+        if (stopMe) goto onEngineExit;
       }
-      if (stopMe) goto onEngineExit;
 
     } while ( ! timeToStop );
 
@@ -2529,24 +2527,19 @@ void MainWindow::engineRun () {
 
     currentScan1D++;
 
-    timeToStop = ! ui->checkSerial->isChecked()
+    timeToStop =
+        ! ui->checkSerial->isChecked()
         || ( doSerial1D  &&  currentScan1D>=totalScans1D )
         || ( ui->endTime->isChecked() &&  inCTtime.elapsed() + scanDelay >= scanTime )
         || ( ui->endCondition->isChecked()  &&  ui->conditionScript->script->execute() );
 
     if ( ! timeToStop ) {
-      if (doSerial1D  && outSMotor->isConnected()) {
-        const double goal = ( ui->endNumber->isChecked()
-                              && outerList->ui->irregular->isChecked()  )  ?
-              outerList->ui->list->item(currentScan1D, 0)->text().toDouble() :
-              outSerialStart + currentScan1D * outerList->ui->step->value();
-        outSMotor->goUserPosition(goal, QCaMotor::STARTED);
-      }
+      if (doSerial1D  && outSMotor->isConnected())
+        outSMotor->goUserPosition(outerList->ui->list->item(currentScan1D, 0)->text().toDouble(), QCaMotor::STARTED);
       if (stopMe) goto onEngineExit;
       qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
+      if (stopMe) goto onEngineExit;
     }
-    if (stopMe) goto onEngineExit;
-
 
     if ( timeToStop && ! sasMode && ! ui->ffOnEachScan->isChecked() ) {
       if ( doBG && bgAfter ) {
@@ -2579,8 +2572,6 @@ onEngineExit:
     inSMotor->stop(QCaMotor::STOPPED);
     inSMotor->goUserPosition(inSerialStart, QCaMotor::STARTED);
   }
-
-
   if ( doBG ) {
     bgMotor->motor()->stop(QCaMotor::STOPPED);
     bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
@@ -2609,7 +2600,8 @@ onEngineExit:
 //  QTimer::singleShot(0, this, SLOT(updateUi_shutterStatus()));
 //  QTimer::singleShot(0, this, SLOT(updateUi_expPath()));
 
-
+  foreach(PositionList * lst, findChildren<PositionList*>())
+    lst->freezList(false);
   foreach(QWidget * tab, ui->control->tabs())
         tab->setEnabled(true);
   currentScan1D = -1;
