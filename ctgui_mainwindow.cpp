@@ -14,11 +14,15 @@
 
 
 
-const QString MainWindow::storedState = QDir::homePath()+"/.ctgui";
 
+static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
 #define innearList dynamic_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
 #define outerList dynamic_cast<PositionList*> ( ui->outerListPlace->layout()->itemAt(0)->widget() )
+#define currentScan (currentScan1D * totalScans2D + currentScan2D)
 
+
+
+const QString MainWindow::storedState = QDir::homePath()+"/.ctgui";
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -40,8 +44,8 @@ MainWindow::MainWindow(QWidget *parent) :
   inCT(false),
   readyToStartCT(false),
   stopMe(true),
-  totalScans1D(-1),
-  totalScans2D(-1),
+  totalScans1D(1),
+  totalScans2D(1),
   currentScan1D(-1),
   currentScan2D(-1),
   totalProjections(-1),
@@ -526,7 +530,7 @@ void MainWindow::updateUi_expPath() {
     bool sampleFileExists = false;
     QString zlab;
     while ( ! sampleFileExists  &&  (zlab += "0").size() < 10 )
-      sampleFileExists  =  QFile::exists("SAMPLE_Z0_T_"+zlab+".tif") || QFile::exists("SAMPLE_T_"+zlab+".tif");
+      sampleFileExists  =  QFile::exists("SAMPLE_Z0_T"+zlab+".tif") || QFile::exists("SAMPLE_T"+zlab+".tif");
 
     ui->nonEmptyWarning->setVisible( sampleFileExists );
 
@@ -922,13 +926,13 @@ void MainWindow::updateUi_dfInterval() {
 void MainWindow::updateUi_bgTravel() {
   QCaMotor * mot = bgMotor->motor();
   if ( ! sender() ) { // called from the constructor;
-    const char* thisSlot = SLOT(updateUi_bgTravel());    
+    const char* thisSlot = SLOT(updateUi_bgTravel());
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->nofBGs, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->bgTravel, SIGNAL(valueChanged(double)), thisSlot);
     connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
     connect( mot, SIGNAL(changedUserLoLimit(double)), thisSlot);
-    connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);    
+    connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);
     connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
     connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
   }
@@ -1299,6 +1303,7 @@ void MainWindow::onSerialCheck() {
 
 void MainWindow::onFFcheck() {
   ui->control->setTabVisible(ui->tabFF, ui->checkFF->isChecked());
+  ui->ffOnEachScan->setVisible(ui->checkFF->isChecked());
   check( ui->tabFF, true );
 }
 
@@ -1524,8 +1529,6 @@ void MainWindow::check(QWidget * obj, bool status) {
   if ( inCT || ! obj )
     return;
 
-
-  static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
   obj->setStyleSheet( status  ?  ""  :  warnStyle );
 
   QWidget * tab = 0;
@@ -1615,7 +1618,7 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
   QString fileT = "%s%s";
   if (fmt == Detector::TIFF) {
     if (count>1)
-      fileT += "_%0" + QString::number(QString::number(count).length()) + "d";
+      fileT += "%0" + QString::number(QString::number(count).length()) + "d";
     fileT+= ".tif";
   } else if (fmt == Detector::HDF) {
     fileT+= ".hdf";
@@ -1899,22 +1902,6 @@ acquireMultiExit:
 
 
 void MainWindow::appendMessage(MsgType tp, const QString &msg) {
-  tp=tp;
-  msg.size();
-  /*
-  QString sText = QTime::currentTime().toString("hh:mm:ss.zzz") + ' ' + msg;
-  QString colorS;
-  switch (tp) {
-  case (LOG) :
-    colorS = "black" ; break ;
-  case (ERROR) :
-    colorS = "red" ; break ;
-  case (CONTROL) :
-    colorS = "blue" ; break ;
-  }
-  sText = "<font color=\"" + colorS + "\">" + sText + "</font>";
-  ui->messages->append(sText);
-  */
 }
 
 void MainWindow::logMessage(const QString &msg) {
@@ -1942,52 +1929,21 @@ void MainWindow::onStartStop() {
     stopAll();
   } else {
     ui->startStop->setText("Stop CT");
+    ui->startStop->setStyleSheet(warnStyle);
     stopMe=false;
     engineRun();
     ui->startStop->setText("Start CT");
+    ui->startStop->setStyleSheet("");
   }
 }
 
 
-/*
-void MainWindow::appendScanListRow(Role rl, double pos, const QString & fn) {
-
-  QList<QStandardItem *> items;
-  QStandardItem * ti;
-
-  ti = new QStandardItem(true);
-  ti->setCheckable(true);
-  ti->setCheckState(Qt::Checked);
-  items << ti;
-
-  ti = new QStandardItem(true);
-  QString roleText = roleName[rl];
-  if (rl == LOOP) roleText = "  " + roleText;
-  if (rl == SLOOP) roleText = "    " + roleText;
-  ti->setText(roleText);
-  ti->setEditable(false);
-  items << ti;
-
-  ti = new QStandardItem(true);
-  ti->setText( rl == DF  ?  "closed"  :  QString::number(pos) );
-  ti->setEditable(false);
-  items << ti;
-
-  ti = new QStandardItem(true);
-  ti->setText(fn);
-  ti->setEditable(false);
-  items << ti;
-
-  // scanList->appendRow(items);
-
-}
-*/
 
 
 
 void MainWindow::updateProgress () {
 
-  if (currentScan1D>=0) {
+  if (currentScan>=0) {
 
     if ( ! ui->serialProgress->isVisible() ) {
       if ( totalScans1D * totalScans2D > 1 ) {
@@ -1999,25 +1955,21 @@ void MainWindow::updateProgress () {
         ui->serialProgress->setMaximum(0);
         ui->serialProgress->setFormat("Series progress. Scans complete: %v.");
       }
-      ui->serialProgress->setVisible(true);
     }
 
     if ( ui->endTime->isChecked() ) {
       QString format = "Series progress: %p% "
           + (QTime(0, 0, 0, 0).addMSecs(inCTtime.elapsed())).toString() + " of " + ui->acquisitionTime->time().toString()
-          + " (scans complete: " + QString::number(currentScan1D*currentScan2D) + ")";
+          + " (scans complete: " + QString::number(currentScan) + ")";
       ui->serialProgress->setFormat(format);
       ui->serialProgress->setValue(inCTtime.elapsed());
     } else {
-      ui->serialProgress->setValue(currentScan1D*currentScan2D);
+      ui->serialProgress->setValue(currentScan);
     }
 
-  } else
-    ui->serialProgress->setVisible(false);
+  }
 
-
-
-
+  ui->serialProgress->setVisible(currentScan>=0);
 
   if (currentProjection>=0) {
     if ( ! ui->scanProgress->isVisible() ) {
@@ -2181,10 +2133,6 @@ onDfExit:
 }
 
 
-
-
-#define currentScan (currentScan1D * totalScans2D + currentScan2D)
-
 void MainWindow::engineRun () {
 
   if ( ! readyToStartCT || inCT )
@@ -2279,8 +2227,7 @@ void MainWindow::engineRun () {
     outSMotor->goUserPosition( outerList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
 
-  if ( doSerial2D &&
-       inSMotor->isConnected() &&  innearList->ui->irregular->isChecked() ) // otherwise is already in the first point
+  if ( doSerial2D && inSMotor->isConnected() &&  innearList->ui->irregular->isChecked() ) // otherwise is already in the first point
     inSMotor->goUserPosition( innearList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
 
@@ -2300,15 +2247,16 @@ void MainWindow::engineRun () {
 
   do { // serial scanning 1D
 
-    setenv("CURRENTSCAN", QString::number(currentScan1D).toAscii(), 1);
+    setenv("CURRENTOSCAN", QString::number(currentScan1D).toAscii(), 1);
 
-    QString seriesName;
+    QString seriesNamePrefix;
     if (totalScans1D==1)
-      seriesName = "";
+      seriesNamePrefix = "";
     else if (totalScans1D>1)
-      seriesName = QString("Y%1_").arg(currentScan1D, series1Digs, 10, QChar('0') );
+      seriesNamePrefix = QString("Y%1_").arg(currentScan1D, series1Digs, 10, QChar('0') );
     else
-      seriesName = "Y" + QString::number(currentScan1D) + "_";
+      seriesNamePrefix = "Y" + QString::number(currentScan1D) + "_";
+    QString seriesName=seriesNamePrefix;
 
     if (doSerial1D  && outSMotor->isConnected())
       outSMotor->wait_stop();
@@ -2321,10 +2269,11 @@ void MainWindow::engineRun () {
 
     do { // serial scanning 2D
 
-      if (totalScans2D>1)
-        seriesName += QString("Z%1_").arg(currentScan2D, series2Digs, 10, QChar('0') );
+      if ( totalScans2D > 1 )
+        seriesName = seriesNamePrefix + QString("Z%1_").arg(currentScan2D, series2Digs, 10, QChar('0') );
 
-      setenv("CURRENTSCAN2D", QString::number(currentScan2D).toAscii(), 1);
+      setenv("CURRENTISCAN", QString::number(currentScan2D).toAscii(), 1);
+      setenv("CURRENTSCAN", QString::number(currentScan).toAscii(), 1);
 
       if (doSerial2D  && inSMotor->isConnected())
         inSMotor->wait_stop();
@@ -2505,9 +2454,7 @@ void MainWindow::engineRun () {
       currentProjection=-1;
       currentScan2D++;
 
-      timeToStop =
-          ! ui->checkSerial->isChecked()
-          || ( doSerial2D  &&  currentScan2D>=totalScans2D )
+      timeToStop = currentScan2D >= totalScans2D
           || ( ui->endTime->isChecked() &&  inCTtime.elapsed() + scanDelay >= scanTime )
           || ( ui->endCondition->isChecked()  &&  ui->conditionScript->script->execute() );
 
@@ -2519,7 +2466,9 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
       }
 
-    } while ( ! timeToStop );
+
+    } while ( ! timeToStop ); // innear loop
+
 
     if(doSerial2D)
       ui->post2DScript->script->execute();
@@ -2528,14 +2477,16 @@ void MainWindow::engineRun () {
     currentScan1D++;
 
     timeToStop =
-        ! ui->checkSerial->isChecked()
-        || ( doSerial1D  &&  currentScan1D>=totalScans1D )
-        || ( ui->endTime->isChecked() &&  inCTtime.elapsed() + scanDelay >= scanTime )
+        ! doSerial1D
+        || ( ui->endNumber->isChecked()  &&  currentScan1D >= totalScans1D )
+        || ( ui->endTime->isChecked()  &&  inCTtime.elapsed() + scanDelay >= scanTime )
         || ( ui->endCondition->isChecked()  &&  ui->conditionScript->script->execute() );
 
     if ( ! timeToStop ) {
-      if (doSerial1D  && outSMotor->isConnected())
+      if ( doSerial1D  &&  ui->endNumber->isChecked()  &&  outSMotor->isConnected() )
         outSMotor->goUserPosition(outerList->ui->list->item(currentScan1D, 0)->text().toDouble(), QCaMotor::STARTED);
+      if ( doSerial2D  &&  inSMotor->isConnected() )
+        inSMotor->goUserPosition( innearList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
       if (stopMe) goto onEngineExit;
       qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
       if (stopMe) goto onEngineExit;
@@ -2591,12 +2542,12 @@ onEngineExit:
 
   QTimer::singleShot(0, this, SLOT(updateUi_thetaMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
-  QTimer::singleShot(0, this, SLOT(updateUi_serialMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_loopMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_subLoopMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_dynoMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_dyno2Motor()));
   QTimer::singleShot(0, this, SLOT(updateUi_detector()));
+  QTimer::singleShot(0, this, SLOT(updateUi_serials()));
 //  QTimer::singleShot(0, this, SLOT(updateUi_shutterStatus()));
 //  QTimer::singleShot(0, this, SLOT(updateUi_expPath()));
 

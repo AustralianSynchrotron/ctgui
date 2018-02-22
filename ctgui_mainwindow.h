@@ -189,8 +189,6 @@ signals:
 
   void requestToStopAcquisition();
 
-
-
 };
 
 
