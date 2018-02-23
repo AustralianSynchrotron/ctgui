@@ -119,9 +119,9 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->placeDyno2Motor->layout()->addWidget(dyno2Motor->setupButton());
   ui->placeDyno2Current->layout()->addWidget(dyno2Motor->currentPosition(true));
 
-  ui->placeShutter1->layout()->addWidget(shutter->ui->selection);
-  ui->placeShutter2->layout()->addWidget(shutter->ui->status);
-  ui->placeShutter3->layout()->addWidget(shutter->ui->toggle);
+  ui->placeShutterSelection->layout()->addWidget(shutter->ui->selection);
+  ui->placeShutterStatus->layout()->addWidget(shutter->ui->status);
+  ui->placeShutterToggle->layout()->addWidget(shutter->ui->toggle);
 
   connect(ui->browseExpPath, SIGNAL(clicked()), SLOT(onWorkingDirBrowse()));
   connect(ui->checkSerial, SIGNAL(toggled(bool)), SLOT(onSerialCheck()));
@@ -252,7 +252,7 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[ui->dyno2DirButtonGroup] = "dyno/dyno2/direction";
   configNames[ui->dynoDirectionLock] = "dyno/dyno2/dirLock";
 
-  // configNames[ui->shutSelection] = "hardware/shutterBox";
+  configNames[shutter] = "hardware/shutterBox";
   configNames[ui->detSelection] = "hardware/detectorBox";
   configNames[ui->preAqScript] = "hardware/preacquire";
   configNames[ui->postAqScript] = "hardware/postacquire";
@@ -281,6 +281,8 @@ MainWindow::MainWindow(QWidget *parent) :
       sig = SIGNAL(itemChanged(QTableWidgetItem*));
     else if (dynamic_cast<PositionList*>(obj))
       sig = SIGNAL(parameterChanged());
+    else if (dynamic_cast<Shutter*>(obj))
+      sig = SIGNAL(shutterChanged());
     else
       qDebug() << "Do not know how to connect object " << obj
                << "to the" << SLOT(storeCurrentState());
@@ -346,6 +348,10 @@ static void save_cfg(const QObject * obj, const QString & key, QSettings & confi
     save_cfg(pl->ui->step, key + "/step", config);
     save_cfg(pl->ui->irregular, key + "/irregular", config);
     save_cfg(pl->ui->list, key + "/positions", config);
+  } else if (dynamic_cast<const Shutter*>(obj)) {
+    const Shutter * shut = dynamic_cast<const Shutter*>(obj);
+    save_cfg(shut->ui->selection, key, config);
+    config.setValue(key+"_custom", shut->readCustomDialog());
   } else
     qDebug() << "Cannot save the value of object" << obj << "into config";
 
@@ -436,6 +442,13 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
     load_cfg(pl->ui->step, key + "/step", config);
     load_cfg(pl->ui->irregular, key + "/irregular", config);
     load_cfg(pl->ui->list, key + "/positions", config);
+  } else if (dynamic_cast<Shutter*>(obj)) {
+    Shutter * shut = dynamic_cast<Shutter*>(obj);
+    QVariant customValue = config.value(key+"_custom");
+    if (customValue.canConvert(QVariant::StringList))
+      shut->loadCustomDialog(customValue.toStringList());
+    load_cfg(shut->ui->selection, key, config);
+    shut->setShutter();
   } else {
     qDebug() << "Cannot restore the value of widget" << obj << "from value" << value << "in config.";
     return false;
@@ -2088,19 +2101,14 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
 
   int ret = -1;
   const int dfs = ui->nofDFs->value();
-  const Shutter::State shState = shutter->state();
   const QString detfilename=det->name(uiImageFormat());
   QString ftemplate;
 
   if ( dfs<1 )
     return 0;
-  if ( shState != Shutter::CLOSED )
-    return -1 ;
 
-  if ( shState != Shutter::CLOSED )
-    shutter->close(true); /**/
+  shutter->close(true);
   if (stopMe) goto onDfExit;
-
   det->waitWritten();
   if (stopMe) goto onDfExit;
 
@@ -2125,8 +2133,6 @@ onDfExit:
     shutter->close(!stopMe);
   if ( ! stopMe && shutter->state() != stateToGo)
     qtWait(shutter, SIGNAL(stateChanged(Shutter1A::State)), 500); /**/
-
-
 
   return ret;
 

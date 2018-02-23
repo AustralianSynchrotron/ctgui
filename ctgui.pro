@@ -39,14 +39,26 @@ LIBS += -lqtpv \
 #    -lcomponent
 RESOURCES += ctgui.qrc
 
-# OTHER_FILES +=
+OTHER_FILES += listOfKnownShutters.ini
+config.files = $$OTHER_FILES
+config.path = /../../../../../../../../../../../etc
+# This is how I force it to be installed in /etc. I know it is a dirty trick
+INSTALLS += config
+
 target.files = $$[TARGET]
 target.path = $$[INSTALLBASE]/bin
 INSTALLS += target
 
-# OTHER_FILES += \
-# libexec/ctgui.log.sh
 script.files = libexec/ctgui.log.sh
 script.path = $$[INSTALLBASE]/libexec
 INSTALLS += script
 OTHER_FILES += libexec/ctgui.log.sh
+
+
+## TODO ##
+## - warn dialog on existing image
+## - adjust step-and-shot names
+## - make serial test aquisition
+## - rework tiles with new lists
+## - add new detectors
+## - selection between scan speed / period / fly ration

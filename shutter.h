@@ -16,7 +16,7 @@ class Shutter;
 class UShutterConf;
 }
 
-class Shutter : public QObject {
+class Shutter : public QWidget {
   Q_OBJECT;
 
 public:
@@ -45,8 +45,6 @@ private:
   void waitForUpdate();
   static const QStringList fakeShutter;
   static const QHash<QString, QStringList> listOfKnownShutters;
-  const QStringList readCustomDialog() const;
-  void loadCustomDialog(const QStringList & desc);
 
 public:
 
@@ -56,14 +54,14 @@ public:
 
   static const QStringList knownShutters() { return listOfKnownShutters.keys(); }
 
-  void setShutter(const QStringList & desc = QStringList() );
-
-  void setShutter(const QString & shutterName) {
-    if ( knownShutters().contains(shutterName) )
-        setShutter(listOfKnownShutters[shutterName]);
-  }
+  void setShutter(const QStringList & desc);
+  void setShutter(const QString & shutterName=QString());
 
   State state() const ;
+  void loadCustomDialog(const QStringList & desc);
+  const QStringList readCustomDialog() const;
+  QStringList shutterConfiguration() const;
+
 
 public slots:
 
@@ -74,13 +72,14 @@ public slots:
 private slots:
 
   void requestUpdate();
-  void onSelection();
   void onOpenUpdate(const QString & newOpen) {lastOpen=newOpen; onStatusUpdate();}
   void onClosedUpdate(const QString & newClosed) {lastClosed=newClosed; onStatusUpdate();}
   void onStatusUpdate();
+  void onSelection();
 
 signals:
 
+  void shutterChanged();
   void stateUpdated(State);
   void opened();
   void closed();

@@ -7,8 +7,6 @@ QHash<QString, QStringList> readListOfKnownShutters() {
 
   QHash<QString, QStringList> toReturn;
 
-  const QString configfile = "/etc/listOfKnownShutters.ini";
-
   QSettings config("/etc/listOfKnownShutters.ini", QSettings::IniFormat);
   if ( config.status() )
     return toReturn;
@@ -22,8 +20,8 @@ QHash<QString, QStringList> readListOfKnownShutters() {
         << config.value("doCloseVal").toString()
         << config.value("isOpenPC").toString()
         << config.value("isOpenVal").toString()
-        << config.value("isClosePC").toString()
-        << config.value("isCloseVal").toString();
+        << config.value("isClosedPC").toString()
+        << config.value("isClosedVal").toString();
     config.endGroup();
     toReturn[shuttername] = shutterdesc;
   }
@@ -37,7 +35,7 @@ const QStringList Shutter::fakeShutter = QStringList()
     << QString() << QString() << QString() << QString() << QString() << QString() << QString() << QString();
 
 Shutter::Shutter(QWidget *parent)
-  : QObject(parent)
+  : QWidget(parent)
   , ui(new Ui::Shutter)
   , customUi(new Ui::UShutterConf)
   , customDlg(new QDialog(parent))
@@ -47,13 +45,12 @@ Shutter::Shutter(QWidget *parent)
   , isClosed ( new PVorCOM(this), QString() )
 {
 
-  ui->setupUi(parent);
+  ui->setupUi(this);
   ui->selection->insertItems(0, listOfKnownShutters.keys());
   ui->selection->insertItem(0, "none"); // must be at the top (assumption for the onSelection())
-
   customUi->setupUi(customDlg);
+
   ColumnResizer * resizer = new ColumnResizer(customDlg);
-  qDebug() << dynamic_cast<QGridLayout*>(customUi->doOpn->layout()) << customUi->doOpn->layout() ;
   resizer->addWidgetsFromGridLayout( dynamic_cast<QGridLayout*>(customUi->doOpn->layout()), 1);
   resizer->addWidgetsFromGridLayout( dynamic_cast<QGridLayout*>(customUi->doCls->layout()), 1);
   resizer->addWidgetsFromGridLayout( dynamic_cast<QGridLayout*>(customUi->isOpn->layout()), 1);
@@ -128,6 +125,13 @@ void Shutter::close(bool wait) {
 }
 
 
+QStringList Shutter::shutterConfiguration() const {
+  return QStringList()
+      << doOpen.first->getName() << doOpen.second
+      << doClose.first->getName() << doClose.second
+      << isOpen.first->getName() << isOpen.second
+      << isClosed.first->getName() << isClosed.second;
+}
 
 
 const QStringList Shutter::readCustomDialog() const {
@@ -178,6 +182,8 @@ void Shutter::setShutter(const QStringList & desc) {
     return;
   }
 
+  ui->status->setText("status");
+
   doOpen.first->setName(desc[0]);
   doOpen.second = desc[1];
   doClose.first->setName( desc[2].isEmpty() ? desc[0] : desc[2] );
@@ -187,4 +193,15 @@ void Shutter::setShutter(const QStringList & desc) {
   isClosed.first->setName(desc[6].isEmpty() ? desc[4] : desc[6]);
   isClosed.second = desc[7];
 
+  emit shutterChanged();
+
 }
+
+
+void Shutter::setShutter(const QString & shutterName) {
+  const QString shn = shutterName.isEmpty()
+      ? ui->selection->currentText() : shutterName;
+  if ( knownShutters().contains(shn) )
+      setShutter(listOfKnownShutters[shn]);
+}
+
