@@ -62,6 +62,8 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->control->finilize();
   ui->control->setCurrentIndex(0);
 
+  prsSelection << ui->aqsSpeed << ui->stepTime << ui->flyRatio;
+
   ColumnResizer * resizer;
   resizer = new ColumnResizer(this);
   ui->preRunScript->addToColumnResizer(resizer);
@@ -100,7 +102,6 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->exposureInfo->setSuffix("s");
   ui->detExposure->setSuffix("s");
   ui->detPeriod->setSuffix("s");
-  ui->detSelection->addItem("Dummy");
   foreach (Detector::Camera cam , Detector::knownCameras)
     ui->detSelection->addItem(Detector::cameraName(cam));
 
@@ -213,7 +214,8 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[ui->preScanScript] = "scan/prescan";
   configNames[ui->postScanScript] = "scan/postscan";
   configNames[ui->flyRatio] = "scan/flyratio";
-  //configNames[ui->aqsSpeed] = "scan/aqspeed";
+  configNames[ui->aqsSpeed] = "scan/aqspeed";
+  configNames[ui->stepTime] = "scan/steptime";
 
   configNames[ui->nofBGs] = "flatfield/bgs";
   configNames[ui->bgInterval] = "flatfield/bginterval";
@@ -369,6 +371,8 @@ void MainWindow::saveConfiguration(QString fileName) {
   foreach (QObject * obj, configNames.keys())
     save_cfg(obj, configNames[obj], config);
 
+  config.setValue("scan/fixprs", selectPRS()->objectName());
+
   config.beginGroup("hardware");
   if (det) {
     config.setValue("detectorpv", det->pv());
@@ -464,12 +468,14 @@ void MainWindow::loadConfiguration(QString fileName) {
   if ( fileName.isEmpty() )
     fileName = QFileDialog::getOpenFileName(0, "Load configuration", QDir::currentPath());
 
-  if ( ! QFile::exists(fileName) ) {
-    appendMessage(ERROR, "Configuration file \"" + fileName + "\" does not exist.");
-    return;
-  }
   isLoadingState=true;
   QSettings config(fileName, QSettings::IniFormat);
+
+  const QString fixprsName = config.value("scan/fixprs").toString();
+  foreach (QAbstractSpinBox* prs, prsSelection)
+    if ( fixprsName == prs->objectName() )
+      selectPRS(prs);
+  selectPRS(); // if nothing found
 
   foreach (QObject * obj, configNames.keys())
     load_cfg(obj, configNames[obj], config);
@@ -788,40 +794,61 @@ void MainWindow::updateUi_scanStep() {
 
 
 
+QAbstractSpinBox * MainWindow::selectPRS(QObject *prso) {
+
+  QAbstractSpinBox * prs = dynamic_cast<QAbstractSpinBox*>(prso);
+  if ( ! prs || ! prsSelection.contains(prs) ) {
+    prs = prsSelection.at(0);
+    foreach (QAbstractSpinBox* _prs, prsSelection)
+      if (_prs->hasFrame())
+        prs = _prs;
+  }
+
+  foreach (QAbstractSpinBox* _prs, prsSelection) {
+    _prs->setFrame(_prs==prs);
+    _prs->setButtonSymbols(
+          _prs == prs ? QAbstractSpinBox::UpDownArrows : QAbstractSpinBox::NoButtons );
+  }
+
+  return prs;
+
+}
+
+
+
 void MainWindow::updateUi_expOverStep() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_expOverStep());
     connect( ui->aqMode, SIGNAL(currentIndexChanged(int)), thisSlot);
-    connect( ui->flyRatio, SIGNAL(editingFinished()), thisSlot);
-    connect( ui->stepTime, SIGNAL(editingFinished()), thisSlot);
+    connect( ui->flyRatio, SIGNAL(valueEdited(double)), thisSlot);
+    connect( ui->stepTime, SIGNAL(valueEdited(double)), thisSlot);
+    connect( ui->aqsSpeed, SIGNAL(valueEdited(double)), thisSlot);
     connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( det, SIGNAL(parameterChanged()), thisSlot);
     connect( thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), thisSlot);
   }
 
-  ui->stepTime->setMinimum( det->exposure() > 0  ?  det->exposure() : 0);
+  ui->stepTime->setMinimum(det->exposure());
+  const float stepSize = ui->scanRange->value() / ui->scanProjections->value();
 
-  if ( sender() == ui->stepTime ) {
-    const float ratio = det->exposure() > 0  ?
-          det->exposure() / ui->stepTime->value()  :
-          ui->scanRange->value() / ( ui->stepTime->value() * thetaMotor->motor()->getNormalSpeed() * ui->scanProjections->value() ) ;
-    ui->flyRatio->setValue(ratio);
-  } else {
-    const float step = det->exposure() > 0  ?
-          det->exposure() / ui->flyRatio->value():
-          ui->scanRange->value() / ( ui->flyRatio->value() * thetaMotor->motor()->getNormalSpeed() * ui->scanProjections->value() ) ;
-    ui->stepTime->setValue( step );
-  }
+  QAbstractSpinBox * prs = selectPRS(sender());
+  if ( prs == ui->stepTime ) {
+    ui->flyRatio->setValue( det->exposure() / ui->stepTime->value() );
+    ui->aqsSpeed->setValue( stepSize / ui->stepTime->value() );
+  } else if ( prs == ui->flyRatio ) {
+    ui->stepTime->setValue( det->exposure() / ui->flyRatio->value() );
+    ui->aqsSpeed->setValue( stepSize * ui->flyRatio->value() / det->exposure() );
+  } else if (prs == ui->aqsSpeed ) {
+    ui->stepTime->setValue( stepSize / ui->aqsSpeed->value() );
+    ui->flyRatio->setValue( ui->aqsSpeed->value() * det->exposure() / stepSize );
+  } else
+    qDebug() << "ERROR! PRS selection is buggy. Report to developper. Must never happen.";
 
-  const float aqspeed = det->exposure() > 0  ?
-        ui->scanRange->value() * ui->flyRatio->value() / ( det->exposure() * ui->scanProjections->value() ) :
-        ui->flyRatio->value() * thetaMotor->motor()->getNormalSpeed();
-  ui->aqsSpeed->setValue(aqspeed);
-
-  bool isOK = ui->aqMode->currentIndex() == STEPNSHOT  ||  aqspeed <= thetaMotor->motor()->getMaximumSpeed();
-  check( ui->flyRatio, isOK );
-  check( ui->stepTime, isOK );
+  bool isOK = ui->aqMode->currentIndex() == STEPNSHOT
+      ||  ui->aqsSpeed->value() <= thetaMotor->motor()->getMaximumSpeed();
+  foreach (QAbstractSpinBox* _prs, prsSelection)
+    check( _prs, _prs != prs || isOK );
 
 }
 
@@ -986,39 +1013,6 @@ void MainWindow::updateUi_bgMotor() {
 }
 
 
-/*
-void MainWindow::updateUi_shutterStatus() {
-  if ( ! sender() ) { // called from the constructor;
-    const char* thisSlot = SLOT(updateUi_shutterStatus());
-    connect( ui->checkFF, SIGNAL(toggled(bool)), thisSlot);
-    connect( ui->nofDFs, SIGNAL(valueChanged(int)), thisSlot);
-    connect( ui->shutterUse, SIGNAL(toggled(bool)), thisSlot);
-    connect(sh1A, SIGNAL(stateChanged(Shutter1A::State)), thisSlot);
-    connect(sh1A, SIGNAL(enabledChanged(bool)), thisSlot);
-    connect(sh1A, SIGNAL(connectionChanged(bool)), thisSlot);
-  }
-
-  if ( ! sh1A->isConnected() )
-    ui->shutterStatus->setText("no link");
-  else
-    switch (sh1A->state()) {
-      case Shutter1A::BETWEEN :
-        ui->shutterStatus->setText("in progress");
-        break;
-      case Shutter1A::OPENED :
-        ui->shutterStatus->setText("opened");
-        break;
-      case Shutter1A::CLOSED :
-        ui->shutterStatus->setText("closed");
-        break;
-    }
-
-  check( ui->shutterStatus,
-         ! ui->nofDFs->value() || ! ui->checkFF->isChecked() || ui->shutterUse->isChecked() ||
-        ( sh1A->isConnected() && sh1A->isEnabled() )  );
-
-}
-*/
 
 void MainWindow::updateUi_loopStep() {
   QCaMotor * mot = loopMotor->motor();
@@ -1481,7 +1475,7 @@ void MainWindow::onDynoTest() {
 
 void MainWindow::onDetectorSelection() {
   const QString currentText = ui->detSelection->currentText();
-  if (currentText.isEmpty() || currentText == "Dummy") {
+  if (currentText.isEmpty()) {
     det->setCamera(Detector::NONE);
     setenv("DETECTORPV", det->pv().toAscii(), 1);
     return;
@@ -1913,14 +1907,6 @@ acquireMultiExit:
 
 
 
-
-void MainWindow::appendMessage(MsgType tp, const QString &msg) {
-}
-
-void MainWindow::logMessage(const QString &msg) {
-  appendMessage(LOG, msg);
-}
-
 void MainWindow::stopAll() {
   stopMe=true;
   emit requestToStopAcquisition();
@@ -2194,8 +2180,7 @@ void MainWindow::engineRun () {
       doDF = ui->checkFF->isChecked() && ui->nofDFs->value(),
       sasMode = (ui->aqMode->currentIndex() == STEPNSHOT),
       ongoingSeries = doSerial1D && ui->ongoingSeries->isChecked(),
-      doTriggCT = ! tct->prefix().isEmpty(),
-      dummyDet = ! ui->detSelection->currentIndex();
+      doTriggCT = ! tct->prefix().isEmpty();
 
   totalScans1D = doSerial1D ?
     ( ui->endNumber->isChecked() ? outerList->ui->nof->value() : 0 ) : 1 ;
@@ -2359,9 +2344,7 @@ void MainWindow::engineRun () {
           if (stopMe) goto onEngineExit;
         }
 
-        const double speed = dummyDet  ?
-              thetaSpeed * ui->flyRatio->value() :
-              thetaRange * ui->flyRatio->value() / ( det->exposure() * totalProjections );
+        const double speed = thetaRange * ui->flyRatio->value() / ( det->exposure() * totalProjections );
         const double accTime = thetaMotor->motor()->getAcceleration();
         const double accTravel = speed * accTime / 2;
         const double rotDir = copysign(1,thetaRange);
@@ -2422,8 +2405,7 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
         qtWait( QList<ObjSig> ()
                 << ObjSig(det, SIGNAL(done()))
-                << ObjSig(thetaMotor->motor(), SIGNAL(stopped())) ,
-                dummyDet ? 1000 * thetaRange / speed  : -1 );
+                << ObjSig(thetaMotor->motor(), SIGNAL(stopped())) );
         if (stopMe) goto onEngineExit;
         if (det->isAcquiring()) {
           qtWait( det, SIGNAL(done()), 1000 );

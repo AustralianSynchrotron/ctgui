@@ -260,12 +260,6 @@ private slots:
 
 
 
-class MotorPosition : public QWidget {
-  Q_OBJECT;
-public:
-  explicit MotorPosition(QWidget *parent = 0);
-};
-
 
 
 // to be used for the doble numbers in the list of positions

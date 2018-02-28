@@ -61,4 +61,4 @@ OTHER_FILES += libexec/ctgui.log.sh
 ## - make serial test aquisition
 ## - rework tiles with new lists
 ## - add new detectors
-## - selection between scan speed / period / fly ration
+## - add moveTo button into the list

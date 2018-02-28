@@ -11,6 +11,7 @@
 #include <QLineEdit>
 #include <QTime>
 #include <QThread>
+#include <QAbstractSpinBox>
 
 #include "shutter.h"
 #include "detector.h"
@@ -55,6 +56,8 @@ private:
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <const QObject*,  ReqP > preReq;
 
+  QList< QAbstractSpinBox* > prsSelection;
+  QAbstractSpinBox * selectPRS(QObject* prso = 0);
 
   void check(QWidget * obj, bool status);
 
@@ -102,13 +105,6 @@ private:
     }
   }
 
-  enum MsgType {
-    LOG,
-    ERROR,
-    CONTROL
-  };
-  void appendMessage(MsgType tp, const QString& msg);
-  void logMessage(const QString& msg);
 
   bool prepareDetector(const QString & filetemplate, int count=1);
   int acquireDetector();
