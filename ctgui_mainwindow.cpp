@@ -677,8 +677,8 @@ void MainWindow::updateUi_serials() {
 
   ui->swapSerialLists->setVisible( ui->serial2D->isChecked() && ui->endNumber->isChecked() );
   ui->serialTabSpacer->setHidden( ui->serial2D->isChecked() || ui->endNumber->isChecked() );
-  innearList->putLabel("innear\nloop");
-  outerList->putLabel(ui->serial2D->isChecked() ? "outer\nloop" : "");
+  innearList->putLabel("innear\nloop\n\n[Z]");
+  outerList->putLabel(ui->serial2D->isChecked() ? "outer\nloop\n\n[Y]" : "[Y]");
 
   ui->acquisitionTimeWdg->setVisible(ui->endTime->isChecked());
   ui->acquisitionTimeLabel->setVisible(ui->endTime->isChecked());
@@ -2118,7 +2118,7 @@ onDfExit:
   else if (stateToGo == Shutter::CLOSED)
     shutter->close(!stopMe);
   if ( ! stopMe && shutter->state() != stateToGo)
-    qtWait(shutter, SIGNAL(stateChanged(Shutter1A::State)), 500); /**/
+    qtWait(shutter, SIGNAL(stateUpdated(State)), 500); /**/
 
   return ret;
 

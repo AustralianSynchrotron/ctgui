@@ -69,9 +69,10 @@ void PositionList::updateAmOK() {
   while ( steps < ui->list->rowCount() )
     ui->list->removeRow( ui->list->rowCount()-1 );
   while ( steps > ui->list->rowCount() ) {
-    ui->list->insertRow(ui->list->rowCount());
-    ui->list->setItem( ui->list->rowCount()-1, 0,
-          new QTableWidgetItem( QString::number(mot->getUserPosition() ) ) );
+    const int crc = ui->list->rowCount();
+    ui->list->insertRow(crc);
+    ui->list->setItem(crc, 0, new QTableWidgetItem( QString::number(mot->getUserPosition() ) ) );
+    ui->list->setVerticalHeaderItem(crc, new QTableWidgetItem(QString::number(crc)) );
   }
 
   bool newAllOK=true;
