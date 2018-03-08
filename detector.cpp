@@ -115,63 +115,51 @@ Detector::Detector(QObject * parent) :
 QString Detector::cameraName(Detector::Camera cam) {
   switch(cam) {
   case ScintX : return "ScintX";
-  case Hamamatsu : return "Hamamatsu";
-  case PCOedge1 : return "PCO.Edge 1";
-  case PCOedge2 : return "PCO.Edge 2";
+  case HamaGranny : return "HamaGranny";
+  case PCOedge2B : return "PCO.Edge 2B";
+  case PCOedge3B : return "PCO.Edge 3B";
   case Argus : return "Argus";
   case CPro : return "CPro" ;
+  case HamaMama : return "HamaMama";
   default: return QString();
   }
 }
 
 Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="ScintX") return ScintX;
-  if (_cameraName =="Hamamatsu") return Hamamatsu;
+  if (_cameraName =="HamaGranny") return HamaGranny;
   if (_cameraName =="Argus") return Argus;
-  if (_cameraName =="PCO.Edge 1") return PCOedge1;
-  if (_cameraName =="PCO.Edge 2") return PCOedge2;
+  if (_cameraName =="PCO.Edge 2B") return PCOedge2B;
+  if (_cameraName =="PCO.Edge 3B") return PCOedge3B;
   if (_cameraName =="CPro") return CPro;
+  if (_cameraName =="HamaMama") return HamaMama;
   return NONE;
 }
 
-const QList<Detector::Camera> Detector::knownCameras =
-    ( QList<Detector::Camera> ()
+const QList<Detector::Camera> Detector::knownCameras = ( QList<Detector::Camera> ()
       << Detector::ScintX
-      << Detector::Hamamatsu
+      << Detector::HamaGranny
       << Detector::Argus
-      << Detector::PCOedge1
-      << Detector::PCOedge2
+      << Detector::PCOedge2B
+      << Detector::PCOedge3B
       << Detector::CPro
+      << Detector::HamaMama
       ) ;
 
 
 void Detector::setCamera(Camera _cam) {
+  const Camera oldcam=_camera;
+  _camera = _cam;
   switch (_cam) {
-  case ScintX:
-    _camera = ScintX;
-    setCamera("SR08ID01DET05");
-    break;
-  case Hamamatsu:
-    _camera = Hamamatsu;
-    setCamera("SR08ID01DET04");
-    break;
-  case Argus:
-    _camera = Argus;
-    setCamera("SR08ID01DET03");
-    break;
-  case PCOedge1:
-    _camera = PCOedge1;
-    setCamera("SR08ID01DET01");
-    break;
-  case PCOedge2:
-    _camera = PCOedge2;
-    setCamera("SR08ID01DET02");
-    break;
-  case CPro:
-    _camera = CPro;
-    setCamera("SR08ID01DETIOC06");
-    break;
+  case ScintX:     setCamera("SR08ID01DET05");    break;
+  case HamaGranny: setCamera("SR08ID01DET04");    break;
+  case Argus:      setCamera("SR08ID01DET03");    break;
+  case PCOedge2B:  setCamera("SR08ID01DET01");    break;
+  case PCOedge3B:  setCamera("SR08ID01DET02");    break;
+  case CPro:       setCamera("SR08ID01DETIOC06"); break;
+  case HamaMama:   setCamera("SR08ID01DETIOC08"); break;
   default:
+    _camera = oldcam;
     foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
       pv->setPV();
     break;
@@ -235,8 +223,10 @@ void Detector::updateConnection() {
   if ( ! _camera )
     return;
   bool new_con = true;
-  foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
-    new_con &= pv->isConnected();
+  foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() ) {
+    if ( ! pv->pv().contains(":HDF:") ) // some of our detectors do not have HDF support yet.
+      new_con &= pv->isConnected();
+  }
   if (new_con != _con)
     emit connectionChanged(_con=new_con);
 }
@@ -581,7 +571,6 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
     return false;
 
   if ( fmt == TIFF ) {
-
     if (fileNumberTiffPv->get().toInt() !=0 ) {
       fileNumberTiffPv->set(0);
       qtWait(fileNumberTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
@@ -603,7 +592,7 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
 
   }
 
-  if ( _camera == Hamamatsu ) {
+  if ( _camera == HamaGranny || _camera == HamaMama) {
      if ( ! setTriggerMode(1) )
        return false;
   } else if ( _camera != Argus ) {
@@ -655,8 +644,8 @@ bool Detector::setHardwareTriggering(bool set) {
   int mode = 0; // soft triggered
   if (set) {
     switch ( _camera ) {
-    case (PCOedge1) :
-    case (PCOedge2) :
+    case (PCOedge2B) :
+    case (PCOedge3B) :
       // mode = 2; // Ext + Soft
       mode = 4; // Ext Only
       break;

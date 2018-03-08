@@ -14,12 +14,13 @@ public:
 
   enum Camera {
     NONE=0,
-    PCOedge1,
-    PCOedge2,
+    PCOedge2B,
+    PCOedge3B,
     ScintX,
-    Hamamatsu,
+    HamaGranny,
     Argus,
     CPro,
+    HamaMama,
     BYPV
   };
 

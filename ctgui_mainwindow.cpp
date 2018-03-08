@@ -516,9 +516,8 @@ static QString lastPathComponent(const QString & pth) {
   QString lastComponent = pth;
   if ( lastComponent.endsWith("\\") ) {
     lastComponent.chop(1);
-    return lastComponent.remove(0, lastComponent.lastIndexOf('/')+1);
-  }
-  if ( lastComponent.endsWith("/") ) // can be win or lin path delimiter
+    lastComponent.replace("\\", "/");
+  } else if ( lastComponent.endsWith("/") ) // can be win or lin path delimiter
     lastComponent.chop(1);
   lastComponent = QFileInfo(lastComponent).fileName();
   return lastComponent;
