@@ -2335,11 +2335,11 @@ void MainWindow::engineRun () {
       } else { // CONTINIOUS
 
         if ( doDF && dfBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-          acquireDF(seriesName + "BEFORE", Shutter::OPEN);
+          acquireDF(seriesName + "BEFORE_", Shutter::OPEN);
           if (stopMe) goto onEngineExit;
         }
         if ( doBG  && bgBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-          acquireBG(seriesName + "BEFORE");
+          acquireBG(seriesName + "BEFORE_");
           if (stopMe) goto onEngineExit;
         }
 
@@ -2423,11 +2423,11 @@ void MainWindow::engineRun () {
           if (stopMe) goto onEngineExit;
 
           if ( doBG  && bgAfter && ui->ffOnEachScan->isChecked() ) {
-            acquireBG(seriesName + "AFTER");
+            acquireBG(seriesName + "AFTER_");
             if (stopMe) goto onEngineExit;
           }
           if ( doDF && dfAfter && ui->ffOnEachScan->isChecked() ) {
-            acquireDF(seriesName + "AFTER", Shutter::OPEN);
+            acquireDF(seriesName + "AFTER_", Shutter::OPEN);
             if (stopMe) goto onEngineExit;
           }
 
@@ -2481,11 +2481,11 @@ void MainWindow::engineRun () {
 
     if ( timeToStop && ! sasMode && ! ui->ffOnEachScan->isChecked() ) {
       if ( doBG && bgAfter ) {
-        acquireBG(seriesName + "AFTER");
+        acquireBG(seriesName + "AFTER_");
         if (stopMe) goto onEngineExit;
       }
       if ( doDF && dfAfter ) {
-        acquireDF(seriesName + "AFTER", Shutter::OPEN);
+        acquireDF(seriesName + "AFTER_", Shutter::OPEN);
         if (stopMe) goto onEngineExit;
       }
     }
