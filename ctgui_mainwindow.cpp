@@ -7,6 +7,7 @@
 #include <QFile>
 #include <QTime>
 #include <unistd.h>
+#include <QApplication>
 
 #include "additional_classes.h"
 #include "ctgui_mainwindow.h"
@@ -367,6 +368,8 @@ void MainWindow::saveConfiguration(QString fileName) {
     fileName = QFileDialog::getSaveFileName(0, "Save configuration", QDir::currentPath());
 
   QSettings config(fileName, QSettings::IniFormat);
+
+  config.setValue("version", QString(APP_VERSION));
 
   foreach (QObject * obj, configNames.keys())
     save_cfg(obj, configNames[obj], config);
