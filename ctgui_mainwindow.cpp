@@ -2106,6 +2106,15 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
   det->setPeriod(0);
 
   ret = acquireDetector(ftemplate, dfs);
+  if (stopMe) goto onDfExit;
+
+  if (stateToGo == Shutter::OPEN)
+    shutter->open(true);
+  else if (stateToGo == Shutter::CLOSED)
+    shutter->close(true);
+  if ( ! stopMe && shutter->state() != stateToGo)
+    qtWait(shutter, SIGNAL(stateUpdated(State)), 500); /**/
+
 
 onDfExit:
 
@@ -2114,13 +2123,6 @@ onDfExit:
 
   if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
     det->setName(uiImageFormat(), detfilename) ;
-
-  if (stateToGo == Shutter::OPEN)
-    shutter->open(!stopMe);
-  else if (stateToGo == Shutter::CLOSED)
-    shutter->close(!stopMe);
-  if ( ! stopMe && shutter->state() != stateToGo)
-    qtWait(shutter, SIGNAL(stateUpdated(State)), 500); /**/
 
   return ret;
 
@@ -2236,8 +2238,6 @@ void MainWindow::engineRun () {
   ui->preRunScript->script->execute();
   if (stopMe) goto onEngineExit;
 
-  shutter->open(true);
-
   do { // serial scanning 1D
 
     setenv("CURRENTOSCAN", QString::number(currentScan1D).toAscii(), 1);
@@ -2296,6 +2296,7 @@ void MainWindow::engineRun () {
             beforeDF = dfInterval;
             if (stopMe) goto onEngineExit;
           }
+          shutter->open(true);
           beforeDF--;
           if (doBG && ! beforeBG) {
             acquireBG(projectionName);
@@ -2341,6 +2342,7 @@ void MainWindow::engineRun () {
           acquireDF(seriesName + "BEFORE_", Shutter::OPEN);
           if (stopMe) goto onEngineExit;
         }
+        shutter->open(true);
         if ( doBG  && bgBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
           acquireBG(seriesName + "BEFORE_");
           if (stopMe) goto onEngineExit;
@@ -2496,10 +2498,11 @@ void MainWindow::engineRun () {
   } while ( ! timeToStop );
 
   ui->postRunScript->script->execute();
-  shutter->close();
 
 
 onEngineExit:
+
+  shutter->close();
 
   thetaMotor->motor()->stop(QCaMotor::STOPPED);
   setMotorSpeed(thetaMotor, thetaSpeed);
