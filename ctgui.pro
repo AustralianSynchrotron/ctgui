@@ -1,6 +1,10 @@
 # -------------------------------------------------
 # Project created by QtCreator 2010-10-26T15:35:20
 # -------------------------------------------------
+
+VERSION = 2.0
+DEFINES += APP_VERSION=\\\"$$VERSION\\\"
+
 QT += core \
     gui
 TARGET = ctgui$$SUFFIX
