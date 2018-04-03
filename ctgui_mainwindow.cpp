@@ -64,6 +64,9 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->control->setCurrentIndex(0);
 
   prsSelection << ui->aqsSpeed << ui->stepTime << ui->flyRatio;
+  selectPRS(); // initial selection only
+  foreach (QMDoubleSpinBox* _prs, prsSelection)
+    connect( _prs, SIGNAL(entered()), SLOT(selectPRS()) );
 
   ColumnResizer * resizer;
   resizer = new ColumnResizer(this);
@@ -374,7 +377,9 @@ void MainWindow::saveConfiguration(QString fileName) {
   foreach (QObject * obj, configNames.keys())
     save_cfg(obj, configNames[obj], config);
 
-  config.setValue("scan/fixprs", selectPRS()->objectName());
+  const QMDoubleSpinBox * prs = selectedPRS();
+  if (prs)
+    config.setValue("scan/fixprs", prs->objectName());
 
   config.beginGroup("hardware");
   if (det) {
@@ -478,7 +483,7 @@ void MainWindow::loadConfiguration(QString fileName) {
   foreach (QAbstractSpinBox* prs, prsSelection)
     if ( fixprsName == prs->objectName() )
       selectPRS(prs);
-  selectPRS(); // if nothing found
+  selectPRS(selectedPRS()); // if nothing found
 
   foreach (QObject * obj, configNames.keys())
     load_cfg(obj, configNames[obj], config);
@@ -796,17 +801,18 @@ void MainWindow::updateUi_scanStep() {
 
 
 
-QAbstractSpinBox * MainWindow::selectPRS(QObject *prso) {
+QMDoubleSpinBox * MainWindow::selectPRS(QObject *prso) {
 
-  QAbstractSpinBox * prs = dynamic_cast<QAbstractSpinBox*>(prso);
-  if ( ! prs || ! prsSelection.contains(prs) ) {
-    prs = prsSelection.at(0);
-    foreach (QAbstractSpinBox* _prs, prsSelection)
-      if (_prs->hasFrame())
-        prs = _prs;
-  }
+  QMDoubleSpinBox * prs;
+  prs = dynamic_cast<QMDoubleSpinBox*>(prso);
+  if ( ! prs )
+    prs = dynamic_cast<QMDoubleSpinBox*>(sender());
+  if ( ! prs || ! prsSelection.contains(prs) )
+    prs=selectedPRS();
+  if ( ! prs )
+    prs=prsSelection.at(0);
 
-  foreach (QAbstractSpinBox* _prs, prsSelection) {
+  foreach (QMDoubleSpinBox* _prs, prsSelection) {
     _prs->setFrame(_prs==prs);
     _prs->setButtonSymbols(
           _prs == prs ? QAbstractSpinBox::UpDownArrows : QAbstractSpinBox::NoButtons );
@@ -817,39 +823,66 @@ QAbstractSpinBox * MainWindow::selectPRS(QObject *prso) {
 }
 
 
+QMDoubleSpinBox * MainWindow::selectedPRS() const {
+  QMDoubleSpinBox * prs=0;
+  int aprs=0;
+  foreach (QMDoubleSpinBox* _prs, prsSelection)
+    if (_prs->hasFrame()) {
+      prs = _prs;
+      aprs++;
+    }
+  return  (aprs == 1)  ?  prs  :  0 ;
+}
+
+
 
 void MainWindow::updateUi_expOverStep() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_expOverStep());
+    foreach (QMDoubleSpinBox* _prs, prsSelection)
+      connect( _prs, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->aqMode, SIGNAL(currentIndexChanged(int)), thisSlot);
-    connect( ui->flyRatio, SIGNAL(valueEdited(double)), thisSlot);
-    connect( ui->stepTime, SIGNAL(valueEdited(double)), thisSlot);
-    connect( ui->aqsSpeed, SIGNAL(valueEdited(double)), thisSlot);
     connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( det, SIGNAL(parameterChanged()), thisSlot);
     connect( thetaMotor->motor(), SIGNAL(changedMaximumSpeed(double)), thisSlot);
   }
 
-  ui->stepTime->setMinimum(det->exposure());
   const float stepSize = ui->scanRange->value() / ui->scanProjections->value();
+  const float exposure = det->exposure();
+  float stepTime = ui->stepTime->value();
+  float aqsSpeed = ui->aqsSpeed->value();
+  float flyRatio = ui->flyRatio->value();
+  const float maxSpeed = thetaMotor->motor()->getMaximumSpeed();
 
-  QAbstractSpinBox * prs = selectPRS(sender());
+  bool isOK =  true;
+  const QMDoubleSpinBox * prs=selectedPRS();
   if ( prs == ui->stepTime ) {
-    ui->flyRatio->setValue( det->exposure() / ui->stepTime->value() );
-    ui->aqsSpeed->setValue( stepSize / ui->stepTime->value() );
+    flyRatio = exposure / stepTime;
+    ui->flyRatio->setValue(flyRatio);
+    aqsSpeed = stepSize / stepTime;
+    ui->aqsSpeed->setValue(aqsSpeed);
   } else if ( prs == ui->flyRatio ) {
-    ui->stepTime->setValue( det->exposure() / ui->flyRatio->value() );
-    ui->aqsSpeed->setValue( stepSize * ui->flyRatio->value() / det->exposure() );
-  } else if (prs == ui->aqsSpeed ) {
-    ui->stepTime->setValue( stepSize / ui->aqsSpeed->value() );
-    ui->flyRatio->setValue( ui->aqsSpeed->value() * det->exposure() / stepSize );
-  } else
+    stepTime = exposure / flyRatio ;
+    ui->stepTime->setValue(stepTime);
+    aqsSpeed = stepSize * flyRatio / exposure ;
+    ui->aqsSpeed->setValue(aqsSpeed);
+  } else if ( prs == ui->aqsSpeed ) {
+    stepTime = stepSize / aqsSpeed;
+    ui->stepTime->setValue(stepTime);
+    flyRatio = aqsSpeed * exposure / stepSize;
+    ui->flyRatio->setValue(flyRatio);
+  } else {
     qDebug() << "ERROR! PRS selection is buggy. Report to developper. Must never happen.";
+    isOK=false;
+  }
 
-  bool isOK = ui->aqMode->currentIndex() == STEPNSHOT
-      ||  ui->aqsSpeed->value() <= thetaMotor->motor()->getMaximumSpeed();
-  foreach (QAbstractSpinBox* _prs, prsSelection)
+  ui->stepTime->setMinimum(exposure);
+  ui->aqsSpeed->setMaximum(maxSpeed);
+
+  isOK &=  flyRatio <= 1  &&  aqsSpeed <= maxSpeed  &&  stepTime >= exposure;
+  isOK |= ui->aqMode->currentIndex() == STEPNSHOT;
+  foreach (QMDoubleSpinBox* _prs, prsSelection)
     check( _prs, _prs != prs || isOK );
 
 }

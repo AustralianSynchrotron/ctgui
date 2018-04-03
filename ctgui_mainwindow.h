@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <qcamotorgui.h>
+#include <qtpvwidgets.h>
 #include <QIcon>
 #include <QAbstractItemModel>
 #include <QSortFilterProxyModel>
@@ -56,8 +57,8 @@ private:
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <const QObject*,  ReqP > preReq;
 
-  QList< QAbstractSpinBox* > prsSelection;
-  QAbstractSpinBox * selectPRS(QObject* prso = 0);
+  QList< QMDoubleSpinBox* > prsSelection;
+  QMDoubleSpinBox * selectedPRS() const ;
 
   void check(QWidget * obj, bool status);
 
@@ -148,6 +149,7 @@ private slots:
   void updateUi_aqsPP();
   void updateUi_expOverStep();
   void updateUi_thetaMotor();
+  QMDoubleSpinBox * selectPRS(QObject* prso = 0);
 
   void updateUi_bgTravel();
   void updateUi_bgInterval();

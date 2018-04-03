@@ -6,8 +6,9 @@ VERSION = 2.0
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
 QT += core \
-    gui
-TARGET = ctgui$$SUFFIX
+      gui
+
+TARGET = ctgui.exp
 TARGET.path = $$PREFIX/
 TEMPLATE = app
 SOURCES += main.cpp \
@@ -30,17 +31,10 @@ FORMS += ctgui_mainwindow.ui \
     upvorcom.ui \
     positionlist.ui
 
-#IMBLEXEC = $$system(command -v imblgui)
-#IMBLORIGIN = $$dirname(IMBLEXEC)
-#IMBLRPATH = $$system(objdump -x $${IMBLEXEC} | grep RPATH | sed -e \"s/RPATH//g\" -e \"s/^ *//g\" -e \"s \\\$ORIGIN $${IMBLORIGIN} g\" | cut -d':' -f1 )
-#QMAKE_LFLAGS += -Wl,-rpath,$$IMBLRPATH
 LIBS += -lqtpv \
     -lqtpvwidgets \
     -lqcamotor \
     -lqcamotorgui
-#    -L$$IMBLRPATH \
-#    -lshutter1A \
-#    -lcomponent
 RESOURCES += ctgui.qrc
 
 OTHER_FILES += listOfKnownShutters.ini
@@ -64,5 +58,4 @@ OTHER_FILES += libexec/ctgui.log.sh
 ## - adjust step-and-shot names
 ## - make serial test aquisition
 ## - rework tiles with new lists
-## - add new detectors
 ## - add moveTo button into the list
