@@ -26,6 +26,7 @@ public:
   void putLabel(const QString & lab) {ui->label->setText(lab);}
   bool amOK() {return allOK;}
   void freezList(bool fz) {freezListUpdates=fz;}
+  void emphasizeRow(int row=-1);
 
 private slots:
 

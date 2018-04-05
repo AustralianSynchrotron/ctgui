@@ -123,3 +123,10 @@ void PositionList::updateAmOK() {
 
 }
 
+void PositionList::emphasizeRow(int row) {
+  if ( row < 0  ||  row >= ui->list->rowCount() )
+    ui->list->setCurrentItem(0);
+  else
+    ui->list->setCurrentCell(row, 0);
+}
+

@@ -8,6 +8,7 @@
 #include <QTime>
 #include <unistd.h>
 #include <QApplication>
+#include <QMessageBox>
 
 #include "additional_classes.h"
 #include "ctgui_mainwindow.h"
@@ -17,6 +18,8 @@
 
 
 static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
+static const QString cfgFirstName = "acquisition.configuration";
+static const QString logFirstName = "acquisition.log";
 #define innearList dynamic_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
 #define outerList dynamic_cast<PositionList*> ( ui->outerListPlace->layout()->itemAt(0)->widget() )
 #define currentScan (currentScan1D * totalScans2D + currentScan2D)
@@ -62,6 +65,10 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->setupUi(this);
   ui->control->finilize();
   ui->control->setCurrentIndex(0);
+  foreach ( QMDoubleSpinBox * spb , findChildren<QMDoubleSpinBox*>() )
+    spb->setConfirmationRequired(false);
+  foreach ( QMSpinBox * spb , findChildren<QMSpinBox*>() )
+    spb->setConfirmationRequired(false);
 
   prsSelection << ui->aqsSpeed << ui->stepTime << ui->flyRatio;
   selectPRS(); // initial selection only
@@ -425,8 +432,7 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
     const int idx = box->findText(val);
     if ( idx >= 0 )  box->setCurrentIndex(idx);
     else if ( box->isEditable() ) box->setEditText(val);
-  }
-  else if ( dynamic_cast<QSpinBox*>(obj) && value.canConvert(QVariant::Int) )
+  } else if ( dynamic_cast<QSpinBox*>(obj) && value.canConvert(QVariant::Int) )
     dynamic_cast<QSpinBox*>(obj)->setValue(value.toInt());
   else if ( dynamic_cast<QDoubleSpinBox*>(obj) && value.canConvert(QVariant::Double) )
     dynamic_cast<QDoubleSpinBox*>(obj)->setValue(value.toDouble());
@@ -531,6 +537,7 @@ static QString lastPathComponent(const QString & pth) {
   return lastComponent;
 }
 
+
 void MainWindow::updateUi_expPath() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_expPath());
@@ -551,15 +558,7 @@ void MainWindow::updateUi_expPath() {
   if (isOK) {
 
     QDir::setCurrent(pth);
-
-    /* using "*.[tT][iI][fF][fF]" can be very time consuming if many files are present */
-    bool sampleFileExists = false;
-    QString zlab;
-    while ( ! sampleFileExists  &&  (zlab += "0").size() < 10 )
-      sampleFileExists  =  QFile::exists("SAMPLE_Z0_T"+zlab+".tif") || QFile::exists("SAMPLE_T"+zlab+".tif");
-
-    ui->nonEmptyWarning->setVisible( sampleFileExists );
-
+    ui->nonEmptyWarning->setVisible(QFile::exists(cfgFirstName) || QFile::exists(logFirstName));
 
     if ( ui->detPathSync->isChecked() && det->isConnected() ) {
 
@@ -2167,9 +2166,18 @@ void MainWindow::engineRun () {
   if ( ! readyToStartCT || inCT )
     return;
 
+  if ( QFile::exists(cfgFirstName) || QFile::exists(logFirstName) )
+    if (  QMessageBox::No == QMessageBox::question(this, "Overwrite warning",
+            "Current directory seems to contain earlier scans: "
+            + cfgFirstName + " and/or " + logFirstName + " files are present."
+            " Existing data may be overwritten.\n\n"
+            " Do you want to proceed?\n",
+            QMessageBox::Yes | QMessageBox::No, QMessageBox::No)  )
+      return;
+
   // config and log
-  QString cfgName = "acquisition.configuration";
-  QString logName = "acquisition.log";
+  QString cfgName = cfgFirstName;
+  QString logName = logFirstName;
   int attempt=0;
   while ( QFile::exists(cfgName) || QFile::exists(logName) ) {
     QString prefix = "acquisition." + QString::number(++attempt);
@@ -2274,6 +2282,7 @@ void MainWindow::engineRun () {
   do { // serial scanning 1D
 
     setenv("CURRENTOSCAN", QString::number(currentScan1D).toAscii(), 1);
+    outerList->emphasizeRow(currentScan1D);
 
     QString seriesNamePrefix;
     if (totalScans1D==1)
@@ -2300,6 +2309,8 @@ void MainWindow::engineRun () {
 
       setenv("CURRENTISCAN", QString::number(currentScan2D).toAscii(), 1);
       setenv("CURRENTSCAN", QString::number(currentScan).toAscii(), 1);
+      innearList->emphasizeRow(currentScan2D);
+
 
       if (doSerial2D  && inSMotor->isConnected())
         inSMotor->wait_stop();
@@ -2581,6 +2592,9 @@ onEngineExit:
     lst->freezList(false);
   foreach(QWidget * tab, ui->control->tabs())
         tab->setEnabled(true);
+  outerList->emphasizeRow();
+  innearList->emphasizeRow();
+
   currentScan1D = -1;
   currentScan2D = -1;
   currentProjection = -1;

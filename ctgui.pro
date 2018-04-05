@@ -54,8 +54,8 @@ OTHER_FILES += libexec/ctgui.log.sh
 
 
 ## TODO ##
-## - warn dialog on existing image
 ## - adjust step-and-shot names
 ## - make serial test aquisition
 ## - rework tiles with new lists
+## - list indication
 ## - add moveTo button into the list
