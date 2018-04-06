@@ -11,7 +11,7 @@ PositionList::PositionList(QWidget *parent)
 
   ui->setupUi(this);
 
-  connect( ui->nof, SIGNAL(valueChanged(int)), SLOT(updateAmOK()));
+  connect( ui->nof, SIGNAL(valueChanged(int)), SLOT(updateNoF()) );
   connect( ui->list, SIGNAL(itemChanged(QTableWidgetItem*)), SLOT(updateAmOK()));
   connect( ui->irregular, SIGNAL(toggled(bool)), SLOT(updateAmOK()));
   connect( ui->step, SIGNAL(valueChanged(double)), SLOT(updateAmOK()));
@@ -23,13 +23,21 @@ PositionList::PositionList(QWidget *parent)
 
   connect( ui->irregular, SIGNAL(toggled(bool)), ui->step, SLOT(setDisabled(bool)));
 
-  ui->list->setItemDelegate(new NTableDelegate(ui->list));
+  ui->list->setItemDelegateForColumn(0, new NTableDelegate(ui->list));
+  ui->list->horizontalHeader()->setStretchLastSection(false);
+  ui->list->horizontalHeader()->setResizeMode(0, QHeaderView::Stretch);
+  ui->list->horizontalHeader()->setResizeMode(1, QHeaderView::Fixed);
+
+  updateNoF();
 
 }
+
 
 PositionList::~PositionList() {
   delete ui;
 }
+
+
 
 
 void PositionList::putMotor(QCaMotorGUI * motor) { // assume is called only once !
@@ -42,6 +50,7 @@ void PositionList::putMotor(QCaMotorGUI * motor) { // assume is called only once
   ui->placeMotor->layout()->addWidget(motui->setupButton());
   ui->placePosition->layout()->addWidget(motui->currentPosition(true));
 
+  connect( mot, SIGNAL(changedConnected(bool)),      SLOT(updateNoF()));
   connect( mot, SIGNAL(changedConnected(bool)),      SLOT(updateAmOK()));
   connect( mot, SIGNAL(changedPv(QString)),          SLOT(updateAmOK()));
   connect( mot, SIGNAL(changedUserLoLimit(double)),  SLOT(updateAmOK()));
@@ -57,6 +66,36 @@ void PositionList::putMotor(QCaMotorGUI * motor) { // assume is called only once
 }
 
 
+void PositionList::updateNoF() {
+
+
+  const int steps = ui->nof->value();
+
+  while ( steps < ui->list->rowCount() ) {
+
+    delete ui->list->cellWidget( ui->list->rowCount()-1, 1 );
+    ui->list->removeRow( ui->list->rowCount()-1 );
+
+  } while ( steps > ui->list->rowCount() ) {
+
+    const int crc = ui->list->rowCount();
+    ui->list->insertRow(crc);
+
+    QToolButton * btn = new QToolButton(this);
+    connect(btn, SIGNAL(clicked(bool)), SLOT(moveMotorHere()));
+    btn->setText("...");
+    btn->setToolTip("Move motor here");
+    ui->list->setCellWidget(crc, 1, btn );
+
+    const double mpos = motui ? motui->motor()->getUserPosition() :  0 ;
+    ui->list->setItem(crc, 0, new QTableWidgetItem( QString::number(mpos) ) );
+    ui->list->setVerticalHeaderItem(crc, new QTableWidgetItem(QString::number(crc)) );
+
+  }
+
+  updateAmOK();
+
+}
 
 void PositionList::updateAmOK() {
 
@@ -64,19 +103,12 @@ void PositionList::updateAmOK() {
     return;
   QCaMotor * mot = motui->motor();
 
-  const int steps = ui->nof->value();
-
-  while ( steps < ui->list->rowCount() )
-    ui->list->removeRow( ui->list->rowCount()-1 );
-  while ( steps > ui->list->rowCount() ) {
-    const int crc = ui->list->rowCount();
-    ui->list->insertRow(crc);
-    ui->list->setItem(crc, 0, new QTableWidgetItem( QString::number(mot->getUserPosition() ) ) );
-    ui->list->setVerticalHeaderItem(crc, new QTableWidgetItem(QString::number(crc)) );
-  }
+  const int steps = ui->list->rowCount();
 
   bool newAllOK=true;
-  foreach (QTableWidgetItem * item, ui->list->findItems("", Qt::MatchContains) ) {
+  for ( int crow=0 ; crow < steps ; crow++ ) {
+
+    QTableWidgetItem * item = ui->list->item(crow, 0);
 
     ui->list->blockSignals(true);
     if ( ui->irregular->isChecked() )
@@ -92,6 +124,8 @@ void PositionList::updateAmOK() {
         item->setText( QString::number(pos) );
     }
 
+    ui->list->cellWidget(crow, 1)->setEnabled( ! mot->isMoving() );
+
     bool isDouble;
     const double pos = item->text().toDouble(&isDouble);
     const bool isOK = ! mot->isConnected() ||
@@ -101,8 +135,10 @@ void PositionList::updateAmOK() {
 
   }
 
+
   static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
 
+  ui->list->setColumnHidden(1, ! ui->irregular->isChecked() );
   ui->irregular->setStyleSheet( newAllOK || ! ui->irregular->isChecked()
                                     ?  ""  : warnStyle  );
 
@@ -123,6 +159,8 @@ void PositionList::updateAmOK() {
 
 }
 
+
+
 void PositionList::emphasizeRow(int row) {
   if ( row < 0  ||  row >= ui->list->rowCount() )
     ui->list->setCurrentItem(0);
@@ -130,3 +168,13 @@ void PositionList::emphasizeRow(int row) {
     ui->list->setCurrentCell(row, 0);
 }
 
+
+
+
+void PositionList::moveMotorHere() {
+  for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
+    if ( sender() == ui->list->cellWidget(crow, 1) ) {
+      motui->motor()->goUserPosition( ui->list->item(crow, 0)->text().toDouble(), QCaMotor::STARTED );
+      return;
+    }
+}

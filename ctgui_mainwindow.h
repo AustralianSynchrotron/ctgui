@@ -73,19 +73,6 @@ private:
   bool readyToStartCT;
   bool stopMe;
 
-  int totalScans1D;
-  int totalScans2D;
-  int currentScan1D;
-  int currentScan2D;
-  int totalProjections;
-  int currentProjection;
-  int totalLoops;
-  int currentLoop;
-  int totalSubLoops;
-  int currentSubLoop;
-  int totalShots;
-  int currentShot;
-
   enum AqMode {
     STEPNSHOT = 0,
     FLYSOFT   = 1,
@@ -143,6 +130,7 @@ private slots:
   void updateUi_serials();
   void updateUi_ffOnEachScan();
   void onSwapSerial();
+  void onSerialTest();
 
   void updateUi_scanRange();
   void updateUi_scanStep();
@@ -177,8 +165,6 @@ private slots:
   void updateUi_detector();
   void onDetectorSelection();
   void onDetectorTest();
-
-  void updateProgress();
 
   void onStartStop();
 

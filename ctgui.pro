@@ -57,5 +57,3 @@ OTHER_FILES += libexec/ctgui.log.sh
 ## - adjust step-and-shot names
 ## - make serial test aquisition
 ## - rework tiles with new lists
-## - list indication
-## - add moveTo button into the list

@@ -31,6 +31,8 @@ public:
 private slots:
 
   void updateAmOK();
+  void updateNoF();
+  void moveMotorHere();
 
 signals:
 

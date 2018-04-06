@@ -22,7 +22,6 @@ static const QString cfgFirstName = "acquisition.configuration";
 static const QString logFirstName = "acquisition.log";
 #define innearList dynamic_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
 #define outerList dynamic_cast<PositionList*> ( ui->outerListPlace->layout()->itemAt(0)->widget() )
-#define currentScan (currentScan1D * totalScans2D + currentScan2D)
 
 
 
@@ -47,19 +46,7 @@ MainWindow::MainWindow(QWidget *parent) :
   inFFTest(false),
   inCT(false),
   readyToStartCT(false),
-  stopMe(true),
-  totalScans1D(1),
-  totalScans2D(1),
-  currentScan1D(-1),
-  currentScan2D(-1),
-  totalProjections(-1),
-  currentProjection(-1),
-  totalLoops(-1),
-  currentLoop(-1),
-  totalSubLoops(-1),
-  currentSubLoop(-1),
-  totalShots(-1),
-  currentShot(-1)
+  stopMe(true)
 {
 
   ui->setupUi(this);
@@ -305,8 +292,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
   }
 
-  updateProgress();
-
 
 }
 
@@ -456,9 +441,9 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
   } else if (dynamic_cast<PositionList*>(obj)) {
     PositionList *pl = dynamic_cast<PositionList*>(obj);
     load_cfg(pl->motui->motor(), key + "/motor", config);
+    load_cfg(pl->ui->irregular, key + "/irregular", config);
     load_cfg(pl->ui->nof, key + "/nofsteps", config);
     load_cfg(pl->ui->step, key + "/step", config);
-    load_cfg(pl->ui->irregular, key + "/irregular", config);
     load_cfg(pl->ui->list, key + "/positions", config);
   } else if (dynamic_cast<Shutter*>(obj)) {
     Shutter * shut = dynamic_cast<Shutter*>(obj);
@@ -1271,9 +1256,6 @@ void MainWindow::updateUi_detector() {
     connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
   }
 
-  totalShots = det->number();
-  currentShot  =  det->isAcquiring() ? det->counter() : -1;
-
   if ( ! ui->detSelection->currentIndex() )
     ui->detStatus->setText("always ready");
   else if ( ! det->isConnected() )
@@ -1300,6 +1282,8 @@ void MainWindow::updateUi_detector() {
     ui->detPathHdf->setEnabled(enabme);
 
     ui->detProgress->setMaximum(det->number());
+    ui->detProgress->setValue(det->counter());
+    ui->detProgress->setVisible( det->isAcquiring()  &&  det->imageMode() == 1 );
     ui->detTotalImages->setValue(det->number());
     ui->exposureInfo->setValue(det->exposure());
     ui->detExposure->setValue(det->exposure());
@@ -1424,6 +1408,16 @@ void MainWindow::onDynoDirectionLock() {
 
 
 
+void MainWindow::onSerialTest() {
+
+
+  static bool inSerialTest = true;
+
+  qDebug() << inSerialTest;
+
+  inSerialTest=false;
+
+}
 
 
 
@@ -1831,10 +1825,25 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
   if ( ! ui->checkMulti->isChecked() )
     return -1;
 
-  totalLoops = ui->loopNumber->value();
-  totalSubLoops = ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1;
-  currentLoop=0;
-  currentSubLoop=0;
+  int totalLoops = ui->loopNumber->value();
+  int totalSubLoops = ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1;
+  int currentLoop=0;
+  int currentSubLoop=0;
+
+  const QString progressFormat = QString("Multishot progress: %p% ; %v of %m") +
+      ( ui->subLoop->isChecked() ? " (%1,%2 of %3,%4)" : "" );
+
+  ui->multiProgress->setMaximum(totalLoops*totalSubLoops);
+  if ( ! ui->subLoop->isChecked() )
+    ui->multiProgress->setFormat(progressFormat);
+  ui->multiProgress->setVisible(true);
+
+
+  if ( ui->subLoop->isChecked() ) {
+    ui->multiProgress->setFormat( progressFormat
+                                  .arg(currentLoop+1).arg(currentSubLoop+1)
+                                  .arg(totalLoops).arg(totalSubLoops) );
+  }
 
   const int
       loopDigs = QString::number(totalLoops).size(),
@@ -1869,6 +1878,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
     for ( currentSubLoop = 0; currentSubLoop < totalSubLoops; currentSubLoop++) {
 
       setenv("CURRENTSUBLOOP", QString::number(currentLoop).toAscii(), 1);
+      ui->multiProgress->setValue( 1 + currentSubLoop + totalSubLoops * currentLoop );
 
       if (moveLoop)
         loopMotor->motor()->wait_stop();
@@ -1916,6 +1926,9 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
   }
 
 acquireMultiExit:
+
+  ui->multiProgress->setVisible(false);
+
 
   if ( filetemplate.isEmpty()  &&  ! ftemplate.isEmpty() )
     det->setName(uiImageFormat(), ftemplate) ;
@@ -1972,76 +1985,6 @@ void MainWindow::onStartStop() {
 
 
 
-
-
-void MainWindow::updateProgress () {
-
-  if (currentScan>=0) {
-
-    if ( ! ui->serialProgress->isVisible() ) {
-      if ( totalScans1D * totalScans2D > 1 ) {
-        ui->serialProgress->setMaximum(totalScans1D * totalScans2D);
-        ui->serialProgress->setFormat("Series progress. %p% (scans complete: %v of %m)");
-      } else if ( ui->endTime->isChecked() ) {
-        ui->serialProgress->setMaximum(QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ));
-      } else {
-        ui->serialProgress->setMaximum(0);
-        ui->serialProgress->setFormat("Series progress. Scans complete: %v.");
-      }
-    }
-
-    if ( ui->endTime->isChecked() ) {
-      QString format = "Series progress: %p% "
-          + (QTime(0, 0, 0, 0).addMSecs(inCTtime.elapsed())).toString() + " of " + ui->acquisitionTime->time().toString()
-          + " (scans complete: " + QString::number(currentScan) + ")";
-      ui->serialProgress->setFormat(format);
-      ui->serialProgress->setValue(inCTtime.elapsed());
-    } else {
-      ui->serialProgress->setValue(currentScan);
-    }
-
-  }
-
-  ui->serialProgress->setVisible(currentScan>=0);
-
-  if (currentProjection>=0) {
-    if ( ! ui->scanProgress->isVisible() ) {
-      ui->scanProgress->setMaximum(totalProjections + ( ui->scanAdd->isChecked() ? 1 : 0 ));
-      ui->scanProgress->setVisible(true);
-    }
-    ui->scanProgress->setValue(currentProjection);
-  } else
-    ui->scanProgress->setVisible(false);
-
-
-
-  if (currentLoop>=0) {
-
-    const QString progressFormat = QString("Multishot progress: %p% ; %v of %m") +
-        ( ui->subLoop->isChecked() ? " (%1,%2 of %3,%4)" : "" );
-
-    if ( ! ui->multiProgress->isVisible() ) {
-      ui->multiProgress->setMaximum(totalLoops*totalSubLoops);
-      if ( ! ui->subLoop->isChecked() )
-        ui->multiProgress->setFormat(progressFormat);
-      ui->multiProgress->setVisible(true);
-    }
-
-    if ( ui->subLoop->isChecked() ) {
-      ui->multiProgress->setFormat( progressFormat
-                                    .arg(currentLoop+1).arg(currentSubLoop+1)
-                                    .arg(totalLoops).arg(totalSubLoops) );
-    }
-    ui->multiProgress->setValue( 1 + currentSubLoop + totalSubLoops * currentLoop );
-
-  } else
-    ui->multiProgress->setVisible(false);
-
-  ui->detProgress->setVisible( ui->detSelection->currentIndex() && currentShot>=0 && totalShots>1 && det->imageMode() == 1 );
-
-  QTimer::singleShot(50, this, SLOT(updateProgress()));
-
-}
 
 
 
@@ -2161,6 +2104,19 @@ onDfExit:
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+/*/////////////////////////// Engine ///////////////////////////*/
+
 void MainWindow::engineRun () {
 
   if ( ! readyToStartCT || inCT )
@@ -2200,8 +2156,6 @@ void MainWindow::engineRun () {
   logProc.start( "/bin/sh " + logExec.fileName() );
 
 
-  totalProjections = ui->scanProjections->value();
-
   QCaMotor * const inSMotor = innearList->motui->motor();
   QCaMotor * const outSMotor = outerList->motui->motor();
 
@@ -2212,7 +2166,9 @@ void MainWindow::engineRun () {
       thetaStart = thetaMotor->motor()->getUserPosition(),
       thetaRange = ui->scanRange->value(),
       thetaSpeed = thetaMotor->motor()->getNormalSpeed();
-  double thetaInSeriesStart = thetaStart;
+  double
+      thetaInSeriesStart = thetaStart,
+      totalProjections = ui->scanProjections->value();
 
   const bool
       doSerial1D = ui->checkSerial->isChecked(),
@@ -2227,10 +2183,10 @@ void MainWindow::engineRun () {
       ongoingSeries = doSerial1D && ui->ongoingSeries->isChecked(),
       doTriggCT = ! tct->prefix().isEmpty();
 
-  totalScans1D = doSerial1D ?
-    ( ui->endNumber->isChecked() ? outerList->ui->nof->value() : 0 ) : 1 ;
-  totalScans2D = doSerial2D ? innearList->ui->nof->value() : 1 ;
-
+  int
+      currentScan1D = 0,
+      currentScan2D = 0,
+      currentScan = 0;
 
   const int
       bgInterval = ui->bgInterval->value(),
@@ -2238,11 +2194,16 @@ void MainWindow::engineRun () {
       scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
       scanTime = QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ),
       projectionDigs = QString::number(totalProjections).size(),
-      series1Digs = QString::number(totalScans1D-1).size(),
-      series2Digs = QString::number(totalScans2D-1).size(),
       doAdd = ui->scanAdd->isChecked() ? 1 : 0,
       detimode=det->imageMode(),
-      dettmode=det->triggerMode();
+      dettmode=det->triggerMode(),
+      totalScans1D = doSerial1D ?
+        ( ui->endNumber->isChecked() ? outerList->ui->nof->value() : 0 ) : 1 ,
+      totalScans2D = doSerial2D ? innearList->ui->nof->value() : 1 ,
+      series1Digs = QString::number(totalScans1D-1).size(),
+      series2Digs = QString::number(totalScans2D-1).size();
+
+
 
   stopMe = false;
   inCT = true;
@@ -2251,7 +2212,6 @@ void MainWindow::engineRun () {
   foreach(QWidget * tab, ui->control->tabs())
         tab->setEnabled(false);
   inCTtime.restart();
-  currentScan1D=0;
   bool timeToStop=false;
 
   int
@@ -2266,6 +2226,25 @@ void MainWindow::engineRun () {
   if ( doSerial2D && inSMotor->isConnected() &&  innearList->ui->irregular->isChecked() ) // otherwise is already in the first point
     inSMotor->goUserPosition( innearList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
+
+
+  if ( totalScans1D * totalScans2D > 1 ) {
+    ui->serialProgress->setMaximum(totalScans1D * totalScans2D);
+    ui->serialProgress->setFormat("Series progress. %p% (scans complete: %v of %m)");
+    ui->serialProgress->setValue(currentScan);
+  } else if ( ui->endTime->isChecked() ) {
+    ui->serialProgress->setMaximum(QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ));
+    QString format = "Series progress: %p% "
+        + (QTime(0, 0, 0, 0).addMSecs(inCTtime.elapsed())).toString() + " of " + ui->acquisitionTime->time().toString()
+        + " (scans complete: " + QString::number(currentScan) + ")";
+    ui->serialProgress->setFormat(format);
+    ui->serialProgress->setValue(inCTtime.elapsed());
+  } else {
+    ui->serialProgress->setMaximum(0);
+    ui->serialProgress->setFormat("Series progress. Scans complete: %v.");
+    ui->serialProgress->setValue(currentScan);
+  }
+  ui->serialProgress->setVisible(true);
 
 
   if (doTriggCT) {
@@ -2319,14 +2298,20 @@ void MainWindow::engineRun () {
       ui->preScanScript->script->execute();
       if (stopMe) goto onEngineExit;
 
+
       if ( sasMode ) { // STEP-AND-SHOT
 
-        currentProjection = 0;
+
+        int currentProjection = 0;
         if ( ! ongoingSeries ) {
           beforeBG=0;
           beforeDF=0;
         }
         QString projectionName;
+
+        ui->scanProgress->setMaximum(totalProjections + ( ui->scanAdd->isChecked() ? 1 : 0 ));
+        ui->scanProgress->setValue(currentProjection);
+        ui->scanProgress->setVisible(true);
 
         do {
 
@@ -2360,6 +2345,8 @@ void MainWindow::engineRun () {
           if (stopMe) goto onEngineExit;
 
           currentProjection++;
+
+          ui->scanProgress->setValue(currentProjection);
           if ( currentProjection < totalProjections + doAdd )
             thetaMotor->motor()->goUserPosition
                 ( thetaInSeriesStart + thetaRange * currentProjection / totalProjections, QCaMotor::STARTED);
@@ -2380,7 +2367,9 @@ void MainWindow::engineRun () {
           beforeDF = dfInterval;
         }
 
+
       } else { // CONTINIOUS
+
 
         if ( doDF && dfBefore && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
           acquireDF(seriesName + "BEFORE_", Shutter::OPEN);
@@ -2487,8 +2476,13 @@ void MainWindow::engineRun () {
       ui->postScanScript->script->execute();
       if (stopMe) goto onEngineExit;
 
-      currentProjection=-1;
       currentScan2D++;
+      currentScan++;
+
+      if ( ui->endTime->isChecked() )
+        ui->serialProgress->setValue(inCTtime.elapsed());
+      else
+        ui->serialProgress->setValue(currentScan);
 
       timeToStop = currentScan2D >= totalScans2D
           || ( ui->endTime->isChecked() &&  inCTtime.elapsed() + scanDelay >= scanTime )
@@ -2546,6 +2540,10 @@ void MainWindow::engineRun () {
 
 onEngineExit:
 
+  ui->scanProgress->setVisible(false);
+  ui->serialProgress->setVisible(false);
+
+
   shutter->close();
 
   thetaMotor->motor()->stop(QCaMotor::STOPPED);
@@ -2595,11 +2593,7 @@ onEngineExit:
   outerList->emphasizeRow();
   innearList->emphasizeRow();
 
-  currentScan1D = -1;
-  currentScan2D = -1;
-  currentProjection = -1;
   inCT = false;
-
 
 
 }
