@@ -2166,9 +2166,7 @@ void MainWindow::engineRun () {
       thetaStart = thetaMotor->motor()->getUserPosition(),
       thetaRange = ui->scanRange->value(),
       thetaSpeed = thetaMotor->motor()->getNormalSpeed();
-  double
-      thetaInSeriesStart = thetaStart,
-      totalProjections = ui->scanProjections->value();
+
 
   const bool
       doSerial1D = ui->checkSerial->isChecked(),
@@ -2183,16 +2181,12 @@ void MainWindow::engineRun () {
       ongoingSeries = doSerial1D && ui->ongoingSeries->isChecked(),
       doTriggCT = ! tct->prefix().isEmpty();
 
-  int
-      currentScan1D = 0,
-      currentScan2D = 0,
-      currentScan = 0;
-
   const int
       bgInterval = ui->bgInterval->value(),
       dfInterval = ui->dfInterval->value(),
       scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
       scanTime = QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ),
+      totalProjections = ui->scanProjections->value(),
       projectionDigs = QString::number(totalProjections).size(),
       doAdd = ui->scanAdd->isChecked() ? 1 : 0,
       detimode=det->imageMode(),
@@ -2202,6 +2196,10 @@ void MainWindow::engineRun () {
       totalScans2D = doSerial2D ? innearList->ui->nof->value() : 1 ,
       series1Digs = QString::number(totalScans1D-1).size(),
       series2Digs = QString::number(totalScans2D-1).size();
+  int
+      currentScan1D = 0,
+      currentScan2D = 0,
+      currentScan = 0;
 
 
 
@@ -2335,24 +2333,21 @@ void MainWindow::engineRun () {
           beforeBG--;
 
           thetaMotor->motor()->wait_stop();
-          if ( ! currentProjection )
-            thetaInSeriesStart = ongoingSeries ?
-                  thetaMotor->motor()->getUserPosition() :
-                  thetaStart;
           if (stopMe) goto onEngineExit;
 
           acquireProjection(projectionName);
           if (stopMe) goto onEngineExit;
 
-          currentProjection++;
-
-          ui->scanProgress->setValue(currentProjection);
-          if ( currentProjection < totalProjections + doAdd )
+          if ( currentProjection <= totalProjections + doAdd  &&  ongoingSeries ) {
             thetaMotor->motor()->goUserPosition
-                ( thetaInSeriesStart + thetaRange * currentProjection / totalProjections, QCaMotor::STARTED);
-          else if ( ! ongoingSeries )
+                ( thetaMotor->motor()->getUserPosition()
+                  + thetaRange * currentProjection / totalProjections, QCaMotor::STARTED);
+          } else if ( ! currentProjection )
             thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
           if (stopMe) goto onEngineExit;
+
+          currentProjection++;
+          ui->scanProgress->setValue(currentProjection);
 
         } while ( currentProjection < totalProjections + doAdd );
 
