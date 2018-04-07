@@ -2199,8 +2199,9 @@ void MainWindow::engineRun () {
   int
       currentScan1D = 0,
       currentScan2D = 0,
-      currentScan = 0;
-
+      currentScan = 0,
+      beforeBG = 0,
+      beforeDF = 0;
 
 
   stopMe = false;
@@ -2212,9 +2213,6 @@ void MainWindow::engineRun () {
   inCTtime.restart();
   bool timeToStop=false;
 
-  int
-      beforeBG = 0,
-      beforeDF = 0;
 
   if ( doSerial1D  &&  ui->endNumber->isChecked() &&
        outSMotor->isConnected() &&  outerList->ui->irregular->isChecked() ) // otherwise is already in the first point
@@ -2224,6 +2222,7 @@ void MainWindow::engineRun () {
   if ( doSerial2D && inSMotor->isConnected() &&  innearList->ui->irregular->isChecked() ) // otherwise is already in the first point
     inSMotor->goUserPosition( innearList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
+
 
 
   if ( totalScans1D * totalScans2D > 1 ) {
@@ -2282,7 +2281,7 @@ void MainWindow::engineRun () {
     do { // serial scanning 2D
 
       if ( totalScans2D > 1 )
-        seriesName = seriesNamePrefix + QString("Z%1_").arg(currentScan2D, series2Digs, 10, QChar('0') );
+        seriesName += QString("Z%1_").arg(currentScan2D, series2Digs, 10, QChar('0') );
 
       setenv("CURRENTISCAN", QString::number(currentScan2D).toAscii(), 1);
       setenv("CURRENTSCAN", QString::number(currentScan).toAscii(), 1);
