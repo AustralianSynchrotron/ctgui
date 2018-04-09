@@ -64,13 +64,6 @@ private:
 
   void engineRun();
 
-  bool inAcquisitionTest;
-  bool inDynoTest;
-  bool inMultiTest;
-  bool inFFTest;
-  bool inCT;
-  QTime inCTtime;
-  bool readyToStartCT;
   bool stopMe;
 
   enum AqMode {
@@ -101,7 +94,6 @@ private:
   int acquireMulti(const QString & filetemplate, int count=1);
   int acquireBG(const QString &filetemplate);
   int acquireDF(const QString &filetemplate, Shutter::State stateToGo);
-  int acquireProjection(const QString &filetemplate);
 
 //  QFile * logFile;
 //  QStringList accumulatedLog;
