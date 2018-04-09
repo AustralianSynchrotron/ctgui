@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>5</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -1254,9 +1254,6 @@ p
           <property name="text">
            <string>Test flat and dark field</string>
           </property>
-          <property name="checkable">
-           <bool>true</bool>
-          </property>
          </widget>
         </item>
        </layout>
@@ -1534,9 +1531,6 @@ p
           </property>
           <property name="text">
            <string>Test tiles acquisition</string>
-          </property>
-          <property name="checkable">
-           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -1822,9 +1816,6 @@ p
           </property>
           <property name="text">
            <string>Test dynamic acquisition</string>
-          </property>
-          <property name="checkable">
-           <bool>true</bool>
           </property>
          </widget>
         </item>
@@ -2251,7 +2242,7 @@ p
         <item>
          <widget class="QPushButton" name="testDetector">
           <property name="text">
-           <string>Test</string>
+           <string>Test detector</string>
           </property>
          </widget>
         </item>
@@ -2262,7 +2253,7 @@ p
     <item>
      <widget class="QLabel" name="nonEmptyWarning">
       <property name="styleSheet">
-       <string notr="true">color: rgb(255, 0, 0);</string>
+       <string notr="true">color: rgb(255, 0, 0); font: bold;</string>
       </property>
       <property name="text">
        <string>The working directory contains some TIFF files which may be overwritten. Are you sure you want to start?</string>
