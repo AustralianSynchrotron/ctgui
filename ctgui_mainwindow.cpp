@@ -21,6 +21,9 @@ static const QString cfgFirstName = "acquisition.configuration";
 static const QString logFirstName = "acquisition.log";
 #define innearList dynamic_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
 #define outerList dynamic_cast<PositionList*> ( ui->outerListPlace->layout()->itemAt(0)->widget() )
+#define loopList dynamic_cast<PositionList*> ( ui->loopListPlace->layout()->itemAt(0)->widget() )
+#define sloopList dynamic_cast<PositionList*> ( ui->sloopListPlace->layout()->itemAt(0)->widget() )
+
 
 
 static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
@@ -49,8 +52,6 @@ MainWindow::MainWindow(QWidget *parent) :
   tct(new TriggCT(this)),
   thetaMotor(new QCaMotorGUI),
   bgMotor(new QCaMotorGUI),
-  loopMotor(new QCaMotorGUI),
-  subLoopMotor(new QCaMotorGUI),
   dynoMotor(new QCaMotorGUI),
   dyno2Motor(new QCaMotorGUI),
   stopMe(true)
@@ -77,8 +78,6 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->preScanScript->addToColumnResizer(resizer);
   ui->postScanScript->addToColumnResizer(resizer);
   resizer = new ColumnResizer(this);
-  ui->preLoopScript->addToColumnResizer(resizer);
-  ui->postLoopScript->addToColumnResizer(resizer);
   ui->preSubLoopScript->addToColumnResizer(resizer);
   ui->postSubLoopScript->addToColumnResizer(resizer);
   resizer = new ColumnResizer(this);
@@ -111,18 +110,17 @@ MainWindow::MainWindow(QWidget *parent) :
 
   innearList->putMotor(new QCaMotorGUI);
   outerList->putMotor(new QCaMotorGUI);
+  loopList->putMotor(new QCaMotorGUI);
+  sloopList->putMotor(new QCaMotorGUI);
   ui->placeThetaMotor->layout()->addWidget(thetaMotor->setupButton());
   ui->placeScanCurrent->layout()->addWidget(thetaMotor->currentPosition(true));
   ui->placeBGmotor->layout()->addWidget(bgMotor->setupButton());
   ui->placeBGcurrent->layout()->addWidget(bgMotor->currentPosition(true));
-  ui->placeLoopMotor->layout()->addWidget(loopMotor->setupButton());
-  ui->placeLoopCurrent->layout()->addWidget(loopMotor->currentPosition(true));
-  ui->placeSubLoopMotor->layout()->addWidget(subLoopMotor->setupButton());
-  ui->placeSubLoopCurrent->layout()->addWidget(subLoopMotor->currentPosition(true));
   ui->placeDynoMotor->layout()->addWidget(dynoMotor->setupButton());
   ui->placeDynoCurrent->layout()->addWidget(dynoMotor->currentPosition(true));
   ui->placeDyno2Motor->layout()->addWidget(dyno2Motor->setupButton());
   ui->placeDyno2Current->layout()->addWidget(dyno2Motor->currentPosition(true));
+
 
   ui->placeShutterSelection->layout()->addWidget(shutter->ui->selection);
   ui->placeShutterStatus->layout()->addWidget(shutter->ui->status);
@@ -136,14 +134,16 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->testSerial, SIGNAL(clicked(bool)), SLOT(onSerialTest()));
   connect(ui->testFF, SIGNAL(clicked()), SLOT(onFFtest()));
   connect(ui->testMulti, SIGNAL(clicked()), SLOT(onLoopTest()));
-  connect(ui->swapSerialLists, SIGNAL(clicked(bool)), SLOT(onSwapSerial())); // important to come before updateUi_serials();
-  connect(ui->subLoop, SIGNAL(toggled(bool)), SLOT(onSubLoop()));
   connect(ui->testDyno, SIGNAL(clicked()), SLOT(onDynoTest()));
   connect(ui->dynoDirectionLock, SIGNAL(toggled(bool)), SLOT(onDynoDirectionLock()));
   connect(ui->dynoSpeedLock, SIGNAL(toggled(bool)), SLOT(onDynoSpeedLock()));
   connect(ui->dyno2, SIGNAL(toggled(bool)), SLOT(onDyno2()));
   connect(ui->testDetector, SIGNAL(clicked()), SLOT(onDetectorTest()));
   connect(ui->startStop, SIGNAL(clicked()), SLOT(onStartStop()));
+  connect(ui->swapSerialLists, SIGNAL(clicked(bool)), SLOT(onSwapSerial()));
+  connect(ui->swapLoopLists, SIGNAL(clicked(bool)), SLOT(onSwapLoops()));
+
+
 
   // updateUi's
   {
@@ -161,10 +161,7 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_bgInterval();
   updateUi_dfInterval();
   updateUi_bgMotor();
-  updateUi_loopStep();
-  updateUi_loopMotor();
-  updateUi_subLoopStep();
-  updateUi_subLoopMotor();
+  updateUi_loops();
   updateUi_dynoSpeed();
   updateUi_dynoMotor();
   updateUi_dyno2Speed();
@@ -179,7 +176,6 @@ MainWindow::MainWindow(QWidget *parent) :
   onDynoCheck();
   onMultiCheck();
   onDyno2();
-  onSubLoop();
   onDetectorSelection();
 
 
@@ -235,18 +231,11 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[ui->dfIntervalAfter] = "flatfield/dfAfter";
 
   configNames[ui->singleBg] = "loop/singlebg";
-  configNames[loopMotor->motor()] = "loop/motor";
-  configNames[ui->loopNumber] = "loop/shots";
-  configNames[ui->loopStep] = "loop/step";
-  configNames[ui->preLoopScript] = "loop/preloop";
-  configNames[ui->postLoopScript] = "loop/postloop";
   configNames[ui->subLoop] = "loop/subloop";
-
-  configNames[subLoopMotor->motor()] = "loop/subloop/motor";
-  configNames[ui->subLoopNumber] = "loop/subloop/shots";
-  configNames[ui->subLoopStep] = "loop/subloop/step";
-  configNames[ui->preSubLoopScript] = "loop/subloop/presubloop";
-  configNames[ui->postSubLoopScript] = "loop/subloop/postsubloop";
+  configNames[loopList] = "loop/loopseries";
+  configNames[sloopList] = "loop/subloopseries";
+  configNames[ui->preSubLoopScript] = "loop/presubscript";
+  configNames[ui->postSubLoopScript] = "loop/postsubscript";
 
   configNames[dynoMotor->motor()] = "dyno/motor";
   configNames[ui->dynoSpeed] = "dyno/speed";
@@ -390,6 +379,9 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   setenv("SERIALMOTORIPV", innearList->motui->motor()->getPv().toAscii() , 1);
   setenv("SERIALMOTOROPV", outerList->motui->motor()->getPv().toAscii() , 1);
+  setenv("LOOPMOTORIPV", loopList->motui->motor()->getPv().toAscii() , 1);
+  setenv("SUBLOOPMOTOROPV", sloopList->motui->motor()->getPv().toAscii() , 1);
+
 
 }
 
@@ -658,36 +650,53 @@ void MainWindow::updateUi_aqMode() {
 void MainWindow::updateUi_serials() {
 
   if ( ! sender() ) { // called from the constructor;
+
     const char* thisSlot = SLOT(updateUi_serials());
     connect(ui->endConditionButtonGroup, SIGNAL(buttonClicked(int)), thisSlot);
     connect(ui->serial2D, SIGNAL(toggled(bool)), thisSlot);
     connect(innearList, SIGNAL(amOKchanged(bool)), thisSlot);
     connect(outerList, SIGNAL(amOKchanged(bool)), thisSlot);
-    connect(ui->swapSerialLists, SIGNAL(clicked(bool)), thisSlot); //make sure connected after onSwapSerials()
 
     connect(ui->serial2D, SIGNAL(toggled(bool)), ui->innearListPlace, SLOT(setVisible(bool)));
     connect(ui->serial2D, SIGNAL(toggled(bool)), ui->pre2DScript, SLOT(setVisible(bool)));
     connect(ui->serial2D, SIGNAL(toggled(bool)), ui->pre2DSlabel, SLOT(setVisible(bool)));
     connect(ui->serial2D, SIGNAL(toggled(bool)), ui->post2DScript, SLOT(setVisible(bool)));
     connect(ui->serial2D, SIGNAL(toggled(bool)), ui->post2DSlabel, SLOT(setVisible(bool)));
+    ui->serial2D->toggle(); ui->serial2D->toggle(); // twice to keep initial state
+
     connect(ui->endNumber, SIGNAL(toggled(bool)), ui->outerListPlace, SLOT(setVisible(bool)));
+    connect(ui->endTime,   SIGNAL(toggled(bool)), ui->acquisitionTimeWdg, SLOT(setVisible(bool)));
+    connect(ui->endTime,   SIGNAL(toggled(bool)), ui->acquisitionTimeLabel, SLOT(setVisible(bool)));
+    connect(ui->endCondition, SIGNAL(toggled(bool)), ui->conditionScript, SLOT(setVisible(bool)));
+    connect(ui->endCondition, SIGNAL(toggled(bool)), ui->conditionScriptLabel, SLOT(setVisible(bool)));
+    ui->endTime->toggle();
+    ui->endCondition->toggle();
+    ui->endNumber->toggle();
+
   }
+
 
   ui->swapSerialLists->setVisible( ui->serial2D->isChecked() && ui->endNumber->isChecked() );
   ui->serialTabSpacer->setHidden( ui->serial2D->isChecked() || ui->endNumber->isChecked() );
   innearList->putLabel("innear\nloop\n\n[Z]");
   outerList->putLabel(ui->serial2D->isChecked() ? "outer\nloop\n\n[Y]" : "[Y]");
 
-  ui->acquisitionTimeWdg->setVisible(ui->endTime->isChecked());
-  ui->acquisitionTimeLabel->setVisible(ui->endTime->isChecked());
-
-  ui->conditionScript->setVisible(ui->endCondition->isChecked());
-  ui->conditionScriptLabel->setVisible(ui->endCondition->isChecked());
-
   check(ui->serial2D, ! ui->serial2D->isChecked() || innearList->amOK() );
   check(ui->endNumber, ! ui->endNumber->isChecked() || outerList->amOK() );
 
 }
+
+void MainWindow::onSwapSerial() {
+  PositionList * ol = outerList;
+  PositionList * il = innearList;
+  ui->innearListPlace->layout()->addWidget(ol);
+  ui->outerListPlace->layout()->addWidget(il);
+  configNames[innearList] = "serial/innearseries";
+  configNames[outerList] = "serial/outerseries";
+  updateUi_serials();
+  storeCurrentState();
+}
+
 
 void MainWindow::updateUi_ffOnEachScan() {
     if ( ! sender() ) // called from the constructor;
@@ -697,13 +706,6 @@ void MainWindow::updateUi_ffOnEachScan() {
         ui->ffOnEachScan->setChecked(false);
 }
 
-void MainWindow::onSwapSerial() {
-  ui->innearListPlace->layout()->addWidget( outerList );
-  ui->outerListPlace->layout()->addWidget( innearList );
-  configNames[innearList] = "serial/innearseries";
-  configNames[outerList] = "serial/outerseries";
-  storeCurrentState();
-}
 
 
 
@@ -1040,100 +1042,49 @@ void MainWindow::updateUi_bgMotor() {
 
 
 
-void MainWindow::updateUi_loopStep() {
-  QCaMotor * mot = loopMotor->motor();
+void MainWindow::updateUi_loops() {
   if ( ! sender() ) { // called from the constructor;
-    const char* thisSlot = SLOT(updateUi_loopStep());
-    connect( ui->loopStep, SIGNAL(valueChanged(double)), thisSlot);
-    connect( ui->loopNumber, SIGNAL(valueChanged(int)), thisSlot);
-    connect( ui->checkMulti, SIGNAL(toggled(bool)), thisSlot);
-    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
-    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
-    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
-    connect( mot, SIGNAL(changedUserLoLimit(double)), thisSlot);
-    connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);
+
+    const char* thisSlot = SLOT(updateUi_loops());
+    connect(ui->checkMulti, SIGNAL(toggled(bool)), thisSlot);
+    connect(ui->subLoop, SIGNAL(toggled(bool)), thisSlot);
+    connect(loopList, SIGNAL(amOKchanged(bool)), thisSlot);
+    connect(sloopList, SIGNAL(amOKchanged(bool)), thisSlot);
+
+    connect(ui->subLoop, SIGNAL(toggled(bool)), ui->sloopListPlace, SLOT(setVisible(bool)));
+    connect(ui->subLoop, SIGNAL(toggled(bool)), ui->preSubLoopScript, SLOT(setVisible(bool)));
+    connect(ui->subLoop, SIGNAL(toggled(bool)), ui->preSubLoopScriptLabel, SLOT(setVisible(bool)));
+    connect(ui->subLoop, SIGNAL(toggled(bool)), ui->postSubLoopScript, SLOT(setVisible(bool)));
+    connect(ui->subLoop, SIGNAL(toggled(bool)), ui->postSubLoopScriptLabel, SLOT(setVisible(bool)));
+    connect(ui->subLoop, SIGNAL(toggled(bool)), ui->swapLoopLists, SLOT(setVisible(bool)));
+    ui->subLoop->toggle(); ui->subLoop->toggle(); // twice to keep original
+
   }
 
-  ui->loopStep->setSuffix(mot->getUnits());
-  ui->loopStep->setDecimals(mot->getPrecision());
-  ui->loopStep->setEnabled(mot->isConnected());
+  loopList->putLabel("loop\n\n[L]");
+  sloopList->putLabel("sub\nloop\n\n[S]");
 
-  const double endpos = mot->getUserPosition() +
-      ui->loopStep->value() * ( ui->loopNumber->value() - 1);
-  const bool itemOK =
-      ! ui->checkMulti->isChecked() ||
-      ! mot->isConnected() ||
-      ( ui->loopStep->value() != 0.0  &&
-      endpos > mot->getUserLoLimit() && endpos < mot->getUserHiLimit() );
-  check(ui->loopStep,itemOK);
+  const bool loopisOk = ! ui->checkMulti->isChecked()  ||  ! ui->subLoop->isChecked()  || sloopList->amOK();
+  check(ui->subLoop, loopisOk );
+  check(sloopList->ui->label, loopisOk );
+  check(loopList->ui->label, ! ui->checkMulti->isChecked()  ||  loopList->amOK() );
 
 }
 
-void MainWindow::updateUi_loopMotor() {
-  QCaMotor * mot = loopMotor->motor();
-  if ( ! sender() ) { // called from the constructor;
-    const char* thisSlot = SLOT(updateUi_loopMotor());
-    connect( ui->checkMulti, SIGNAL(toggled(bool)), thisSlot);
-    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
-    connect( mot, SIGNAL(changedPv(QString)), thisSlot);
-    connect( mot, SIGNAL(changedMoving(bool)), thisSlot);
-    connect( mot, SIGNAL(changedLoLimitStatus(bool)), thisSlot);
-    connect( mot, SIGNAL(changedHiLimitStatus(bool)), thisSlot);
-  }
-  check(loopMotor->setupButton(),
-        ! ui->checkMulti->isChecked()  ||  mot->getPv().isEmpty() ||
-        ( mot->isConnected() && ! mot->isMoving()  &&  ! mot->getLimitStatus() ) );
+
+void MainWindow::onSwapLoops() {
+  PositionList * ll = loopList;
+  PositionList * sl = sloopList;
+  ui->loopListPlace->layout()->addWidget(sl);
+  ui->sloopListPlace->layout()->addWidget(ll);
+  configNames[loopList] = "loop/loopseries";
+  configNames[sloopList] = "loop/subloopseries";
+  updateUi_loops();
+  storeCurrentState();
 }
 
-void MainWindow::updateUi_subLoopStep() {
-  QCaMotor * mot = subLoopMotor->motor();
-  if ( ! sender() ) { // called from the constructor;
-    const char* thisSlot = SLOT(updateUi_subLoopStep());
-    connect( ui->subLoopStep, SIGNAL(valueChanged(double)), thisSlot);
-    connect( ui->checkMulti, SIGNAL(toggled(bool)), thisSlot);
-    connect( ui->subLoop, SIGNAL(toggled(bool)), thisSlot);
-    connect( ui->subLoopNumber, SIGNAL(valueChanged(int)), thisSlot);
-    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
-    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
-    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
-    connect( mot, SIGNAL(changedUserLoLimit(double)), thisSlot);
-    connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);
-  }
 
-  ui->subLoopStep->setSuffix(mot->getUnits());
-  ui->subLoopStep->setDecimals(mot->getPrecision());
-  ui->subLoopStep->setEnabled(mot->isConnected());
 
-  const double endpos = mot->getUserPosition() +
-      ui->subLoopStep->value() * ( ui->subLoopNumber->value() - 1 );
-  const bool itemOK =
-      ! ui->checkMulti->isChecked() ||
-      ! ui->subLoop->isChecked() ||
-      ! mot->isConnected() ||
-      ( ui->subLoopStep->value() != 0.0  &&
-      endpos > mot->getUserLoLimit() && endpos < mot->getUserHiLimit() );
-  check(ui->subLoopStep,itemOK );
-
-}
-
-void MainWindow::updateUi_subLoopMotor() {
-  QCaMotor * mot = subLoopMotor->motor();
-  if ( ! sender() ) { // called from the constructor;
-    const char* thisSlot = SLOT(updateUi_subLoopMotor());
-    connect( ui->checkMulti, SIGNAL(toggled(bool)), thisSlot);
-    connect( ui->subLoop, SIGNAL(toggled(bool)), thisSlot);
-    connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
-    connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
-    connect( mot, SIGNAL(changedPv(QString)), thisSlot);
-    connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
-    connect( mot, SIGNAL(changedMoving(bool)), thisSlot);
-    connect( mot, SIGNAL(changedLoLimitStatus(bool)), thisSlot);
-    connect( mot, SIGNAL(changedHiLimitStatus(bool)), thisSlot);
-  }
-  check(subLoopMotor->setupButton(),
-        ! ui->checkMulti->isChecked() || ! ui->subLoop->isChecked() ||  mot->getPv().isEmpty() ||
-        ( mot->isConnected() && ! mot->isMoving()  &&  ! mot->getLimitStatus() ) );
-}
 
 void MainWindow::updateUi_dynoSpeed() {
   if ( ! sender() ) { // called from the constructor;
@@ -1350,19 +1301,6 @@ void MainWindow::onMultiCheck() {
   check( ui->tabMulti, true );
 }
 
-void MainWindow::onSubLoop() {
-  const bool dosl=ui->subLoop->isChecked();
-  ui->placeSubLoopCurrent->setVisible(dosl);
-  ui->placeSubLoopMotor->setVisible(dosl);
-  ui->subLoopNumber->setVisible(dosl);
-  ui->subLoopNumberLabel->setVisible(dosl);
-  ui->subLoopStep->setVisible(dosl);
-  ui->subLoopStepLabel->setVisible(dosl);
-  ui->preSubLoopScript->setVisible(dosl);
-  ui->preSubLoopScriptLabel->setVisible(dosl);
-  ui->postSubLoopScript->setVisible(dosl);
-  ui->postSubLoopScriptLabel->setVisible(dosl);
-}
 
 void MainWindow::onDyno2() {
   const bool dod2 = ui->dyno2->isChecked();
@@ -1879,128 +1817,120 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
   if ( ! ui->checkMulti->isChecked() )
     return -1;
 
-  int totalLoops = ui->loopNumber->value();
-  int totalSubLoops = ui->subLoop->isChecked() ? ui->subLoopNumber->value() : 1;
-  int currentLoop=0;
-  int currentSubLoop=0;
 
-  const QString progressFormat = QString("Multishot progress: %p% ; %v of %m") +
-      ( ui->subLoop->isChecked() ? " (%1,%2 of %3,%4)" : "" );
+  QCaMotor * const lMotor = loopList->motui->motor();
+  QCaMotor * const sMotor = sloopList->motui->motor();
 
-  ui->multiProgress->setMaximum(totalLoops*totalSubLoops);
-  if ( ! ui->subLoop->isChecked() )
-    ui->multiProgress->setFormat(progressFormat);
-  ui->multiProgress->setVisible(true);
+  const bool
+      moveLoop = lMotor->isConnected(),
+      moveSubLoop = ui->subLoop->isChecked() && sMotor->isConnected();
+  const QString ftemplate = filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate;
 
-
-  if ( ui->subLoop->isChecked() ) {
-    ui->multiProgress->setFormat( progressFormat
-                                  .arg(currentLoop+1).arg(currentSubLoop+1)
-                                  .arg(totalLoops).arg(totalSubLoops) );
-  }
+  const double lStart = lMotor->getUserPosition();
+  const double sStart = sMotor->getUserPosition();
 
   const int
-      loopDigs = QString::number(totalLoops).size(),
-      subLoopDigs = QString::number(totalSubLoops).size();
-  const bool
-      moveLoop = loopMotor->motor()->isConnected(),
-      moveSubLoop = ui->subLoop->isChecked() && subLoopMotor->motor()->isConnected();
+      totalLoops = loopList->ui->nof->value(),
+      totalSubLoops = ui->subLoop->isChecked() ? sloopList->ui->nof->value() : 1,
+      loopDigs = QString::number(totalLoops-1).size(),
+      subLoopDigs = QString::number(totalSubLoops-1).size();
+
+  const QString progressFormat = QString("Multishot progress: %p% ; %v of %m") +
+      ( ui->subLoop->isChecked() ? QString(" (%1,%2 of %3,%4)").arg(1).arg(+1).arg(totalLoops).arg(totalSubLoops)
+                                 : "" );
+  ui->multiProgress->setFormat(progressFormat);
+  ui->multiProgress->setMaximum(totalLoops*totalSubLoops);
+  ui->multiProgress->setVisible(true);
+
+  int currentLoop=0;
 
   if (moveLoop)
-    loopMotor->motor()->wait_stop();
+    lMotor->goUserPosition( loopList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
+  if (stopMe) goto acquireMultiExit;
+
   if (moveSubLoop)
-    subLoopMotor->motor()->wait_stop();
+    sMotor->goUserPosition( sloopList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
+  if (stopMe) goto acquireMultiExit;
 
-  if (stopMe ||
-      (moveLoop && loopMotor->motor()->getLimitStatus()) ||
-      (moveSubLoop && subLoopMotor->motor()->getLimitStatus()) )
-    return -1;
-
-  int execStatus=-1;
-  ui->multiWidget->setEnabled(false);
-
-  const double
-      lStart = loopMotor->motor()->getUserPosition(),
-      slStart = subLoopMotor->motor()->getUserPosition();
-
-  const QString ftemplate = ( filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate );
-
-  for ( currentLoop = 0; currentLoop < totalLoops; currentLoop++) {
+  do { // loop
 
     setenv("CURRENTLOOP", QString::number(currentLoop).toAscii(), 1);
+    loopList->emphasizeRow(currentLoop);
 
-    for ( currentSubLoop = 0; currentSubLoop < totalSubLoops; currentSubLoop++) {
+    QString filename = ftemplate + QString("_L%1").arg(currentLoop, loopDigs, 10, QChar('0'));
 
-      setenv("CURRENTSUBLOOP", QString::number(currentLoop).toAscii(), 1);
-      ui->multiProgress->setValue( 1 + currentSubLoop + totalSubLoops * currentLoop );
+    if (moveLoop)
+      lMotor->wait_stop();
+    if (stopMe) goto acquireMultiExit;
 
-      if (moveLoop)
-        loopMotor->motor()->wait_stop();
+    int currentSubLoop=0;
+    do { // subloop
+
+      setenv("CURRENTSUBLOOP", QString::number(currentSubLoop).toAscii(), 1);
+      sloopList->emphasizeRow(currentSubLoop);
+
+      if ( totalSubLoops > 1 )
+        filename += QString("S%1_").arg(currentSubLoop, subLoopDigs, 10, QChar('0') );
+
       if (moveSubLoop)
-        subLoopMotor->motor()->wait_stop();
+        sMotor->wait_stop();
+      if (stopMe) goto acquireMultiExit;
 
-      if (stopMe ||
-          (moveLoop && loopMotor->motor()->getLimitStatus()) ||
-          (moveSubLoop && subLoopMotor->motor()->getLimitStatus()) ) {
-        execStatus = -1;
-        goto acquireMultiExit;
-      }
+      if ( inRun(ui->startStop) )
+        ui->preSubLoopScript ->script->execute();
+      if (stopMe) goto acquireMultiExit;
 
-      QString filename = ftemplate +
-          QString("_L%1").arg(currentLoop, loopDigs, 10, QChar('0')) +
-          ( ui->subLoop->isChecked()  ?
-              QString("_S%1").arg(currentSubLoop, subLoopDigs, 10, QChar('0')) : "");
-      execStatus = ui->checkDyno->isChecked() ?
-            acquireDyno(filename, count) : acquireDetector(filename, count);
 
-      if (stopMe || execStatus )
-        goto acquireMultiExit;
+      if ( ui->checkDyno->isChecked() )
+        acquireDyno(filename, count) ;
+      else
+        acquireDetector(filename, count);
+      if (stopMe) goto acquireMultiExit;
 
-      if (moveSubLoop && currentSubLoop < totalSubLoops-1 )
-        subLoopMotor->motor()->goUserPosition
-            ( slStart + (currentSubLoop+1) * ui->subLoopStep->value(), QCaMotor::STARTED);
 
-      if (stopMe) {
-        execStatus = -1;
-        goto acquireMultiExit;
-      }
+      currentSubLoop++;
+      if (moveSubLoop && currentSubLoop < totalSubLoops)
+        sMotor->goUserPosition(sloopList->ui->list->item(currentSubLoop, 0)->text().toDouble(), QCaMotor::STARTED);
+      if (stopMe) goto acquireMultiExit;
 
+    } while (currentSubLoop < totalSubLoops) ;
+
+    currentLoop++;
+    if (currentLoop < totalLoops) {
+      if (moveLoop)
+        lMotor->goUserPosition(loopList->ui->list->item(currentLoop, 0)->text().toDouble(), QCaMotor::STARTED);
+      if (stopMe) goto acquireMultiExit;
+      if (moveSubLoop)
+        sMotor->goUserPosition(sloopList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
+      if (stopMe) goto acquireMultiExit;
     }
 
-    if (moveLoop && currentLoop < totalLoops-1)
-      loopMotor->motor()->goUserPosition
-          ( lStart + (currentLoop+1) * ui->loopStep->value(), QCaMotor::STARTED);
-    if (moveSubLoop)
-      subLoopMotor->motor()->goUserPosition( slStart, QCaMotor::STARTED);
-    if (stopMe) {
-      execStatus = -1;
-      goto acquireMultiExit;
-    }
+  } while (currentLoop < totalLoops);
 
-  }
 
 acquireMultiExit:
 
-  ui->multiProgress->setVisible(false);
 
+  ui->multiProgress->setVisible(false);
 
   if ( filetemplate.isEmpty()  &&  ! ftemplate.isEmpty() )
     det->setName(uiImageFormat(), ftemplate) ;
 
   if (moveLoop) {
-    loopMotor->motor()->goUserPosition(lStart, QCaMotor::STARTED);
+    lMotor->goUserPosition(lStart, QCaMotor::STARTED);
     if (!stopMe)
-      loopMotor->motor()->wait_stop();
+      lMotor->wait_stop();
   }
   if (moveSubLoop) {
-    subLoopMotor->motor()->goUserPosition(slStart, QCaMotor::STARTED);
+    sMotor->goUserPosition(sStart, QCaMotor::STARTED);
     if (!stopMe)
-      subLoopMotor->motor()->wait_stop();
+      sMotor->wait_stop();
   }
-  currentLoop=-1;
-  currentSubLoop=-1;
-  ui->multiWidget->setEnabled(true);
-  return execStatus;
+
+  return ! stopMe;
+
+  loopList->emphasizeRow();
+  sloopList->emphasizeRow();
 
 }
 
@@ -2016,8 +1946,8 @@ void MainWindow::stopAll() {
   outerList->motui->motor()->stop();
   thetaMotor->motor()->stop();
   bgMotor->motor()->stop();
-  loopMotor->motor()->stop();
-  subLoopMotor->motor()->stop();
+  loopList->motui->motor()->stop();
+  sloopList->motui->motor()->stop();
   dynoMotor->motor()->stop();
   dyno2Motor->motor()->stop();
   foreach( Script * script, findChildren<Script*>() )
@@ -2262,12 +2192,11 @@ void MainWindow::engineRun () {
   }
 
 
-  if ( doSerial1D  &&  ui->endNumber->isChecked() &&
-       outSMotor->isConnected() &&  outerList->ui->irregular->isChecked() ) // otherwise is already in the first point
+  if ( doSerial1D  &&  ui->endNumber->isChecked() && outSMotor->isConnected() )
     outSMotor->goUserPosition( outerList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
 
-  if ( doSerial2D && inSMotor->isConnected() &&  innearList->ui->irregular->isChecked() ) // otherwise is already in the first point
+  if ( doSerial2D && inSMotor->isConnected() )
     inSMotor->goUserPosition( innearList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
 

@@ -49,8 +49,6 @@ private:
 
   QCaMotorGUI * thetaMotor;
   QCaMotorGUI * bgMotor;
-  QCaMotorGUI * loopMotor;
-  QCaMotorGUI * subLoopMotor;
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
 
@@ -138,11 +136,8 @@ private slots:
   // void updateUi_shutterStatus();
   void onFFtest();
 
-  void updateUi_loopStep();
-  void updateUi_loopMotor();
-  void updateUi_subLoopStep();
-  void updateUi_subLoopMotor();
-  void onSubLoop();
+  void updateUi_loops();
+  void onSwapLoops();
   void onLoopTest();
 
   void updateUi_dynoSpeed();

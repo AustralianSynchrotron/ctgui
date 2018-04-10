@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>5</number>
+       <number>1</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -353,87 +353,6 @@
            <item row="3" column="1" colspan="3">
             <widget class="UScript" name="conditionScript" native="true"/>
            </item>
-           <item row="4" column="0" colspan="4">
-            <layout class="QHBoxLayout" name="serialListsLayout">
-             <item>
-              <widget class="QFrame" name="outerListPlace">
-               <property name="frameShape">
-                <enum>QFrame::StyledPanel</enum>
-               </property>
-               <property name="frameShadow">
-                <enum>QFrame::Raised</enum>
-               </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_14">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="margin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="PositionList" name="serialList1" native="true">
-                  <property name="minimumSize">
-                   <size>
-                    <width>20</width>
-                    <height>20</height>
-                   </size>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QToolButton" name="swapSerialLists">
-               <property name="sizePolicy">
-                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                 <horstretch>0</horstretch>
-                 <verstretch>0</verstretch>
-                </sizepolicy>
-               </property>
-               <property name="toolTip">
-                <string>swap innear and outer loops</string>
-               </property>
-               <property name="text">
-                <string>s
-w
-a
-p
-
-⇆</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QFrame" name="innearListPlace">
-               <property name="frameShape">
-                <enum>QFrame::StyledPanel</enum>
-               </property>
-               <property name="frameShadow">
-                <enum>QFrame::Raised</enum>
-               </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_16">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="margin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="PositionList" name="serialList2" native="true">
-                  <property name="minimumSize">
-                   <size>
-                    <width>20</width>
-                    <height>20</height>
-                   </size>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-            </layout>
-           </item>
            <item row="6" column="0">
             <widget class="QLabel" name="post2DSlabel">
              <property name="text">
@@ -609,6 +528,19 @@ p
               <property name="margin">
                <number>0</number>
               </property>
+              <item>
+               <spacer name="verticalSpacer_6">
+                <property name="orientation">
+                 <enum>Qt::Vertical</enum>
+                </property>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>20</width>
+                  <height>89</height>
+                 </size>
+                </property>
+               </spacer>
+              </item>
              </layout>
             </widget>
            </item>
@@ -619,21 +551,83 @@ p
              </property>
             </widget>
            </item>
+           <item row="4" column="0" colspan="4">
+            <layout class="QHBoxLayout" name="serialListsLayout">
+             <item>
+              <widget class="QFrame" name="outerListPlace">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_14">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="PositionList" name="serialList1" native="true">
+                  <property name="minimumSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QToolButton" name="swapSerialLists">
+               <property name="toolTip">
+                <string>swap innear and outer loops</string>
+               </property>
+               <property name="text">
+                <string>s
+w
+a
+p
+
+⇆</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="innearListPlace">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_16">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="PositionList" name="serialList2" native="true">
+                  <property name="minimumSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </item>
           </layout>
          </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer_6">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>89</height>
-           </size>
-          </property>
-         </spacer>
         </item>
         <item>
          <widget class="CTprogressBar" name="serialProgress">
@@ -1269,181 +1263,8 @@ p
         <item>
          <widget class="QWidget" name="multiWidget" native="true">
           <layout class="QGridLayout" name="gridLayout_7">
-           <item row="1" column="0" colspan="2">
-            <widget class="Line" name="line_18">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1">
-            <widget class="UScript" name="preLoopScript" native="true"/>
-           </item>
-           <item row="7" column="1">
-            <widget class="UScript" name="postLoopScript" native="true"/>
-           </item>
-           <item row="8" column="0" colspan="2">
-            <widget class="Line" name="line_11">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="13" column="0">
-            <widget class="QLabel" name="preSubLoopScriptLabel">
-             <property name="text">
-              <string>pre-subloop script</string>
-             </property>
-            </widget>
-           </item>
-           <item row="13" column="1">
-            <widget class="UScript" name="preSubLoopScript" native="true"/>
-           </item>
-           <item row="14" column="0">
+           <item row="4" column="0">
             <widget class="QLabel" name="postSubLoopScriptLabel">
-             <property name="text">
-              <string>post-subloop script</string>
-             </property>
-            </widget>
-           </item>
-           <item row="14" column="1">
-            <widget class="UScript" name="postSubLoopScript" native="true"/>
-           </item>
-           <item row="7" column="0">
-            <widget class="QLabel" name="postLoopScriptLabel">
-             <property name="text">
-              <string>post-loop script</string>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="0">
-            <widget class="QLabel" name="label_44">
-             <property name="text">
-              <string>pre-loop script</string>
-             </property>
-            </widget>
-           </item>
-           <item row="9" column="0" colspan="2">
-            <widget class="QSCheckBox" name="subLoop">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;TotalSubLoops&lt;/span&gt;=0 if uncheked. Enables/disables the widgets below related to the sub-loop execution.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Sub-loop</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0" colspan="2">
-            <widget class="QSCheckBox" name="singleBg">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;SameBG&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Same background for all images in loop(s).</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="12" column="0">
-            <widget class="QLabel" name="subLoopStepLabel">
-             <property name="text">
-              <string>Step</string>
-             </property>
-            </widget>
-           </item>
-           <item row="12" column="1">
-            <widget class="QMDoubleSpinBox" name="subLoopStep">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;SubLoopStep&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="minimum">
-              <double>-2147483647.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>2147483647.000000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="11" column="1">
-            <widget class="QMSpinBox" name="subLoopNumber">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalSubLoops&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="minimum">
-              <number>2</number>
-             </property>
-             <property name="maximum">
-              <number>2147483647</number>
-             </property>
-            </widget>
-           </item>
-           <item row="11" column="0">
-            <widget class="QLabel" name="subLoopNumberLabel">
-             <property name="text">
-              <string>Shots</string>
-             </property>
-            </widget>
-           </item>
-           <item row="10" column="1">
-            <widget class="QWidget" name="placeSubLoopCurrent" native="true">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>20</height>
-              </size>
-             </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_30">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="margin">
-               <number>0</number>
-              </property>
-             </layout>
-            </widget>
-           </item>
-           <item row="10" column="0">
-            <widget class="QWidget" name="placeSubLoopMotor" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout_21">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="margin">
-               <number>0</number>
-              </property>
-             </layout>
-            </widget>
-           </item>
-           <item row="5" column="1">
-            <widget class="QMDoubleSpinBox" name="loopStep">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;LoopStep&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="minimum">
-              <double>-2147483647.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>2147483647.000000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="1">
-            <widget class="QMSpinBox" name="loopNumber">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalLoops&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="minimum">
-              <number>2</number>
-             </property>
-             <property name="maximum">
-              <number>2147483647</number>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0" colspan="2">
-            <widget class="QLabel" name="label_55">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                <horstretch>0</horstretch>
@@ -1451,50 +1272,118 @@ p
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Loop</string>
+              <string>post-subloop script</string>
              </property>
             </widget>
            </item>
-           <item row="5" column="0">
-            <widget class="QLabel" name="label_78">
-             <property name="text">
-              <string>Step</string>
-             </property>
-            </widget>
+           <item row="3" column="1">
+            <widget class="UScript" name="preSubLoopScript" native="true"/>
            </item>
-           <item row="4" column="0">
-            <widget class="QLabel" name="label_77">
+           <item row="3" column="0">
+            <widget class="QLabel" name="preSubLoopScriptLabel">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Shots</string>
+              <string>pre-subloop script</string>
              </property>
             </widget>
            </item>
-           <item row="3" column="1">
-            <widget class="QWidget" name="placeLoopCurrent" native="true">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>20</height>
-              </size>
-             </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_28">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="margin">
-               <number>0</number>
-              </property>
-             </layout>
-            </widget>
+           <item row="4" column="1">
+            <widget class="UScript" name="postSubLoopScript" native="true"/>
            </item>
-           <item row="3" column="0">
-            <widget class="QWidget" name="placeLoopMotor" native="true">
+           <item row="2" column="0" colspan="2">
+            <layout class="QHBoxLayout" name="loopListsLayout">
+             <item>
+              <widget class="QFrame" name="loopListPlace">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_30">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="PositionList" name="multiList1" native="true">
+                  <property name="minimumSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QToolButton" name="swapLoopLists">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string>swap innear and outer loops</string>
+               </property>
+               <property name="text">
+                <string>s
+w
+a
+p
+
+⇆</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="sloopListPlace">
+               <property name="frameShape">
+                <enum>QFrame::StyledPanel</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_36">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="margin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="PositionList" name="multiList2" native="true">
+                  <property name="minimumSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item row="1" column="0" colspan="2">
+            <widget class="QWidget" name="horizontalWidget" native="true">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <layout class="QHBoxLayout" name="horizontalLayout_18">
               <property name="spacing">
                <number>0</number>
@@ -1502,24 +1391,37 @@ p
               <property name="margin">
                <number>0</number>
               </property>
+              <item>
+               <widget class="QSCheckBox" name="subLoop">
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;TotalSubLoops&lt;/span&gt;=0 if uncheked. Enables/disables the widgets below related to the sub-loop execution.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="text">
+                 <string>Sub-loop</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QSCheckBox" name="singleBg">
+                <property name="toolTip">
+                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;SameBG&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                </property>
+                <property name="text">
+                 <string>Same background for all images in loop(s).</string>
+                </property>
+                <property name="checked">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
              </layout>
             </widget>
            </item>
           </layout>
          </widget>
-        </item>
-        <item>
-         <spacer name="verticalSpacer_2">
-          <property name="orientation">
-           <enum>Qt::Vertical</enum>
-          </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>0</width>
-            <height>0</height>
-           </size>
-          </property>
-         </spacer>
         </item>
         <item>
          <widget class="QProgressBar" name="multiProgress"/>
