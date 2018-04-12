@@ -592,7 +592,7 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
 
   }
 
-  if ( _camera == HamaGranny || _camera == HamaMama) {
+  if ( _camera == HamaGranny ) {
      if ( ! setTriggerMode(1) )
        return false;
   } else if ( _camera != Argus ) {

@@ -1857,7 +1857,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
     setenv("CURRENTLOOP", QString::number(currentLoop).toAscii(), 1);
     loopList->emphasizeRow(currentLoop);
 
-    QString filename = ftemplate + QString("_L%1").arg(currentLoop, loopDigs, 10, QChar('0'));
+    const QString filenameL = ftemplate + QString("_L%1_").arg(currentLoop, loopDigs, 10, QChar('0'));
 
     if (moveLoop)
       lMotor->wait_stop();
@@ -1869,6 +1869,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
       setenv("CURRENTSUBLOOP", QString::number(currentSubLoop).toAscii(), 1);
       sloopList->emphasizeRow(currentSubLoop);
 
+      QString filename = filenameL;
       if ( totalSubLoops > 1 )
         filename += QString("S%1_").arg(currentSubLoop, subLoopDigs, 10, QChar('0') );
 
@@ -2098,7 +2099,7 @@ void MainWindow::engineRun () {
       doSerial2D = doSerial1D && ui->serial2D->isChecked(),
       doBG = inRun(ui->startStop) && ui->checkFF->isChecked() && ui->nofBGs->value(),
       doDF = inRun(ui->startStop) && ui->checkFF->isChecked() && ui->nofDFs->value(),
-      sasMode = ! inRun(ui->startStop)  &&  ui->aqMode->currentIndex() == STEPNSHOT,
+      sasMode = inRun(ui->startStop)  &&  ui->aqMode->currentIndex() == STEPNSHOT,
       ongoingSeries = doSerial1D && ui->ongoingSeries->isChecked(),
       doTriggCT = inRun(ui->startStop) && ! tct->prefix().isEmpty();
 
@@ -2215,10 +2216,6 @@ void MainWindow::engineRun () {
   if (stopMe) goto onEngineExit;
 
 
-
-
-
-
   do { // serial scanning 1D
 
 
@@ -2293,6 +2290,7 @@ void MainWindow::engineRun () {
 
 
 
+
         int currentProjection = 0;
         if ( ! ongoingSeries ) {
           beforeBG=0;
@@ -2310,7 +2308,7 @@ void MainWindow::engineRun () {
           setenv("CURRENTPROJECTION", QString::number(currentProjection).toAscii(), 1);
 
           projectionName = "SAMPLE_" + seriesName +
-              QString("T_%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
+              QString("T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
 
           if (doDF && ! beforeDF) {
             acquireDF(projectionName, Shutter::OPEN);
@@ -2341,27 +2339,28 @@ void MainWindow::engineRun () {
             acquireDetector(projectionName, ui->aqsPP->value());
           if (stopMe) goto onEngineExit;
 
-          if ( currentProjection <= totalProjections + doAdd  &&  ongoingSeries ) {
-            thetaMotor->motor()->goUserPosition
-                ( thetaMotor->motor()->getUserPosition()
-                  + thetaRange * currentProjection / totalProjections, QCaMotor::STARTED);
-          } else if ( ! currentProjection )
-            thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
+          currentProjection++;
+
+          double motorTarget = thetaStart + thetaRange * currentProjection / totalProjections;
+          if (currentProjection < totalProjections + doAdd)
+            thetaMotor->motor()->goUserPosition( motorTarget + ( ongoingSeries ? thetaRange * currentScan : 0) , QCaMotor::STARTED );
           if (stopMe) goto onEngineExit;
 
-          currentProjection++;
           ui->scanProgress->setValue(currentProjection);
+
 
         } while ( currentProjection < totalProjections + doAdd );
 
 
+
+
         if (doBG && ! beforeBG) {
-          acquireBG(projectionName);
+          acquireBG(projectionName + "AFTER_");
           if (stopMe) goto onEngineExit;
           beforeBG = bgInterval;
         }
         if ( doDF && ! beforeDF ) {
-          acquireDF(projectionName, Shutter::OPEN);
+          acquireDF(projectionName + "AFTER_", Shutter::OPEN);
           if (stopMe) goto onEngineExit;
           beforeDF = dfInterval;
         }
@@ -2459,22 +2458,12 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
 
         if ( ! ongoingSeries ) {
-
-          thetaMotor->motor()->stop(QCaMotor::STOPPED);
-          if (stopMe) goto onEngineExit;
-          setMotorSpeed(thetaMotor, thetaSpeed);
-          thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
-          if (stopMe) goto onEngineExit;
-
-          if ( doBG  && ui->bgIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() ) {
+          if ( doBG  && ui->bgIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() )
             acquireBG(seriesName + "AFTER_");
-            if (stopMe) goto onEngineExit;
-          }
-          if ( doDF && ui->dfIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() ) {
+          if (stopMe) goto onEngineExit;
+          if ( doDF && ui->dfIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() )
             acquireDF(seriesName + "AFTER_", Shutter::OPEN);
-            if (stopMe) goto onEngineExit;
-          }
-
+          if (stopMe) goto onEngineExit;
         }
 
 
@@ -2485,9 +2474,18 @@ void MainWindow::engineRun () {
 
 
 
+
       if ( inRun(ui->startStop) )
         ui->postScanScript->script->execute();
       if (stopMe) goto onEngineExit;
+
+      if ( ! ongoingSeries ) {
+        thetaMotor->motor()->stop(QCaMotor::STOPPED);
+        if (stopMe) goto onEngineExit;
+        setMotorSpeed(thetaMotor, thetaSpeed);
+        thetaMotor->motor()->goUserPosition( thetaStart, QCaMotor::STARTED );
+        if (stopMe) goto onEngineExit;
+      }
 
       currentScan2D++;
       currentScan++;
@@ -2508,8 +2506,6 @@ void MainWindow::engineRun () {
         qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
         if (stopMe) goto onEngineExit;
       }
-
-
 
 
     } while ( ! timeToStop ); // innear loop
@@ -2555,7 +2551,7 @@ void MainWindow::engineRun () {
 
 
   } while ( ! timeToStop );
-
+  if (stopMe) goto onEngineExit;
 
 
   if ( inRun(ui->startStop) )
