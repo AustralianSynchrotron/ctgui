@@ -1383,14 +1383,14 @@ void MainWindow::onSerialTest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testSerial, true, "Stop");
-  check(ui->testSerial, false);
+  check(ui->tabSerial, false);
   ui->ssWidget->setEnabled(false);
 
   engineRun();
 
   ui->ssWidget->setEnabled(true);
   mkRun(ui->testSerial, false, butText);
-  check(ui->testSerial, true);
+  check(ui->tabSerial, true);
 
 }
 
@@ -1408,7 +1408,7 @@ void MainWindow::onFFtest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testFF, true, "Stop");
-  check(ui->testFF, false);
+  check(ui->tabFF, false);
   ui->ffWidget->setEnabled(false);
 
   const QString origname = det->name(uiImageFormat());
@@ -1429,7 +1429,7 @@ void MainWindow::onFFtest() {
 
   ui->ffWidget->setEnabled(true);
   mkRun(ui->testFF, false, butText);
-  check(ui->testFF, true);
+  check(ui->tabFF, true);
 
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
 
@@ -1445,7 +1445,7 @@ void MainWindow::onLoopTest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testMulti, true, "Stop");
-  check(ui->testMulti, false);
+  check(ui->tabMulti, false);
   ui->multiWidget->setEnabled(false);
 
   acquireMulti("",  ( ui->aqMode->currentIndex() == STEPNSHOT  &&  ! ui->checkDyno->isChecked() )  ?
@@ -1455,7 +1455,7 @@ void MainWindow::onLoopTest() {
 
   ui->multiWidget->setEnabled(true);
   mkRun(ui->testMulti, false, butText);
-  check(ui->testMulti, true);
+  check(ui->tabMulti, true);
   QTimer::singleShot(0, this, SLOT(updateUi_loopMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_subLoopMotor()));
 
@@ -1470,7 +1470,7 @@ void MainWindow::onDynoTest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testDyno, true, "Stop");
-  check(ui->testDyno, false);
+  check(ui->tabDyno, false);
   ui->dynoWidget->setEnabled(false);
 
   acquireDyno("");
@@ -1479,7 +1479,7 @@ void MainWindow::onDynoTest() {
 
   ui->dynoWidget->setEnabled(true);
   mkRun(ui->testDyno, false, butText);
-  check(ui->testDyno, true);
+  check(ui->tabDyno, true);
   QTimer::singleShot(0, this, SLOT(updateUi_dynoMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_dyno2Motor()));
 
@@ -1495,7 +1495,7 @@ void MainWindow::onDetectorTest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testDetector, true, "Stop");
-  check(ui->testDetector, false);
+  check(ui->tabDetector, false);
   ui->detectorWidget->setEnabled(false);
 
   acquireDetector(det->name(uiImageFormat()),
@@ -1506,7 +1506,7 @@ void MainWindow::onDetectorTest() {
 
   ui->detectorWidget->setEnabled(true);
   mkRun(ui->testDetector, false, butText);
-  check(ui->testDetector, true);
+  check(ui->tabDetector, true);
   updateUi_detector();
 
 }
@@ -2360,7 +2360,7 @@ void MainWindow::engineRun () {
           beforeBG = bgInterval;
         }
         if ( doDF && ! beforeDF ) {
-          acquireDF(projectionName + "AFTER_", Shutter::OPEN);
+          acquireDF(projectionName + "AFTER_", Shutter::CLOSED);
           if (stopMe) goto onEngineExit;
           beforeDF = dfInterval;
         }
@@ -2462,7 +2462,7 @@ void MainWindow::engineRun () {
             acquireBG(seriesName + "AFTER_");
           if (stopMe) goto onEngineExit;
           if ( doDF && ui->dfIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() )
-            acquireDF(seriesName + "AFTER_", Shutter::OPEN);
+            acquireDF(seriesName + "AFTER_", Shutter::CLOSED);
           if (stopMe) goto onEngineExit;
         }
 
@@ -2542,7 +2542,7 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
       }
       if ( doDF && ui->dfIntervalAfter->isChecked() ) {
-        acquireDF(seriesName + "AFTER_", Shutter::OPEN);
+        acquireDF(seriesName + "AFTER_", Shutter::CLOSED);
         if (stopMe) goto onEngineExit;
       }
     }
