@@ -2224,13 +2224,13 @@ void MainWindow::engineRun () {
     setenv("CURRENTOSCAN", QString::number(currentScan1D).toAscii(), 1);
     outerList->emphasizeRow(currentScan1D);
 
-    QString seriesName;
+    QString series1Name;
     if (totalScans1D==1)
-      seriesName = "";
+      series1Name = "";
     else if (totalScans1D>1)
-      seriesName = QString("Y%1_").arg(currentScan1D, series1Digs, 10, QChar('0') );
+      series1Name = QString("Y%1_").arg(currentScan1D, series1Digs, 10, QChar('0') );
     else
-      seriesName = "Y" + QString::number(currentScan1D) + "_";
+      series1Name = "Y" + QString::number(currentScan1D) + "_";
 
     if (doSerial1D  && outSMotor->isConnected())
       outSMotor->wait_stop();
@@ -2249,9 +2249,8 @@ void MainWindow::engineRun () {
 
 
 
-
-      if ( totalScans2D > 1 )
-        seriesName += QString("Z%1_").arg(currentScan2D, series2Digs, 10, QChar('0') );
+      const QString seriesName = series1Name +
+          ( totalScans2D > 1  ?  QString("Z%1_").arg(currentScan2D, series2Digs, 10, QChar('0') )  :  QString() );
 
       setenv("CURRENTISCAN", QString::number(currentScan2D).toAscii(), 1);
       setenv("CURRENTSCAN", QString::number(currentScan).toAscii(), 1);
@@ -2538,11 +2537,11 @@ void MainWindow::engineRun () {
 
     if ( timeToStop && ! sasMode && ! ui->ffOnEachScan->isChecked() ) {
       if ( doBG && ui->bgIntervalAfter->isChecked() ) {
-        acquireBG(seriesName + "AFTER_");
+        acquireBG(series1Name + "AFTER_");
         if (stopMe) goto onEngineExit;
       }
       if ( doDF && ui->dfIntervalAfter->isChecked() ) {
-        acquireDF(seriesName + "AFTER_", Shutter::CLOSED);
+        acquireDF(series1Name + "AFTER_", Shutter::CLOSED);
         if (stopMe) goto onEngineExit;
       }
     }
