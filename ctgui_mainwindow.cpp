@@ -2158,15 +2158,15 @@ void MainWindow::engineRun () {
   QTemporaryFile logExec(this);
   if ( inRun(ui->startStop) ) {
 
-    if ( QFile::exists(cfgFirstName) || QFile::exists(logFirstName) )
-      if (  QMessageBox::No == QMessageBox::question(this, "Overwrite warning",
-                            "Current directory seems to contain earlier scans: "
+    if ( ( QFile::exists(cfgFirstName) || QFile::exists(logFirstName) )
+         &&  QMessageBox::No == QMessageBox::question(this, "Overwrite warning"
+                            , "Current directory seems to contain earlier scans: "
                             + cfgFirstName + " and/or " + logFirstName + " files are present."
                             " Existing data may be overwritten.\n\n"
-                            " Do you want to proceed?\n",
-                                                     QMessageBox::Yes | QMessageBox::No,
-                                                     QMessageBox::No)  )
-        return;
+                            " Do you want to proceed?\n"
+                            , QMessageBox::Yes | QMessageBox::No
+                            , QMessageBox::No)  )
+        goto onEngineExit;
 
     QString cfgName = cfgFirstName;
     QString logName = logFirstName;

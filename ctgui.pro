@@ -54,4 +54,3 @@ OTHER_FILES += libexec/ctgui.log.sh
 
 
 ## TODO ##
-## - adjust step-and-shot names
