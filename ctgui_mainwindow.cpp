@@ -17,8 +17,6 @@
 
 
 
-static const QString cfgFirstName = "acquisition.configuration";
-static const QString logFirstName = "acquisition.log";
 #define innearList dynamic_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
 #define outerList dynamic_cast<PositionList*> ( ui->outerListPlace->layout()->itemAt(0)->widget() )
 #define loopList dynamic_cast<PositionList*> ( ui->loopListPlace->layout()->itemAt(0)->widget() )
@@ -540,12 +538,8 @@ void MainWindow::updateUi_expPath() {
     isOK = false;
 
   if (isOK) {
-
     QDir::setCurrent(pth);
-    ui->nonEmptyWarning->setVisible(QFile::exists(cfgFirstName) || QFile::exists(logFirstName));
-
     if ( ui->detPathSync->isChecked() && det->isConnected() ) {
-
       QString lastComponent = lastPathComponent(pth);
       QString detDir = det->path(uiImageFormat());
       if ( detDir.endsWith("/") || detDir.endsWith("\\") ) // can be win or lin path delimiter
@@ -554,9 +548,7 @@ void MainWindow::updateUi_expPath() {
       if ( delidx >=0 )
         detDir.truncate(delidx+1);
       det->setPath(detDir + lastComponent);
-
     }
-
   }
 
   check(ui->expPath, isOK);
@@ -2158,24 +2150,22 @@ void MainWindow::engineRun () {
   QTemporaryFile logExec(this);
   if ( inRun(ui->startStop) ) {
 
-    if ( ( QFile::exists(cfgFirstName) || QFile::exists(logFirstName) )
-         &&  QMessageBox::No == QMessageBox::question(this, "Overwrite warning"
-                            , "Current directory seems to contain earlier scans: "
-                            + cfgFirstName + " and/or " + logFirstName + " files are present."
-                            " Existing data may be overwritten.\n\n"
-                            " Do you want to proceed?\n"
-                            , QMessageBox::Yes | QMessageBox::No
-                            , QMessageBox::No)  )
-        goto onEngineExit;
-
-    QString cfgName = cfgFirstName;
-    QString logName = logFirstName;
+    QString cfgName;
+    QString logName;
     int attempt=0;
-    while ( QFile::exists(cfgName) || QFile::exists(logName) ) {
-      QString prefix = "acquisition." + QString::number(++attempt);
-      cfgName = prefix + ".configuration";
-      logName = prefix + ".log";
-    }
+    do {
+      cfgName = "acquisition." + QString::number(attempt) + ".configuration";
+      logName = "acquisition." + QString::number(attempt) + ".log";
+      attempt++;
+    } while ( QFile::exists(cfgName) || QFile::exists(logName) ) ;
+
+    if ( attempt > 1  &&  QMessageBox::No == QMessageBox::question
+         (this, "Overwrite warning"
+          , "Current directory seems to contain earlier scans: configuration and/or log files are present.\n\n"
+            " Existing data may be overwritten.\n"
+            " Do you want to proceed?\n"
+          , QMessageBox::Yes | QMessageBox::No, QMessageBox::No)  )
+      goto onEngineExit;
 
     saveConfiguration(cfgName);
 
