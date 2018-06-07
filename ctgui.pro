@@ -8,7 +8,7 @@ DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 QT += core \
       gui
 
-TARGET = ctgui.exp
+TARGET = ctgui
 TARGET.path = $$PREFIX/
 TEMPLATE = app
 SOURCES += main.cpp \
