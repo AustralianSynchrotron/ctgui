@@ -6,7 +6,8 @@ VERSION = 2.0
 DEFINES += APP_VERSION=\\\"$$VERSION\\\"
 
 QT += core \
-      gui
+      gui \
+      widgets
 
 TARGET = ctgui
 TARGET.path = $$PREFIX/

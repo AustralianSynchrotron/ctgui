@@ -25,8 +25,13 @@ PositionList::PositionList(QWidget *parent)
 
   ui->list->setItemDelegateForColumn(0, new NTableDelegate(ui->list));
   ui->list->horizontalHeader()->setStretchLastSection(false);
+  #if QT_VERSION >= 0x050000
+  ui->list->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+  ui->list->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+  #else
   ui->list->horizontalHeader()->setResizeMode(0, QHeaderView::Stretch);
   ui->list->horizontalHeader()->setResizeMode(1, QHeaderView::Fixed);
+  #endif
 
   updateNoF();
 

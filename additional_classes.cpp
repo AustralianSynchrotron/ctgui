@@ -303,7 +303,7 @@ const QString & Script::setPath(const QString &_p) {
   if ( ! fileExec.isOpen() || isRunning() )
     return path();
   fileExec.resize(0);
-  fileExec.write( _p.toAscii() );
+  fileExec.write( _p.toLatin1() );
   fileExec.write( " $@\n" );
   fileExec.flush();
   _path=_p;

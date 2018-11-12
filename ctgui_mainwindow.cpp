@@ -375,10 +375,10 @@ void MainWindow::saveConfiguration(QString fileName) {
   }
   config.endGroup();
 
-  setenv("SERIALMOTORIPV", innearList->motui->motor()->getPv().toAscii() , 1);
-  setenv("SERIALMOTOROPV", outerList->motui->motor()->getPv().toAscii() , 1);
-  setenv("LOOPMOTORIPV", loopList->motui->motor()->getPv().toAscii() , 1);
-  setenv("SUBLOOPMOTOROPV", sloopList->motui->motor()->getPv().toAscii() , 1);
+  setenv("SERIALMOTORIPV", innearList->motui->motor()->getPv().toLatin1() , 1);
+  setenv("SERIALMOTOROPV", outerList->motui->motor()->getPv().toLatin1() , 1);
+  setenv("LOOPMOTORIPV", loopList->motui->motor()->getPv().toLatin1() , 1);
+  setenv("SUBLOOPMOTOROPV", sloopList->motui->motor()->getPv().toLatin1() , 1);
 
 
 }
@@ -886,7 +886,7 @@ void MainWindow::updateUi_thetaMotor() {
     connect( mot, SIGNAL(changedHiLimitStatus(bool)), thisSlot);
   }
 
-  setenv("ROTATIONMOTORPV", mot->getPv().toAscii() , 1);
+  setenv("ROTATIONMOTORPV", mot->getPv().toLatin1() , 1);
 
   check(thetaMotor->setupButton(),
         mot->isConnected() && ! mot->isMoving() && ! mot->getLimitStatus());
@@ -1344,18 +1344,18 @@ void MainWindow::onDetectorSelection() {
   const QString currentText = ui->detSelection->currentText();
   if (currentText.isEmpty()) {
     det->setCamera(Detector::NONE);
-    setenv("DETECTORPV", det->pv().toAscii(), 1);
+    setenv("DETECTORPV", det->pv().toLatin1(), 1);
     return;
   } else {
     foreach (Detector::Camera cam , Detector::knownCameras)
       if (currentText==Detector::cameraName(cam)) {
         det->setCamera(cam);
-        setenv("DETECTORPV", det->pv().toAscii(), 1);
+        setenv("DETECTORPV", det->pv().toLatin1(), 1);
         return;
       }
   }
   det->setCamera(currentText);
-  setenv("DETECTORPV", det->pv().toAscii(), 1);
+  setenv("DETECTORPV", det->pv().toLatin1(), 1);
 }
 
 
@@ -1846,7 +1846,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
 
   do { // loop
 
-    setenv("CURRENTLOOP", QString::number(currentLoop).toAscii(), 1);
+    setenv("CURRENTLOOP", QString::number(currentLoop).toLatin1(), 1);
     loopList->emphasizeRow(currentLoop);
 
     const QString filenameL = ftemplate + QString("_L%1_").arg(currentLoop, loopDigs, 10, QChar('0'));
@@ -1858,7 +1858,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
     int currentSubLoop=0;
     do { // subloop
 
-      setenv("CURRENTSUBLOOP", QString::number(currentSubLoop).toAscii(), 1);
+      setenv("CURRENTSUBLOOP", QString::number(currentSubLoop).toLatin1(), 1);
       sloopList->emphasizeRow(currentSubLoop);
 
       QString filename = filenameL;
@@ -2176,7 +2176,7 @@ void MainWindow::engineRun () {
                       + "/libexec/ctgui.log.sh"
                       + " " + det->pv()
                       + " " + thetaMotor->motor()->getPv()
-                      + " >> " + logName ).toAscii() );
+                      + " >> " + logName ).toLatin1() );
     logExec.flush();
     logProc.start( "/bin/sh " + logExec.fileName() );
 
@@ -2211,7 +2211,7 @@ void MainWindow::engineRun () {
 
 
 
-    setenv("CURRENTOSCAN", QString::number(currentScan1D).toAscii(), 1);
+    setenv("CURRENTOSCAN", QString::number(currentScan1D).toLatin1(), 1);
     outerList->emphasizeRow(currentScan1D);
 
     QString series1Name;
@@ -2242,8 +2242,8 @@ void MainWindow::engineRun () {
       const QString seriesName = series1Name +
           ( totalScans2D > 1  ?  QString("Z%1_").arg(currentScan2D, series2Digs, 10, QChar('0') )  :  QString() );
 
-      setenv("CURRENTISCAN", QString::number(currentScan2D).toAscii(), 1);
-      setenv("CURRENTSCAN", QString::number(currentScan).toAscii(), 1);
+      setenv("CURRENTISCAN", QString::number(currentScan2D).toLatin1(), 1);
+      setenv("CURRENTSCAN", QString::number(currentScan).toLatin1(), 1);
       innearList->emphasizeRow(currentScan2D);
 
 
@@ -2294,7 +2294,7 @@ void MainWindow::engineRun () {
 
         do {
 
-          setenv("CURRENTPROJECTION", QString::number(currentProjection).toAscii(), 1);
+          setenv("CURRENTPROJECTION", QString::number(currentProjection).toLatin1(), 1);
 
           projectionName = "SAMPLE_" + seriesName +
               QString("T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );

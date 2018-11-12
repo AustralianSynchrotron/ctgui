@@ -452,7 +452,7 @@ bool Detector::setPeriod(double val) {
 
 bool Detector::setNumber(int val) {
 
-  setenv("DETAQNUM", QString::number(val).toAscii(), 1);
+  setenv("DETAQNUM", QString::number(val).toLatin1(), 1);
   if ( ! _camera )
     return true;
 
@@ -484,10 +484,10 @@ bool Detector::setNameTemplate(ImageFormat fmt, const QString & ntemp) {
     return true;
 
   if ( fmt == TIFF  && nameTemplateTiffPv->isConnected() ) {
-    nameTemplateTiffPv->set(ntemp.toAscii().append(char(0)));
+    nameTemplateTiffPv->set(ntemp.toLatin1().append(char(0)));
     qtWait(nameTemplateTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   } else if ( fmt == HDF  && nameTemplateHdfPv->isConnected() ) {
-    nameTemplateHdfPv->set(ntemp.toAscii().append(char(0)));
+    nameTemplateHdfPv->set(ntemp.toLatin1().append(char(0)));
     qtWait(nameTemplateHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
   } else {
     return setNameTemplate(TIFF, ntemp) && setNameTemplate(HDF, ntemp);
@@ -498,7 +498,7 @@ bool Detector::setNameTemplate(ImageFormat fmt, const QString & ntemp) {
 
 bool Detector::setName(ImageFormat fmt, const QString & fname) {
 
-  setenv("DETFILENAME", fname.toAscii(), 1);
+  setenv("DETFILENAME", fname.toLatin1(), 1);
   if ( ! _camera )
     return true;
   if ( isAcquiring() )
@@ -507,10 +507,10 @@ bool Detector::setName(ImageFormat fmt, const QString & fname) {
     return true;
 
   if ( fmt == TIFF  && nameTiffPv->isConnected() ) {
-    nameTiffPv->set(fname.toAscii().append(char(0)));
+    nameTiffPv->set(fname.toLatin1().append(char(0)));
     qtWait(nameTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   } else if ( fmt == HDF  && nameHdfPv->isConnected() ) {
-    nameHdfPv->set(fname.toAscii().append(char(0)));
+    nameHdfPv->set(fname.toLatin1().append(char(0)));
     qtWait(nameHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
   } else {
     return setName(TIFF, fname) & setName(HDF, fname);
@@ -525,11 +525,11 @@ bool Detector::setPath(const QString & _path) {
     return true;
 
   if ( pathSetTiffPv->isConnected()  &&  path(TIFF) != _path ) {
-    pathSetTiffPv->set(_path.toAscii().append(char(0)));
+    pathSetTiffPv->set(_path.toLatin1().append(char(0)));
     qtWait(pathTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   }
   if ( pathSetHdfPv->isConnected()  &&  path(HDF) != _path ) {
-    pathSetHdfPv->set(_path.toAscii().append(char(0)));
+    pathSetHdfPv->set(_path.toLatin1().append(char(0)));
     qtWait(pathHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
   }
   return path(TIFF) == _path  &&  path(HDF) == _path;
