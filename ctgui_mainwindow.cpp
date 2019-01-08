@@ -1219,6 +1219,8 @@ void MainWindow::updateUi_detector() {
 
   if (  det->isConnected() ) {
 
+    ui->hdfFormat->setEnabled(det->hdfReady());
+
     bool enabme = det->imageFormat(Detector::TIFF);
     ui->tiffEnabled->setText( enabme ? "enabled" : "disabled" );
     ui->detFileNameTiff->setEnabled(enabme);
@@ -1251,6 +1253,7 @@ void MainWindow::updateUi_detector() {
 
   }
 
+  check( ui->hdfFormat, det->hdfReady() || ! ui->hdfFormat->isChecked() || ! det->isConnected() );
   check (ui->detStatus, ! ui->detSelection->currentIndex() || ( det->isConnected() &&
          ( inRun(ui->startStop) || ( ! det->isAcquiring() && ! det->isWriting() ) ) ) );
   check (ui->detPathTiff, uiImageFormat() != Detector::TIFF  ||  det->pathExists(Detector::TIFF) || ! ui->detSelection->currentIndex() );

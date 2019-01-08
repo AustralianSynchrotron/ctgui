@@ -78,6 +78,7 @@ private:
   QEpicsPv * queUseHdfPv;
 
   bool _con;
+  bool _hdf;
   Camera _camera;
   QString cameraPv;
   QString _nameTiff;
@@ -109,7 +110,8 @@ public:
   inline int imageMode() const {return _camera ? imageModePv->get().toInt() : 0 ;}
   inline const QString imageModeString() const {return _camera ? imageModePv->getEnumString() : QString() ;}
   inline bool isAcquiring() const {return _camera  ? aqPv->get().toInt() : false ;}
-  inline bool isConnected() const {return ! _camera || _con;}
+  inline bool isConnected() const {return _camera && _con;}
+  inline bool hdfReady() const {return _camera && _hdf;}
 
   ImageFormat imageFormat() const;
   bool imageFormat(ImageFormat fmt) const;

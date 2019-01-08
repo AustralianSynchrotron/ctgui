@@ -63,6 +63,7 @@ Detector::Detector(QObject * parent) :
   captureStatusHdfPv( new QEpicsPv(this) ),
   queUseHdfPv( new QEpicsPv(this) ),
   _con(false),
+  _hdf(false),
   _camera(NONE),
   _nameTiff(QString())
 {
@@ -223,12 +224,17 @@ void Detector::updateConnection() {
   if ( ! _camera )
     return;
   bool new_con = true;
+  bool new_hdf = true;
   foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() ) {
-    if ( ! pv->pv().contains(":HDF:") ) // some of our detectors do not have HDF support yet.
+    if ( pv->pv().contains(":HDF:") )
+      new_hdf &= pv->isConnected();
+    else // some of our detectors do not have HDF support yet.
       new_con &= pv->isConnected();
   }
-  if (new_con != _con)
+  if (new_con != _con || new_hdf != _hdf) {
+    _hdf = new_con && new_hdf;
     emit connectionChanged(_con=new_con);
+  }
 }
 
 
@@ -416,8 +422,8 @@ bool Detector::setImageFormat(Detector::ImageFormat fmt) {
   if (fmt == UNDEFINED)
     return false;
   enableTiffPv->set(fmt == TIFF);
-  qtWait(enableTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   enableHdfPv->set(fmt == HDF);
+  qtWait(enableTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   qtWait(enableHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
   //if ( fmt==HDF )
   //  writeModeHdfPv->se ();
@@ -524,14 +530,18 @@ bool Detector::setPath(const QString & _path) {
   if ( ! _camera )
     return true;
 
-  if ( pathSetTiffPv->isConnected()  &&  path(TIFF) != _path ) {
-    pathSetTiffPv->set(_path.toLatin1().append(char(0)));
+  const QByteArray _ptoset = _path.toLatin1().append(char(0));
+
+  if ( pathSetTiffPv->isConnected()  &&  path(TIFF) != _path )
+    pathSetTiffPv->set(_ptoset);
+  if ( pathSetHdfPv->isConnected()  &&  path(HDF) != _path )
+    pathSetHdfPv->set(_ptoset);
+  // here set and check are split to ensure no signals are processed while qtWaiting.
+  if ( pathSetTiffPv->isConnected()  &&  path(TIFF) != _path )
     qtWait(pathTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
-  }
-  if ( pathSetHdfPv->isConnected()  &&  path(HDF) != _path ) {
-    pathSetHdfPv->set(_path.toLatin1().append(char(0)));
+  if ( pathSetHdfPv->isConnected()  &&  path(HDF) != _path )
     qtWait(pathHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
-  }
+
   return path(TIFF) == _path  &&  path(HDF) == _path;
 
 }
@@ -589,6 +599,19 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
       if ( captureTargetHdfPv->get() !=nofFrames )
         return false;
     }
+    writeModeHdfPv->set(2); // 2 is "stream"
+    if ( writeModeHdfPv->get() != 2 ) {
+      qtWait(writeModeHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+      if ( writeModeHdfPv->get() != 2 )
+        return false;
+    }
+
+    captureHdfPv->set(1);
+    if ( captureStatusHdfPv->get() != 1 ) {
+      qtWait(captureStatusHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+      if ( captureStatusHdfPv->get() != 1 )
+        return false;
+    }
 
   }
 
@@ -599,6 +622,7 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
      if ( ! setTriggerMode(0) )
        return false;
   }
+
   return true;
 
 }
