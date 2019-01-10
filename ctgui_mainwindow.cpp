@@ -27,19 +27,9 @@
 static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
 static const QString runStyle = "background-color: rgba(255, 0, 0, 128); font: bold; ";
 
-static bool inRun(const QAbstractButton * wdg) {
-  return wdg ? wdg->styleSheet() == runStyle : false ;
-}
-
-static QString mkRun(QAbstractButton * wdg, bool inr, const QString & txt=QString()) {
-  if(wdg) wdg->setStyleSheet( inr ? runStyle : "");
-  QString ret = wdg->text();
-  if ( !txt.isEmpty() )
-    wdg->setText(txt);
-  return ret;
-}
 
 const QString MainWindow::storedState = QDir::homePath()+"/.ctgui";
+
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -1266,6 +1256,7 @@ void MainWindow::updateUi_detector() {
 
 
 
+
 void MainWindow::onWorkingDirBrowse() {
   QDir startView( QDir::current() );
   startView.cdUp();
@@ -1288,7 +1279,6 @@ void MainWindow::onFFcheck() {
 void MainWindow::onDynoCheck() {
   ui->control->setTabVisible(ui->tabDyno, ui->checkDyno->isChecked());
   check( ui->tabDyno, true );
-
 }
 
 void MainWindow::onMultiCheck() {
@@ -1367,6 +1357,22 @@ void MainWindow::onDetectorSelection() {
 
 
 
+bool MainWindow::inRun(const QAbstractButton * wdg) {
+  return wdg && preReq.contains(wdg) && ! preReq[wdg].first;
+}
+
+QString MainWindow::mkRun(QAbstractButton * wdg, bool inr, const QString & txt) {
+  if ( ! wdg )
+    return "";
+  check(wdg, ! inr);
+  const QString ret = wdg->text();
+  if ( ! txt.isEmpty() )
+    wdg->setText(txt);
+  return ret;
+}
+
+
+
 
 void MainWindow::onSerialTest() {
 
@@ -1378,14 +1384,12 @@ void MainWindow::onSerialTest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testSerial, true, "Stop");
-  check(ui->tabSerial, false);
   ui->ssWidget->setEnabled(false);
 
   engineRun();
 
   ui->ssWidget->setEnabled(true);
   mkRun(ui->testSerial, false, butText);
-  check(ui->tabSerial, true);
 
 }
 
@@ -1403,28 +1407,22 @@ void MainWindow::onFFtest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testFF, true, "Stop");
-  check(ui->tabFF, false);
   ui->ffWidget->setEnabled(false);
 
   const QString origname = det->name(uiImageFormat());
   const int detimode = det->imageMode();
 
-  acquireDetector( origname + "SAMPLE" ,
-                  ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )  ?
-                    ui->aqsPP->value() : 1);
-  det->waitWritten();
-  det->setName(uiImageFormat(), origname);
   acquireBG("");
   det->waitWritten();
   acquireDF("", shutter->state());
   det->waitWritten();
+
   det->setAutoSave(false);
   det->setName(uiImageFormat(), origname);
   det->setImageMode(detimode);
 
   ui->ffWidget->setEnabled(true);
   mkRun(ui->testFF, false, butText);
-  check(ui->tabFF, true);
 
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
 
@@ -1440,7 +1438,6 @@ void MainWindow::onLoopTest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testMulti, true, "Stop");
-  check(ui->tabMulti, false);
   ui->multiWidget->setEnabled(false);
 
   acquireMulti("",  ( ui->aqMode->currentIndex() == STEPNSHOT  &&  ! ui->checkDyno->isChecked() )  ?
@@ -1450,7 +1447,6 @@ void MainWindow::onLoopTest() {
 
   ui->multiWidget->setEnabled(true);
   mkRun(ui->testMulti, false, butText);
-  check(ui->tabMulti, true);
   QTimer::singleShot(0, this, SLOT(updateUi_loopMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_subLoopMotor()));
 
@@ -1465,7 +1461,6 @@ void MainWindow::onDynoTest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testDyno, true, "Stop");
-  check(ui->tabDyno, false);
   ui->dynoWidget->setEnabled(false);
 
   acquireDyno("");
@@ -1474,7 +1469,6 @@ void MainWindow::onDynoTest() {
 
   ui->dynoWidget->setEnabled(true);
   mkRun(ui->testDyno, false, butText);
-  check(ui->tabDyno, true);
   QTimer::singleShot(0, this, SLOT(updateUi_dynoMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_dyno2Motor()));
 
@@ -1490,10 +1484,9 @@ void MainWindow::onDetectorTest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testDetector, true, "Stop");
-  check(ui->tabDetector, false);
   ui->detectorWidget->setEnabled(false);
 
-  acquireDetector(det->name(uiImageFormat()),
+  acquireDetector("SAMPLE_" + det->name(uiImageFormat()),
                   ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )  ?
                     ui->aqsPP->value() : 1);
   det->waitWritten();
@@ -1501,7 +1494,6 @@ void MainWindow::onDetectorTest() {
 
   ui->detectorWidget->setEnabled(true);
   mkRun(ui->testDetector, false, butText);
-  check(ui->tabDetector, true);
   updateUi_detector();
 
 }
@@ -1509,17 +1501,14 @@ void MainWindow::onDetectorTest() {
 
 
 void MainWindow::onStartStop() {
-
   if ( inRun(ui->startStop) ) {
     stopAll();
     return;
   }
-
   stopMe=false;
   mkRun(ui->startStop, true, "Stop CT");
   engineRun();
   mkRun(ui->startStop, false, "Start CT");
-
 }
 
 

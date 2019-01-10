@@ -698,6 +698,8 @@ bool Detector::start() {
 void Detector::stop() {
   if ( aqPv->isConnected() )
     aqPv->set(0);
+  if ( captureHdfPv->isConnected() )
+    captureHdfPv->set(0);
 }
 
 bool Detector::acquire() {

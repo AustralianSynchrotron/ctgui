@@ -155,6 +155,10 @@ private slots:
 
   void onStartStop();
 
+  QString mkRun(QAbstractButton * wdg, bool inr, const QString & txt=QString()); // mark button as running
+  bool inRun(const QAbstractButton * wdg);
+
+
 
 signals:
 
