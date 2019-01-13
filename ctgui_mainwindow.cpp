@@ -25,7 +25,6 @@
 
 
 static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
-static const QString runStyle = "background-color: rgba(255, 0, 0, 128); font: bold; ";
 
 
 const QString MainWindow::storedState = QDir::homePath()+"/.ctgui";
@@ -156,6 +155,7 @@ MainWindow::MainWindow(QWidget *parent) :
   updateUi_dyno2Motor();
   updateUi_detector();
   updateUi_aqMode();
+  updateUi_hdf();
 
   }
 
@@ -626,6 +626,22 @@ void MainWindow::updateUi_aqMode() {
     ui->checkMulti->setChecked(false);
   }
 
+}
+
+
+void MainWindow::updateUi_hdf() {
+  if ( ! sender() ) { // called from the constructor;
+    const char* thisSlot = SLOT(updateUi_hdf());
+    connect(ui->aqMode, SIGNAL(currentIndexChanged(int)), thisSlot);
+    connect(ui->imageFormatGroup, SIGNAL(buttonClicked(int)), thisSlot);
+    connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), thisSlot);
+    connect(det, SIGNAL(connectionChanged(bool)), thisSlot);
+    connect(det, SIGNAL(parameterChanged()), thisSlot);
+  }
+  const bool flymode = (AqMode) ui->aqMode->currentIndex() != STEPNSHOT;
+  ui->hdfFormat->setEnabled( det->hdfReady() && flymode );
+  check( ui->hdfFormat,
+         flymode && ( det->hdfReady() || ! ui->hdfFormat->isChecked() || ! det->isConnected() ) );
 }
 
 
@@ -1186,7 +1202,6 @@ void MainWindow::updateUi_dyno2Motor() {
 void MainWindow::updateUi_detector() {
   if ( ! sender() ) {
     const char* thisSlot = SLOT(updateUi_detector());
-    connect(ui->imageFormatGroup, SIGNAL(buttonClicked(int)), thisSlot);
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), thisSlot);
     connect(det, SIGNAL(connectionChanged(bool)), thisSlot);
@@ -1208,8 +1223,6 @@ void MainWindow::updateUi_detector() {
     ui->detStatus->setText("idle");
 
   if (  det->isConnected() ) {
-
-    ui->hdfFormat->setEnabled(det->hdfReady());
 
     bool enabme = det->imageFormat(Detector::TIFF);
     ui->tiffEnabled->setText( enabme ? "enabled" : "disabled" );
@@ -1243,7 +1256,6 @@ void MainWindow::updateUi_detector() {
 
   }
 
-  check( ui->hdfFormat, det->hdfReady() || ! ui->hdfFormat->isChecked() || ! det->isConnected() );
   check (ui->detStatus, ! ui->detSelection->currentIndex() || ( det->isConnected() &&
          ( inRun(ui->startStop) || ( ! det->isAcquiring() && ! det->isWriting() ) ) ) );
   check (ui->detPathTiff, uiImageFormat() != Detector::TIFF  ||  det->pathExists(Detector::TIFF) || ! ui->detSelection->currentIndex() );
@@ -1356,20 +1368,105 @@ void MainWindow::onDetectorSelection() {
 
 
 
+void MainWindow::check(QWidget * obj, bool status) {
 
-bool MainWindow::inRun(const QAbstractButton * wdg) {
-  return wdg && preReq.contains(wdg) && ! preReq[wdg].first;
+  if ( ! obj )
+    return;
+
+  obj->setStyleSheet( status  ?  ""  :  warnStyle );
+
+  QWidget * tab = 0;
+  if ( ui->control->tabs().contains(obj) ) {
+
+    tab = obj;
+
+  } else if ( ! preReq.contains(obj) ) {
+
+    foreach( QWidget * wdg, ui->control->tabs() )
+      if ( wdg->findChildren< const QWidget* >().contains(obj) ) {
+        tab = wdg;
+        break;
+      }
+
+    if (tab)
+      preReq[obj] = qMakePair(status, (const QWidget*) tab);
+
+  } else {
+
+    tab = (QWidget*) preReq[obj].second;
+    preReq[obj].first = status;
+
+  }
+
+  bool tabOK=status;
+  if ( status )
+    foreach ( ReqP tabel, preReq)
+      if ( tabel.second == tab )
+        tabOK &= tabel.first;
+
+  const bool anyInRun = inRun(ui->startStop)
+      || inRun(ui->testDetector)
+      || inRun(ui->testDyno)
+      || inRun(ui->testFF)
+      || inRun(ui->testMulti)
+      || inRun(ui->testSerial);
+
+  if (tab) {
+
+    tabOK |= ui->control->indexOf(tab) == -1;
+    preReq[tab] = qMakePair( tabOK, (const QWidget*) 0 );
+    ui->control->setTabTextColor(tab, tabOK ? QColor() : QColor(Qt::red));
+
+    ui->testDetector->setEnabled ( inRun(ui->testDetector) ||
+                                   ( ! anyInRun  &&  preReq[ui->tabDetector].first ) );
+    ui->testDyno->setEnabled ( inRun(ui->testDyno) || ( ! anyInRun &&
+                                               preReq[ui->tabDetector].first &&
+                                               preReq[ui->tabDyno].first ) );
+    ui->testMulti->setEnabled ( inRun(ui->testMulti) || ( ! anyInRun &&
+                                                 preReq[ui->tabDetector].first &&
+                                                 preReq[ui->tabDyno].first &&
+                                                 preReq[ui->tabMulti].first) );
+    ui->testFF->setEnabled ( inRun(ui->testFF) ||  ( ! anyInRun &&
+                               preReq[ui->tabDetector].first &&
+                               preReq[ui->tabDyno].first &&
+                               preReq[ui->tabMulti].first &&
+                               preReq[ui->tabFF].first) );
+    ui->testSerial->setEnabled( inRun(ui->testSerial) || ( ! anyInRun &&
+                                    preReq[ui->tabDetector].first &&
+                                    preReq[ui->tabSerial].first  ) );
+
+  }
+
+  bool readyToStartCT=status;
+  if ( status )
+    foreach ( ReqP tabel, preReq)
+      if ( ! tabel.second )
+        readyToStartCT &= tabel.first;
+  ui->startStop->setEnabled(readyToStartCT || anyInRun );
+  ui->startStop->setStyleSheet( anyInRun  ?  ""  :  warnStyle );
+
 }
 
-QString MainWindow::mkRun(QAbstractButton * wdg, bool inr, const QString & txt) {
-  if ( ! wdg )
+
+
+// Marks the btn to indicate the process running or not.
+// Used *Test functions
+QString MainWindow::mkRun(QAbstractButton * btn, bool inr, const QString & txt) {
+  if ( ! btn )
     return "";
-  check(wdg, ! inr);
-  const QString ret = wdg->text();
+  check(btn, ! inr);
+  const QString ret = btn->text();
   if ( ! txt.isEmpty() )
-    wdg->setText(txt);
+    btn->setText(txt);
   return ret;
 }
+
+// Returns true if the marked btn indicates the process is running.
+// Used *Test functions
+bool MainWindow::inRun(const QAbstractButton * btn) {
+  return btn && preReq.contains(btn) && ! preReq[btn].first;
+}
+
 
 
 
@@ -1486,12 +1583,12 @@ void MainWindow::onDetectorTest() {
   const QString butText = mkRun(ui->testDetector, true, "Stop");
   ui->detectorWidget->setEnabled(false);
 
-  acquireDetector("SAMPLE_" + det->name(uiImageFormat()),
-                  ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )  ?
-                    ui->aqsPP->value() : 1);
+  acquireDetector(det->name(uiImageFormat()) + "_SAMPLE",
+                  ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )
+                  ?  ui->aqsPP->value()  :  1);
   det->waitWritten();
-  det->setAutoSave(false);
 
+  det->setAutoSave(false);
   ui->detectorWidget->setEnabled(true);
   mkRun(ui->testDetector, false, butText);
   updateUi_detector();
@@ -1506,9 +1603,27 @@ void MainWindow::onStartStop() {
     return;
   }
   stopMe=false;
-  mkRun(ui->startStop, true, "Stop CT");
+  const QString butText = mkRun(ui->startStop, true, "Stop Experiment");
   engineRun();
-  mkRun(ui->startStop, false, "Start CT");
+  mkRun(ui->startStop, false, butText);
+}
+
+
+
+void MainWindow::stopAll() {
+  stopMe=true;
+  emit requestToStopAcquisition();
+  det->stop();
+  innearList->motui->motor()->stop();
+  outerList->motui->motor()->stop();
+  thetaMotor->motor()->stop();
+  bgMotor->motor()->stop();
+  loopList->motui->motor()->stop();
+  sloopList->motui->motor()->stop();
+  dynoMotor->motor()->stop();
+  dyno2Motor->motor()->stop();
+  foreach( Script * script, findChildren<Script*>() )
+    script->stop();
 }
 
 
@@ -1522,105 +1637,10 @@ void MainWindow::onStartStop() {
 
 
 
-
-
-
-
-
-void MainWindow::check(QWidget * obj, bool status) {
-
-  if ( inRun(ui->startStop) || ! obj )
-    return;
-
-  obj->setStyleSheet( status  ?  ""  :  warnStyle );
-
-  QWidget * tab = 0;
-  if ( ui->control->tabs().contains(obj) ) {
-
-    tab = obj;
-
-  } else if ( ! preReq.contains(obj) ) {
-
-    foreach( QWidget * wdg, ui->control->tabs() )
-      if ( wdg->findChildren< const QWidget* >().contains(obj) ) {
-        tab = wdg;
-        break;
-      }
-
-    if (tab)
-      preReq[obj] = qMakePair(status, (const QWidget*) tab);
-
-  } else {
-
-    tab = (QWidget*) preReq[obj].second;
-    preReq[obj].first = status;
-
-  }
-
-  bool tabOK=status;
-  if ( status )
-    foreach ( ReqP tabel, preReq)
-      if ( tabel.second == tab )
-        tabOK &= tabel.first;
-
-  if (tab) {
-
-    tabOK |= ui->control->indexOf(tab) == -1;
-    preReq[tab] = qMakePair( tabOK, (const QWidget*) 0 );
-    ui->control->setTabTextColor(tab, tabOK ? QColor() : QColor(Qt::red));
-
-    const bool anyInRun = inRun(ui->startStop)
-        || inRun(ui->testDetector)
-        || inRun(ui->testDyno)
-        || inRun(ui->testFF)
-        || inRun(ui->testMulti)
-        || inRun(ui->testSerial);
-
-    ui->testDetector->setEnabled ( inRun(ui->testDetector) ||
-                                   ( ! anyInRun  &&  preReq[ui->tabDetector].first ) );
-    ui->testDyno->setEnabled ( inRun(ui->testDyno) || ( ! anyInRun &&
-                                               preReq[ui->tabDetector].first &&
-                                               preReq[ui->tabDyno].first ) );
-    ui->testMulti->setEnabled ( inRun(ui->testMulti) || ( ! anyInRun &&
-                                                 preReq[ui->tabDetector].first &&
-                                                 preReq[ui->tabDyno].first &&
-                                                 preReq[ui->tabMulti].first) );
-    ui->testFF->setEnabled ( inRun(ui->testFF) ||  ( ! anyInRun &&
-                               preReq[ui->tabDetector].first &&
-                               preReq[ui->tabDyno].first &&
-                               preReq[ui->tabMulti].first &&
-                               preReq[ui->tabFF].first) );
-    ui->testSerial->setEnabled( inRun(ui->testSerial) || ( ! anyInRun &&
-                                    preReq[ui->tabDetector].first &&
-                                    preReq[ui->tabSerial].first  ) );
-
-  }
-
-  bool readyToStartCT=status;
-  if ( status )
-    foreach ( ReqP tabel, preReq)
-      if ( ! tabel.second )
-        readyToStartCT &= tabel.first;
-  ui->startStop->setEnabled(readyToStartCT || inRun(ui->startStop) );
-
+static QString combineNames(const QString & str1, const QString & str2) {
+  return ( ! str1.isEmpty()  &&  ! str2.isEmpty() )
+      ?  str1 + "_" + str2  :  str1 + str2 ;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1708,6 +1728,7 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
       d2nSpeed = dyno2Motor->motor()->getNormalSpeed(),
       daSpeed = ui->dynoSpeed->value(),
       d2aSpeed = ui->dyno2Speed->value();
+  const QString origname = det->name(uiImageFormat());
 
   if (count>1) {
     ui->dynoProgress->setMaximum(count);
@@ -1737,9 +1758,9 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
       if (stopMe) goto acquireDynoExit;
     }
 
-    ftemplate = filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate;
+    ftemplate = filetemplate.isEmpty() ? origname + "_" : filetemplate;
     if (count>1)
-      ftemplate += QString("_N%1").arg(curr, QString::number(count).length(), 10, QChar('0'));
+      ftemplate += QString("%1").arg(curr, QString::number(count).length(), 10, QChar('0'));
     // two stopMes below are reqiuired for the case it changes while the detector is being prepared
     if ( stopMe || ! prepareDetector(ftemplate) || stopMe )
       goto acquireDynoExit;
@@ -1771,8 +1792,7 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
 
 acquireDynoExit:
 
-  if ( filetemplate.isEmpty() && ! ftemplate.isEmpty() )
-    det->setName(uiImageFormat(), ftemplate) ;
+  det->setName(uiImageFormat(), origname) ;
 
   setMotorSpeed(dynoMotor, dnSpeed);
   if ( dynoMotor->motor()->getUserGoal() != dStart )
@@ -1809,6 +1829,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
       moveLoop = lMotor->isConnected(),
       moveSubLoop = ui->subLoop->isChecked() && sMotor->isConnected();
   const QString ftemplate = filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate;
+  const QString origname = det->name(uiImageFormat());
 
   const double lStart = lMotor->getUserPosition();
   const double sStart = sMotor->getUserPosition();
@@ -1841,7 +1862,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
     setenv("CURRENTLOOP", QString::number(currentLoop).toLatin1(), 1);
     loopList->emphasizeRow(currentLoop);
 
-    const QString filenameL = ftemplate + QString("_L%1_").arg(currentLoop, loopDigs, 10, QChar('0'));
+    const QString filenameL = combineNames(ftemplate, QString("L%1").arg(currentLoop, loopDigs, 10, QChar('0')));
 
     if (moveLoop)
       lMotor->wait_stop();
@@ -1855,7 +1876,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
 
       QString filename = filenameL;
       if ( totalSubLoops > 1 )
-        filename += QString("S%1_").arg(currentSubLoop, subLoopDigs, 10, QChar('0') );
+        filename = combineNames(filename, QString("S%1").arg(currentSubLoop, subLoopDigs, 10, QChar('0') ) );
 
       if (moveSubLoop)
         sMotor->wait_stop();
@@ -1898,8 +1919,7 @@ acquireMultiExit:
 
   ui->multiProgress->setVisible(false);
 
-  if ( filetemplate.isEmpty()  &&  ! ftemplate.isEmpty() )
-    det->setName(uiImageFormat(), ftemplate) ;
+  det->setName(uiImageFormat(), origname) ;
 
   if (moveLoop) {
     lMotor->goUserPosition(lStart, QCaMotor::STARTED);
@@ -1923,26 +1943,6 @@ acquireMultiExit:
 
 
 
-void MainWindow::stopAll() {
-  stopMe=true;
-  emit requestToStopAcquisition();
-  det->stop();
-  innearList->motui->motor()->stop();
-  outerList->motui->motor()->stop();
-  thetaMotor->motor()->stop();
-  bgMotor->motor()->stop();
-  loopList->motui->motor()->stop();
-  sloopList->motui->motor()->stop();
-  dynoMotor->motor()->stop();
-  dyno2Motor->motor()->stop();
-  foreach( Script * script, findChildren<Script*>() )
-    script->stop();
-}
-
-
-
-
-
 
 
 
@@ -1952,11 +1952,15 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   const int bgs = ui->nofBGs->value();
   const double bgTravel = ui->bgTravel->value();
   const double originalExposure = det->exposure();
-  const QString detfilename=det->name(uiImageFormat());
-  QString ftemplate;
+  const QString origname = det->name(uiImageFormat());
 
   if ( ! bgMotor->motor()->isConnected() || bgs <1 || bgTravel == 0.0 )
     return ret;
+
+  QString ftemplate = filetemplate.isEmpty()
+      ?  origname + "_BG"  :  "BG_" + filetemplate;
+  if ( uiImageFormat() != Detector::HDF && bgs > 1)
+    ftemplate += "_";
 
   bgMotor->motor()->wait_stop();
   const double bgStart = bgMotor->motor()->getUserPosition();
@@ -1968,7 +1972,6 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   det->waitWritten();
   if (stopMe) goto onBgExit;
 
-  ftemplate = "BG_" +  ( filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate );
   setenv("CONTRASTTYPE", "BG", 1);
 
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
@@ -1989,9 +1992,7 @@ onBgExit:
 
   if (!stopMe)
     det->waitWritten();
-
-  if ( filetemplate.isEmpty() && ! detfilename.isEmpty() )
-    det->setName(uiImageFormat(), detfilename) ;
+  det->setName(uiImageFormat(), origname) ;
 
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( originalExposure ) ;
@@ -2009,7 +2010,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
 
   int ret = -1;
   const int dfs = ui->nofDFs->value();
-  const QString detfilename=det->name(uiImageFormat());
+  const QString origname=det->name(uiImageFormat());
   QString ftemplate;
 
   if ( dfs<1 )
@@ -2020,7 +2021,11 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
   det->waitWritten();
   if (stopMe) goto onDfExit;
 
-  ftemplate = "DF_" + ( filetemplate.isEmpty() ? det->name(uiImageFormat()) : filetemplate );
+  ftemplate = filetemplate.isEmpty()
+      ?  origname + "_DF"  :  "DF_" + filetemplate;
+  if ( uiImageFormat() != Detector::HDF && dfs > 1)
+    ftemplate += "_";
+
   setenv("CONTRASTTYPE", "DF", 1);
 
   det->setPeriod(0);
@@ -2040,14 +2045,11 @@ onDfExit:
 
   if (!stopMe)
     det->waitWritten();
-
-  if ( filetemplate.isEmpty()  &&  ! detfilename.isEmpty() )
-    det->setName(uiImageFormat(), detfilename) ;
+  det->setName(uiImageFormat(), origname) ;
 
   return ret;
 
 }
-
 
 
 
@@ -2085,7 +2087,8 @@ void MainWindow::engineRun () {
       doDF = inRun(ui->startStop) && ui->checkFF->isChecked() && ui->nofDFs->value(),
       sasMode = inRun(ui->startStop)  &&  ui->aqMode->currentIndex() == STEPNSHOT,
       ongoingSeries = doSerial1D && ui->ongoingSeries->isChecked(),
-      doTriggCT = inRun(ui->startStop) && ! tct->prefix().isEmpty();
+      doTriggCT = inRun(ui->startStop) && ! tct->prefix().isEmpty(),
+      splitData = uiImageFormat() != Detector::HDF;
 
   const int
       bgInterval = ui->bgInterval->value(),
@@ -2198,21 +2201,17 @@ void MainWindow::engineRun () {
   if (stopMe) goto onEngineExit;
 
 
+
+
+
   do { // serial scanning 1D
-
-
-
 
     setenv("CURRENTOSCAN", QString::number(currentScan1D).toLatin1(), 1);
     outerList->emphasizeRow(currentScan1D);
 
-    QString series1Name;
-    if (totalScans1D==1)
-      series1Name = "";
-    else if (totalScans1D>1)
-      series1Name = QString("Y%1_").arg(currentScan1D, series1Digs, 10, QChar('0') );
-    else
-      series1Name = "Y" + QString::number(currentScan1D) + "_";
+    const QString sn1 = totalScans1D
+        ?  (  totalScans1D == 1  ?  QString()  :  QString("Y%1").arg(currentScan1D, series1Digs, 10, QChar('0') ) )
+        : "Y" + QString::number(currentScan1D);
 
     if (doSerial1D  && outSMotor->isConnected())
       outSMotor->wait_stop();
@@ -2229,15 +2228,13 @@ void MainWindow::engineRun () {
 
     do { // serial scanning 2D
 
-
-
-      const QString seriesName = series1Name +
-          ( totalScans2D > 1  ?  QString("Z%1_").arg(currentScan2D, series2Digs, 10, QChar('0') )  :  QString() );
+      const QString sn2 = combineNames( sn1,
+                          ( totalScans2D > 1  ?  QString("Z%1").arg(currentScan2D, series2Digs, 10, QChar('0') )  :  QString() ) );
+      QString sampleName = combineNames("SAMPLE", sn2);
 
       setenv("CURRENTISCAN", QString::number(currentScan2D).toLatin1(), 1);
       setenv("CURRENTSCAN", QString::number(currentScan).toLatin1(), 1);
       innearList->emphasizeRow(currentScan2D);
-
 
       if (doSerial2D  && inSMotor->isConnected())
         inSMotor->wait_stop();
@@ -2257,9 +2254,10 @@ void MainWindow::engineRun () {
 
 
 
-        QString projectionName = "SAMPLE_" + seriesName +
-            QString("T_%1").arg(0, projectionDigs, 10, QChar('0') );
-        acquireDetector(origname + projectionName, 1);
+        QString projectionName = origname + "_" + sampleName;
+        if (splitData)
+          projectionName += QString("_T%1").arg(0, projectionDigs, 10, QChar('0') );
+        acquireDetector(projectionName, 1);
         if (stopMe) goto onEngineExit;
 
 
@@ -2277,7 +2275,6 @@ void MainWindow::engineRun () {
           beforeBG=0;
           beforeDF=0;
         }
-        QString projectionName;
 
         ui->scanProgress->setMaximum(totalProjections + ( ui->scanAdd->isChecked() ? 1 : 0 ));
         ui->scanProgress->setValue(currentProjection);
@@ -2288,18 +2285,17 @@ void MainWindow::engineRun () {
 
           setenv("CURRENTPROJECTION", QString::number(currentProjection).toLatin1(), 1);
 
-          projectionName = "SAMPLE_" + seriesName +
-              QString("T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
+          QString projectionName = sampleName + QString("T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
 
+          QString bgdfN = combineNames(sn2, "BEFORE");
           if (doDF && ! beforeDF) {
-            acquireDF(projectionName, Shutter::OPEN);
+            acquireDF(bgdfN, Shutter::OPEN);
             beforeDF = dfInterval;
             if (stopMe) goto onEngineExit;
           }
-          shutter->open(true);
           beforeDF--;
           if (doBG && ! beforeBG) {
-            acquireBG(projectionName);
+            acquireBG(bgdfN);
             beforeBG = bgInterval;
             if (stopMe) goto onEngineExit;
           }
@@ -2334,14 +2330,14 @@ void MainWindow::engineRun () {
 
 
 
-
+        QString bgdfN = combineNames(sn2, "AFTER");
         if (doBG && ! beforeBG) {
-          acquireBG(projectionName + "AFTER_");
+          acquireBG(bgdfN);
           if (stopMe) goto onEngineExit;
           beforeBG = bgInterval;
         }
         if ( doDF && ! beforeDF ) {
-          acquireDF(projectionName + "AFTER_", Shutter::CLOSED);
+          acquireDF(bgdfN, Shutter::CLOSED);
           if (stopMe) goto onEngineExit;
           beforeDF = dfInterval;
         }
@@ -2355,23 +2351,22 @@ void MainWindow::engineRun () {
 
 
 
-
-
+        QString bgdfN = combineNames(sn2, "BEFORE");
         if ( doDF && ui->dfIntervalBefore->isChecked() && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-          acquireDF(seriesName + "BEFORE_", Shutter::OPEN);
+          acquireDF(bgdfN, Shutter::OPEN);
           if (stopMe) goto onEngineExit;
         }
-        shutter->open(true);
         if ( doBG  && ui->bgIntervalBefore->isChecked() && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-          acquireBG(seriesName + "BEFORE_");
+          acquireBG(bgdfN);
           if (stopMe) goto onEngineExit;
         }
 
-        const double speed = thetaRange * ui->flyRatio->value() / ( det->exposure() * totalProjections );
-        const double accTime = thetaMotor->motor()->getAcceleration();
-        const double accTravel = speed * accTime / 2;
-        const double rotDir = copysign(1,thetaRange);
-        const double addTravel = 2*rotDir*accTravel + (doTriggCT ? 2.0 : 0.0);
+        const double
+            speed = thetaRange * ui->flyRatio->value() / ( det->exposure() * totalProjections ),
+            accTime = thetaMotor->motor()->getAcceleration(),
+            accTravel = speed * accTime / 2,
+            rotDir = copysign(1,thetaRange),
+            addTravel = 2*rotDir*accTravel + (doTriggCT ? 2.0 : 0.0);
         // coefficient 2 in the above string is required to guarantee that the
         // motor has accelerated to the normal speed before the acquisition starts.
 
@@ -2379,7 +2374,11 @@ void MainWindow::engineRun () {
         det->waitWritten();
         if (stopMe) goto onEngineExit;
 
-        prepareDetector("SAMPLE_"+seriesName+"T", totalProjections + doAdd);
+
+        QString saveName = combineNames("SAMPLE", sn2);
+        if (splitData)
+          saveName = combineNames(saveName, "T");
+        prepareDetector(saveName, totalProjections + doAdd);
         if (stopMe) goto onEngineExit;
 
         if (doTriggCT || ui->checkExtTrig->isChecked() ) {
@@ -2439,11 +2438,12 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
 
         if ( ! ongoingSeries ) {
+          bgdfN = combineNames(sn2, "AFTER");
           if ( doBG  && ui->bgIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() )
-            acquireBG(seriesName + "AFTER_");
+            acquireBG(bgdfN);
           if (stopMe) goto onEngineExit;
           if ( doDF && ui->dfIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() )
-            acquireDF(seriesName + "AFTER_", Shutter::CLOSED);
+            acquireDF(bgdfN, Shutter::CLOSED);
           if (stopMe) goto onEngineExit;
         }
 
@@ -2518,12 +2518,13 @@ void MainWindow::engineRun () {
     }
 
     if ( timeToStop && ! sasMode && ! ui->ffOnEachScan->isChecked() ) {
+      QString bgdfN = combineNames(sn1, "AFTER");
       if ( doBG && ui->bgIntervalAfter->isChecked() ) {
-        acquireBG(series1Name + "AFTER_");
+        acquireBG(bgdfN);
         if (stopMe) goto onEngineExit;
       }
       if ( doDF && ui->dfIntervalAfter->isChecked() ) {
-        acquireDF(series1Name + "AFTER_", Shutter::CLOSED);
+        acquireDF(bgdfN, Shutter::CLOSED);
         if (stopMe) goto onEngineExit;
       }
     }

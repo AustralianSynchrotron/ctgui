@@ -110,6 +110,7 @@ private slots:
   void updateUi_expPath();
   void updateUi_pathSync(); // important to have this and previous line in this order as the latter one relies on the jobs done in the first.
   void updateUi_aqMode();
+  void updateUi_hdf();
 
   void onWorkingDirBrowse();
   void onSerialCheck();
