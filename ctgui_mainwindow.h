@@ -128,6 +128,7 @@ private slots:
   void updateUi_aqsPP();
   void updateUi_expOverStep();
   void updateUi_thetaMotor();
+  void onScanTest();
   QMDoubleSpinBox * selectPRS(QObject* prso = 0);
 
   void updateUi_bgTravel();

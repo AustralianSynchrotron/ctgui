@@ -25,9 +25,10 @@
 
 
 static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
-
+static const QString ssText = "Start experiment";
 
 const QString MainWindow::storedState = QDir::homePath()+"/.ctgui";
+
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -70,6 +71,8 @@ MainWindow::MainWindow(QWidget *parent) :
   resizer = new ColumnResizer(this);
   ui->preAqScript->addToColumnResizer(resizer);
   ui->postAqScript->addToColumnResizer(resizer);
+
+  ui->startStop->setText(ssText);
 
   QPushButton * save = new QPushButton("Save");
   save->setFlat(true);
@@ -120,6 +123,7 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->checkMulti, SIGNAL(toggled(bool)), SLOT(onMultiCheck()));
   connect(ui->testSerial, SIGNAL(clicked(bool)), SLOT(onSerialTest()));
   connect(ui->testFF, SIGNAL(clicked()), SLOT(onFFtest()));
+  connect(ui->testScan, SIGNAL(clicked()), SLOT(onScanTest()));
   connect(ui->testMulti, SIGNAL(clicked()), SLOT(onLoopTest()));
   connect(ui->testDyno, SIGNAL(clicked()), SLOT(onDynoTest()));
   connect(ui->dynoDirectionLock, SIGNAL(toggled(bool)), SLOT(onDynoDirectionLock()));
@@ -640,8 +644,8 @@ void MainWindow::updateUi_hdf() {
   }
   const bool flymode = (AqMode) ui->aqMode->currentIndex() != STEPNSHOT;
   ui->hdfFormat->setEnabled( det->hdfReady() && flymode );
-  check( ui->hdfFormat,
-         flymode && ( det->hdfReady() || ! ui->hdfFormat->isChecked() || ! det->isConnected() ) );
+  check( ui->hdfFormat, ! ui->hdfFormat->isChecked() ||
+         ( flymode && ( det->hdfReady() || ! det->isConnected() ) ) );
 }
 
 
@@ -1382,11 +1386,14 @@ void MainWindow::check(QWidget * obj, bool status) {
 
   } else if ( ! preReq.contains(obj) ) {
 
-    foreach( QWidget * wdg, ui->control->tabs() )
-      if ( wdg->findChildren< const QWidget* >().contains(obj) ) {
-        tab = wdg;
-        break;
-      }
+    if (obj == ui->startStop)
+      tab = ui->control;
+    else
+      foreach( QWidget * wdg, ui->control->tabs() )
+        if ( wdg->findChildren< const QWidget* >().contains(obj) ) {
+          tab = wdg;
+          break;
+        }
 
     if (tab)
       preReq[obj] = qMakePair(status, (const QWidget*) tab);
@@ -1409,7 +1416,8 @@ void MainWindow::check(QWidget * obj, bool status) {
       || inRun(ui->testDyno)
       || inRun(ui->testFF)
       || inRun(ui->testMulti)
-      || inRun(ui->testSerial);
+      || inRun(ui->testSerial)
+      || inRun(ui->testScan);
 
   if (tab) {
 
@@ -1434,6 +1442,9 @@ void MainWindow::check(QWidget * obj, bool status) {
     ui->testSerial->setEnabled( inRun(ui->testSerial) || ( ! anyInRun &&
                                     preReq[ui->tabDetector].first &&
                                     preReq[ui->tabSerial].first  ) );
+    ui->testScan->setEnabled( inRun(ui->testScan) || ( ! anyInRun &&
+                                    preReq[ui->tabDetector].first &&
+                                    preReq[ui->tabScan].first  ) );
 
   }
 
@@ -1443,7 +1454,8 @@ void MainWindow::check(QWidget * obj, bool status) {
       if ( ! tabel.second )
         readyToStartCT &= tabel.first;
   ui->startStop->setEnabled(readyToStartCT || anyInRun );
-  ui->startStop->setStyleSheet( anyInRun  ?  ""  :  warnStyle );
+  ui->startStop->setStyleSheet( anyInRun  ?  warnStyle  :  "" );
+  ui->startStop->setText( anyInRun  ?  "Stop"  :  ssText );
 
 }
 
@@ -1474,8 +1486,7 @@ bool MainWindow::inRun(const QAbstractButton * btn) {
 void MainWindow::onSerialTest() {
 
   if (inRun(ui->testSerial)) {
-    stopMe=true;
-    det->stop();
+    stopAll();
     return;
   }
 
@@ -1491,14 +1502,32 @@ void MainWindow::onSerialTest() {
 }
 
 
+void MainWindow::onScanTest() {
+
+  if (inRun(ui->testScan)) {
+    stopAll();
+    return;
+  }
+
+  stopMe=false;
+  const QString butText = mkRun(ui->testScan, true, "Stop");
+  ui->scanWidget->setEnabled(false);
+
+  engineRun();
+
+  ui->scanWidget->setEnabled(true);
+  mkRun(ui->testScan, false, butText);
+
+
+}
+
+
 
 
 void MainWindow::onFFtest() {
 
   if (inRun(ui->testFF)) {
-    stopMe=true;
-    bgMotor->motor()->stop();
-    det->stop();
+    stopAll();
     return;
   }
 
@@ -1544,8 +1573,6 @@ void MainWindow::onLoopTest() {
 
   ui->multiWidget->setEnabled(true);
   mkRun(ui->testMulti, false, butText);
-  QTimer::singleShot(0, this, SLOT(updateUi_loopMotor()));
-  QTimer::singleShot(0, this, SLOT(updateUi_subLoopMotor()));
 
 }
 
@@ -1580,6 +1607,7 @@ void MainWindow::onDetectorTest() {
   }
 
   stopMe=false;
+  const QString origname = det->name(uiImageFormat());
   const QString butText = mkRun(ui->testDetector, true, "Stop");
   ui->detectorWidget->setEnabled(false);
 
@@ -1589,6 +1617,7 @@ void MainWindow::onDetectorTest() {
   det->waitWritten();
 
   det->setAutoSave(false);
+  det->setName(uiImageFormat(), origname);
   ui->detectorWidget->setEnabled(true);
   mkRun(ui->testDetector, false, butText);
   updateUi_detector();
@@ -1598,12 +1627,12 @@ void MainWindow::onDetectorTest() {
 
 
 void MainWindow::onStartStop() {
-  if ( inRun(ui->startStop) ) {
+  if ( inRun(ui->startStop) || ui->startStop->styleSheet() == warnStyle ) {
     stopAll();
     return;
   }
   stopMe=false;
-  const QString butText = mkRun(ui->startStop, true, "Stop Experiment");
+  const QString butText = mkRun(ui->startStop, true, "Stop");
   engineRun();
   mkRun(ui->startStop, false, butText);
 }
@@ -2083,8 +2112,9 @@ void MainWindow::engineRun () {
   const bool
       doSerial1D = ui->checkSerial->isChecked(),
       doSerial2D = doSerial1D && ui->serial2D->isChecked(),
-      doBG = inRun(ui->startStop) && ui->checkFF->isChecked() && ui->nofBGs->value(),
-      doDF = inRun(ui->startStop) && ui->checkFF->isChecked() && ui->nofDFs->value(),
+      doFF = inRun(ui->startStop) && ! inRun(ui->testScan) && ui->checkFF->isChecked(),
+      doBG = doFF && ui->nofBGs->value(),
+      doDF = doFF && ui->nofDFs->value(),
       sasMode = inRun(ui->startStop)  &&  ui->aqMode->currentIndex() == STEPNSHOT,
       ongoingSeries = doSerial1D && ui->ongoingSeries->isChecked(),
       doTriggCT = inRun(ui->startStop) && ! tct->prefix().isEmpty(),
@@ -2209,9 +2239,13 @@ void MainWindow::engineRun () {
     setenv("CURRENTOSCAN", QString::number(currentScan1D).toLatin1(), 1);
     outerList->emphasizeRow(currentScan1D);
 
-    const QString sn1 = totalScans1D
-        ?  (  totalScans1D == 1  ?  QString()  :  QString("Y%1").arg(currentScan1D, series1Digs, 10, QChar('0') ) )
-        : "Y" + QString::number(currentScan1D);
+    QString sn1, sn2;
+    if ( ! totalScans1D )
+      sn1 = "Y" + QString::number(currentScan1D);
+    else if (totalScans1D > 1)
+      sn1 = QString("Y%1").arg(currentScan1D, series1Digs, 10, QChar('0') );
+    else
+      sn1 = QString();
 
     if (doSerial1D  && outSMotor->isConnected())
       outSMotor->wait_stop();
@@ -2228,9 +2262,13 @@ void MainWindow::engineRun () {
 
     do { // serial scanning 2D
 
-      const QString sn2 = combineNames( sn1,
-                          ( totalScans2D > 1  ?  QString("Z%1").arg(currentScan2D, series2Digs, 10, QChar('0') )  :  QString() ) );
+      if (totalScans2D <= 1)
+        sn2=sn1;
+      else
+        sn2 = combineNames(sn1, QString("Z%1").arg(currentScan2D, series2Digs, 10, QChar('0') ) );
       QString sampleName = combineNames("SAMPLE", sn2);
+      if ( inRun(ui->testScan) || inRun(ui->testSerial) )
+        sampleName = origname + "_" + sampleName;
 
       setenv("CURRENTISCAN", QString::number(currentScan2D).toLatin1(), 1);
       setenv("CURRENTSCAN", QString::number(currentScan).toLatin1(), 1);
@@ -2253,10 +2291,9 @@ void MainWindow::engineRun () {
 
 
 
-
-        QString projectionName = origname + "_" + sampleName;
-        if (splitData)
-          projectionName += QString("_T%1").arg(0, projectionDigs, 10, QChar('0') );
+        const QString projectionName = sampleName + ( splitData
+                                 ? QString("_T%1").arg(0, projectionDigs, 10, QChar('0') )
+                                 :  QString() );
         acquireDetector(projectionName, 1);
         if (stopMe) goto onEngineExit;
 
@@ -2374,11 +2411,7 @@ void MainWindow::engineRun () {
         det->waitWritten();
         if (stopMe) goto onEngineExit;
 
-
-        QString saveName = combineNames("SAMPLE", sn2);
-        if (splitData)
-          saveName = combineNames(saveName, "T");
-        prepareDetector(saveName, totalProjections + doAdd);
+        prepareDetector(sampleName + (splitData ? "_T" : ""), totalProjections + doAdd);
         if (stopMe) goto onEngineExit;
 
         if (doTriggCT || ui->checkExtTrig->isChecked() ) {
@@ -2476,7 +2509,8 @@ void MainWindow::engineRun () {
       else
         ui->serialProgress->setValue(currentScan);
 
-      timeToStop = currentScan2D >= totalScans2D
+      timeToStop = inRun(ui->testScan)
+          || currentScan2D >= totalScans2D
           || ( ui->endTime->isChecked() &&  inCTtime.elapsed() + scanDelay >= scanTime )
           || ( ui->endCondition->isChecked()  &&  ui->conditionScript->script->execute() );
 
@@ -2502,7 +2536,7 @@ void MainWindow::engineRun () {
     currentScan1D++;
 
     timeToStop =
-        ! doSerial1D
+        ! doSerial1D || inRun(ui->testScan)
         || ( ui->endNumber->isChecked()  &&  currentScan1D >= totalScans1D )
         || ( ui->endTime->isChecked()  &&  inCTtime.elapsed() + scanDelay >= scanTime )
         || ( ui->endCondition->isChecked()  &&  ui->conditionScript->script->execute() );
@@ -2518,7 +2552,7 @@ void MainWindow::engineRun () {
     }
 
     if ( timeToStop && ! sasMode && ! ui->ffOnEachScan->isChecked() ) {
-      QString bgdfN = combineNames(sn1, "AFTER");
+      QString bgdfN = combineNames(sn2, "AFTER");
       if ( doBG && ui->bgIntervalAfter->isChecked() ) {
         acquireBG(bgdfN);
         if (stopMe) goto onEngineExit;
@@ -2580,8 +2614,6 @@ onEngineExit:
 
   QTimer::singleShot(0, this, SLOT(updateUi_thetaMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
-  QTimer::singleShot(0, this, SLOT(updateUi_loopMotor()));
-  QTimer::singleShot(0, this, SLOT(updateUi_subLoopMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_dynoMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_dyno2Motor()));
   QTimer::singleShot(0, this, SLOT(updateUi_detector()));
