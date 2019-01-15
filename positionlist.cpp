@@ -28,9 +28,11 @@ PositionList::PositionList(QWidget *parent)
   #if QT_VERSION >= 0x050000
   ui->list->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
   ui->list->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+  ui->list->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);
   #else
   ui->list->horizontalHeader()->setResizeMode(0, QHeaderView::Stretch);
   ui->list->horizontalHeader()->setResizeMode(1, QHeaderView::Fixed);
+  ui->list->horizontalHeader()->setResizeMode(2, QHeaderView::Fixed);
   #endif
 
   updateNoF();
@@ -73,12 +75,12 @@ void PositionList::putMotor(QCaMotorGUI * motor) { // assume is called only once
 
 void PositionList::updateNoF() {
 
-
   const int steps = ui->nof->value();
 
   while ( steps < ui->list->rowCount() ) {
 
     delete ui->list->cellWidget( ui->list->rowCount()-1, 1 );
+    delete ui->list->cellWidget( ui->list->rowCount()-2, 1 );
     ui->list->removeRow( ui->list->rowCount()-1 );
 
   } while ( steps > ui->list->rowCount() ) {
@@ -86,11 +88,21 @@ void PositionList::updateNoF() {
     const int crc = ui->list->rowCount();
     ui->list->insertRow(crc);
 
-    QToolButton * btn = new QToolButton(this);
+    QToolButton * btn;
+
+    btn = new QToolButton(this);
     connect(btn, SIGNAL(clicked(bool)), SLOT(moveMotorHere()));
     btn->setText("...");
     btn->setToolTip("Move motor here");
     ui->list->setCellWidget(crc, 1, btn );
+    ui->list->resizeColumnToContents(1);
+
+    btn = new QToolButton(this);
+    connect(btn, SIGNAL(clicked(bool)), SLOT(getMotorPosition()));
+    btn->setText("...");
+    btn->setToolTip("Get current motor position");
+    ui->list->setCellWidget(crc, 2, btn );
+    ui->list->resizeColumnToContents(2);
 
     const double mpos = motui ? motui->motor()->getUserPosition() :  0 ;
     ui->list->setItem(crc, 0, new QTableWidgetItem( QString::number(mpos) ) );
@@ -109,6 +121,7 @@ void PositionList::updateAmOK() {
   QCaMotor * mot = motui->motor();
 
   const int steps = ui->list->rowCount();
+  const bool isRegular = ! ui->irregular->isChecked();
 
   bool newAllOK=true;
   for ( int crow=0 ; crow < steps ; crow++ ) {
@@ -116,13 +129,13 @@ void PositionList::updateAmOK() {
     QTableWidgetItem * item = ui->list->item(crow, 0);
 
     ui->list->blockSignals(true);
-    if ( ui->irregular->isChecked() )
+    if ( ! isRegular )
       item->setFlags( item->flags() | Qt::ItemIsEditable );
     else
       item->setFlags( item->flags() & ~Qt::ItemIsEditable );
     ui->list->blockSignals(false);
 
-    if ( ! ui->irregular->isChecked() && ! freezListUpdates
+    if ( isRegular && ! freezListUpdates
          && mot->isConnected() && ! mot->isMoving() ) {
       double pos = mot->getUserPosition() + item->row() * ui->step->value();
       if ( pos != item->text().toDouble() )
@@ -143,11 +156,11 @@ void PositionList::updateAmOK() {
 
   static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
 
-  ui->list->setColumnHidden(1, ! ui->irregular->isChecked() );
-  ui->irregular->setStyleSheet( newAllOK || ! ui->irregular->isChecked()
-                                    ?  ""  : warnStyle  );
+  ui->list->setColumnHidden(1, isRegular );
+  ui->list->setColumnHidden(2, isRegular );
+  ui->irregular->setStyleSheet( newAllOK || isRegular ?  ""  : warnStyle  );
 
-  bool isOK = ui->irregular->isChecked() || ! mot->isConnected() || ui->step->value() != 0.0;
+  bool isOK = ! isRegular || ! mot->isConnected() || ui->step->value() != 0.0;
   ui->step->setStyleSheet(isOK ?  ""  : warnStyle);
   newAllOK &= isOK;
 
@@ -181,5 +194,13 @@ void PositionList::moveMotorHere() {
     if ( sender() == ui->list->cellWidget(crow, 1) ) {
       motui->motor()->goUserPosition( ui->list->item(crow, 0)->text().toDouble(), QCaMotor::STARTED );
       return;
+    }
+}
+
+void PositionList::getMotorPosition() {
+  for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
+    if ( sender() == ui->list->cellWidget(crow, 2) ) {
+      const double mpos = motui ? motui->motor()->getUserPosition() :  0 ;
+      ui->list->item(crow, 0)->setText(QString::number(mpos));
     }
 }

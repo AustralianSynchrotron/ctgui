@@ -2146,8 +2146,9 @@ void MainWindow::engineRun () {
 
   foreach(PositionList * lst, findChildren<PositionList*>())
     lst->freezList(true);
-  foreach(QWidget * tab, ui->control->tabs())
-        tab->setEnabled(false);
+  if ( inRun(ui->startStop) )
+    foreach(QWidget * tab, ui->control->tabs())
+      tab->setEnabled(false);
   QTime inCTtime;
   inCTtime.start();
   bool timeToStop=false;
@@ -2262,13 +2263,16 @@ void MainWindow::engineRun () {
 
     do { // serial scanning 2D
 
-      if (totalScans2D <= 1)
-        sn2=sn1;
+      sn2 = (totalScans2D <= 1)  ?
+            sn1  :  combineNames(sn1, QString("Z%1").arg(currentScan2D, series2Digs, 10, QChar('0') ) );
+
+      QString sampleName;
+      if ( inRun(ui->testScan) )
+        sampleName = origname + "_SAMPLE";
+      else if ( inRun(ui->testSerial) )
+        sampleName = combineNames( origname + "_SAMPLE", sn2);
       else
-        sn2 = combineNames(sn1, QString("Z%1").arg(currentScan2D, series2Digs, 10, QChar('0') ) );
-      QString sampleName = combineNames("SAMPLE", sn2);
-      if ( inRun(ui->testScan) || inRun(ui->testSerial) )
-        sampleName = origname + "_" + sampleName;
+        sampleName = combineNames("SAMPLE", sn2);
 
       setenv("CURRENTISCAN", QString::number(currentScan2D).toLatin1(), 1);
       setenv("CURRENTSCAN", QString::number(currentScan).toLatin1(), 1);
