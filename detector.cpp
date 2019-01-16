@@ -116,35 +116,38 @@ Detector::Detector(QObject * parent) :
 QString Detector::cameraName(Detector::Camera cam) {
   switch(cam) {
   case ScintX : return "ScintX";
-  case HamaGranny : return "HamaGranny";
+  case HamaPapa : return "HamaPapa";
   case PCOedge2B : return "PCO.Edge 2B";
   case PCOedge3B : return "PCO.Edge 3B";
   case Argus : return "Argus";
   case CPro : return "CPro" ;
   case HamaMama : return "HamaMama";
+  case Xenia : return "Xenia";
   default: return QString();
   }
 }
 
 Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="ScintX") return ScintX;
-  if (_cameraName =="HamaGranny") return HamaGranny;
+  if (_cameraName =="HamaPapa") return HamaPapa;
   if (_cameraName =="Argus") return Argus;
   if (_cameraName =="PCO.Edge 2B") return PCOedge2B;
   if (_cameraName =="PCO.Edge 3B") return PCOedge3B;
   if (_cameraName =="CPro") return CPro;
   if (_cameraName =="HamaMama") return HamaMama;
+  if (_cameraName =="Xenia") return Xenia;
   return NONE;
 }
 
 const QList<Detector::Camera> Detector::knownCameras = ( QList<Detector::Camera> ()
       << Detector::ScintX
-      << Detector::HamaGranny
+      << Detector::HamaPapa
       << Detector::Argus
       << Detector::PCOedge2B
       << Detector::PCOedge3B
       << Detector::CPro
       << Detector::HamaMama
+      << Detector::Xenia
       ) ;
 
 
@@ -153,12 +156,13 @@ void Detector::setCamera(Camera _cam) {
   _camera = _cam;
   switch (_cam) {
   case ScintX:     setCamera("SR08ID01DET05");    break;
-  case HamaGranny: setCamera("SR08ID01DET04");    break;
+  case HamaPapa:   setCamera("SR08ID01DET04");    break;
   case Argus:      setCamera("SR08ID01DET03");    break;
   case PCOedge2B:  setCamera("SR08ID01DET01");    break;
   case PCOedge3B:  setCamera("SR08ID01DET02");    break;
   case CPro:       setCamera("SR08ID01DETIOC06"); break;
   case HamaMama:   setCamera("SR08ID01DETIOC08"); break;
+  case Xenia:      setCamera("SR99ID01DALSA");    break;
   default:
     _camera = oldcam;
     foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -615,7 +619,7 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
 
   }
 
-  if ( _camera == HamaGranny ) {
+  if ( _camera == HamaPapa ) {
      if ( ! setTriggerMode(1) )
        return false;
   } else if ( _camera != Argus ) {

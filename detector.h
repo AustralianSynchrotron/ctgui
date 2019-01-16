@@ -17,10 +17,11 @@ public:
     PCOedge2B,
     PCOedge3B,
     ScintX,
-    HamaGranny,
+    HamaPapa,
     Argus,
     CPro,
     HamaMama,
+    Xenia,
     BYPV
   };
 
