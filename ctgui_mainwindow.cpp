@@ -1961,10 +1961,11 @@ acquireMultiExit:
       sMotor->wait_stop();
   }
 
-  return ! stopMe;
 
   loopList->emphasizeRow();
   sloopList->emphasizeRow();
+
+  return ! stopMe;
 
 }
 

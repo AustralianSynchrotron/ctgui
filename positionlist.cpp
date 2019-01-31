@@ -80,7 +80,7 @@ void PositionList::updateNoF() {
   while ( steps < ui->list->rowCount() ) {
 
     delete ui->list->cellWidget( ui->list->rowCount()-1, 1 );
-    delete ui->list->cellWidget( ui->list->rowCount()-2, 1 );
+    delete ui->list->cellWidget( ui->list->rowCount()-1, 2 );
     ui->list->removeRow( ui->list->rowCount()-1 );
 
   } while ( steps > ui->list->rowCount() ) {
@@ -143,6 +143,7 @@ void PositionList::updateAmOK() {
     }
 
     ui->list->cellWidget(crow, 1)->setEnabled( ! mot->isMoving() );
+    ui->list->cellWidget(crow, 2)->setEnabled( ! mot->isMoving() );
 
     bool isDouble;
     const double pos = item->text().toDouble(&isDouble);
