@@ -65,6 +65,7 @@ public:
 
 public slots:
 
+  void setState(State st, bool wait=true) { if (st==CLOSED) open(wait) ; else if (st==OPEN) close(wait) ; }
   void open(bool wait=true) ;
   void close(bool wait=true);
   void toggle(bool wait=true) { if ( state() == CLOSED ) open(wait) ; else close(wait) ;}

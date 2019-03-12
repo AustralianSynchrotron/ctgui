@@ -30,6 +30,47 @@ static const QString ssText = "Start experiment";
 const QString MainWindow::storedState = QDir::homePath()+"/.ctgui";
 
 
+class HWstate {
+
+private:
+  Detector * det;
+  Shutter * shut;
+  Shutter::State shutsate;
+  QString dettifname;
+  QString dethdfname;
+  int detimode;
+  int dettmode;
+  float detperiod;
+
+public:
+
+  HWstate(Detector *_det, Shutter * _shut)
+    : det(_det), shut(_shut)
+  {
+    store();
+  }
+
+  void store() {
+    shutsate = shut->state();
+    dettifname = det->name(Detector::TIFF);
+    dethdfname = det->name(Detector::HDF);
+    detimode = det->imageMode();
+    dettmode = det->triggerMode();
+    detperiod = det->period();
+  }
+
+  void restore() {
+    // shut->setState(shutsate);
+    det->setName(Detector::TIFF, dettifname) ;
+    det->setName(Detector::HDF, dethdfname) ;
+    det->setImageMode(detimode);
+    det->setTriggerMode(dettmode);
+    det->setPeriod(detperiod);
+  }
+
+};
+
+
 
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
@@ -1492,10 +1533,14 @@ void MainWindow::onSerialTest() {
 
   stopMe=false;
   const QString butText = mkRun(ui->testSerial, true, "Stop");
+  det->waitWritten();
+  HWstate hw(det, shutter);
   ui->ssWidget->setEnabled(false);
 
+  shutter->open();
   engineRun();
 
+  hw.restore();
   ui->ssWidget->setEnabled(true);
   mkRun(ui->testSerial, false, butText);
 
@@ -1512,9 +1557,13 @@ void MainWindow::onScanTest() {
   stopMe=false;
   const QString butText = mkRun(ui->testScan, true, "Stop");
   ui->scanWidget->setEnabled(false);
+  det->waitWritten();
+  HWstate hw(det, shutter);
 
+  shutter->open();
   engineRun();
 
+  hw.restore();
   ui->scanWidget->setEnabled(true);
   mkRun(ui->testScan, false, butText);
 
@@ -1534,19 +1583,16 @@ void MainWindow::onFFtest() {
   stopMe=false;
   const QString butText = mkRun(ui->testFF, true, "Stop");
   ui->ffWidget->setEnabled(false);
-
-  const QString origname = det->name(uiImageFormat());
-  const int detimode = det->imageMode();
+  det->waitWritten();
+  HWstate hw(det, shutter);
 
   acquireBG("");
   det->waitWritten();
-  acquireDF("", shutter->state());
+  acquireDF("", Shutter::CLOSED);
   det->waitWritten();
 
   det->setAutoSave(false);
-  det->setName(uiImageFormat(), origname);
-  det->setImageMode(detimode);
-
+  hw.restore();
   ui->ffWidget->setEnabled(true);
   mkRun(ui->testFF, false, butText);
 
@@ -1565,12 +1611,17 @@ void MainWindow::onLoopTest() {
   stopMe=false;
   const QString butText = mkRun(ui->testMulti, true, "Stop");
   ui->multiWidget->setEnabled(false);
+  det->waitWritten();
+  HWstate hw(det, shutter);
 
+  shutter->open();
   acquireMulti("",  ( ui->aqMode->currentIndex() == STEPNSHOT  &&  ! ui->checkDyno->isChecked() )  ?
                       ui->aqsPP->value() : 1);
+  shutter->close();
   det->waitWritten();
-  det->setAutoSave(false);
 
+  det->setAutoSave(false);
+  hw.restore();
   ui->multiWidget->setEnabled(true);
   mkRun(ui->testMulti, false, butText);
 
@@ -1586,11 +1637,16 @@ void MainWindow::onDynoTest() {
   stopMe=false;
   const QString butText = mkRun(ui->testDyno, true, "Stop");
   ui->dynoWidget->setEnabled(false);
-
-  acquireDyno("");
   det->waitWritten();
-  det->setAutoSave(false);
+  HWstate hw(det, shutter);
 
+  shutter->open();
+  acquireDyno("");
+  shutter->close();
+  det->waitWritten();
+
+  det->setAutoSave(false);
+  hw.restore();
   ui->dynoWidget->setEnabled(true);
   mkRun(ui->testDyno, false, butText);
   QTimer::singleShot(0, this, SLOT(updateUi_dynoMotor()));
@@ -1607,17 +1663,26 @@ void MainWindow::onDetectorTest() {
   }
 
   stopMe=false;
-  const QString origname = det->name(uiImageFormat());
   const QString butText = mkRun(ui->testDetector, true, "Stop");
   ui->detectorWidget->setEnabled(false);
+  det->waitWritten();
+  HWstate hw(det, shutter);
 
-  acquireDetector(det->name(uiImageFormat()) + "_SAMPLE",
-                  ( ui->aqMode->currentIndex() == STEPNSHOT && ! ui->checkDyno->isChecked() )
-                  ?  ui->aqsPP->value()  :  1);
+  int nofFrames = 0;
+  if ( ui->aqMode->currentIndex() != STEPNSHOT )
+    nofFrames = ui->nofBGs->value();
+  else if ( ui->checkDyno->isChecked() )
+    nofFrames = 1;
+  else
+    nofFrames = ui->aqsPP->value();
+
+  shutter->open();
+  acquireDetector(det->name(uiImageFormat()) + "_SAMPLE", nofFrames);
+  shutter->close();
   det->waitWritten();
 
   det->setAutoSave(false);
-  det->setName(uiImageFormat(), origname);
+  hw.restore();
   ui->detectorWidget->setEnabled(true);
   mkRun(ui->testDetector, false, butText);
   updateUi_detector();
@@ -2007,6 +2072,9 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( ui->bgExposure->value() ) ;
 
+  shutter->open();
+  if (stopMe) goto onBgExit;
+
   det->setPeriod(0);
   if (ui->checkMulti->isChecked() && ! ui->singleBg->isChecked() )
     ret = acquireMulti(ftemplate, bgs);
@@ -2046,7 +2114,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
   if ( dfs<1 )
     return 0;
 
-  shutter->close(true);
+  shutter->close();
   if (stopMe) goto onDfExit;
   det->waitWritten();
   if (stopMe) goto onDfExit;
@@ -2064,9 +2132,9 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
   if (stopMe) goto onDfExit;
 
   if (stateToGo == Shutter::OPEN)
-    shutter->open(true);
+    shutter->open();
   else if (stateToGo == Shutter::CLOSED)
-    shutter->close(true);
+    shutter->close();
   if ( ! stopMe && shutter->state() != stateToGo)
     qtWait(shutter, SIGNAL(stateUpdated(State)), 500); /**/
 
@@ -2101,6 +2169,7 @@ void MainWindow::engineRun () {
   QCaMotor * const outSMotor = outerList->motui->motor();
 
   const QString origname = det->name(uiImageFormat());
+  HWstate hw(det, shutter);
 
   const double
       inSerialStart = inSMotor->getUserPosition(),
@@ -2129,8 +2198,6 @@ void MainWindow::engineRun () {
       totalProjections = ui->scanProjections->value(),
       projectionDigs = QString::number(totalProjections).size(),
       doAdd = ui->scanAdd->isChecked() ? 1 : 0,
-      detimode=det->imageMode(),
-      dettmode=det->triggerMode(),
       totalScans1D = doSerial1D ?
         ( ui->endNumber->isChecked() ? outerList->ui->nof->value() : 0 ) : 1 ,
       totalScans2D = doSerial2D ? innearList->ui->nof->value() : 1 ,
@@ -2605,10 +2672,8 @@ onEngineExit:
 
   det->stop();
   det->waitWritten();
-  det->setName(uiImageFormat(), origname) ;
   det->setAutoSave(false);
-  det->setImageMode(detimode);
-  det->setTriggerMode(dettmode);
+  hw.restore();
 
   if ( inRun(ui->startStop) ) {
     QProcess::execute("killall -9 camonitor");

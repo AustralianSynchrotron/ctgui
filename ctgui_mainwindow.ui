@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1321</width>
+    <width>1464</width>
     <height>922</height>
    </rect>
   </property>
@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>3</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -242,7 +242,7 @@
                <bool>true</bool>
               </property>
               <attribute name="buttonGroup">
-               <string>imageFormatGroup</string>
+               <string notr="true">imageFormatGroup</string>
               </attribute>
              </widget>
             </item>
@@ -252,7 +252,7 @@
                <string>HDF&amp;5</string>
               </property>
               <attribute name="buttonGroup">
-               <string>imageFormatGroup</string>
+               <string notr="true">imageFormatGroup</string>
               </attribute>
              </widget>
             </item>
@@ -291,7 +291,7 @@
                 <bool>true</bool>
                </property>
                <attribute name="buttonGroup">
-                <string>endConditionButtonGroup</string>
+                <string notr="true">endConditionButtonGroup</string>
                </attribute>
               </widget>
              </item>
@@ -304,7 +304,7 @@
                 <string>elapsed time</string>
                </property>
                <attribute name="buttonGroup">
-                <string>endConditionButtonGroup</string>
+                <string notr="true">endConditionButtonGroup</string>
                </attribute>
               </widget>
              </item>
@@ -317,7 +317,7 @@
                 <string>conditional</string>
                </property>
                <attribute name="buttonGroup">
-                <string>endConditionButtonGroup</string>
+                <string notr="true">endConditionButtonGroup</string>
                </attribute>
               </widget>
              </item>
@@ -444,6 +444,13 @@
                 <property name="toolTip">
                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalTime&lt;/span&gt;. Shown if &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;=&lt;/span&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;TIME&lt;/span&gt;. Otherwise hidden.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
                 </property>
+                <property name="time">
+                 <time>
+                  <hour>13</hour>
+                  <minute>0</minute>
+                  <second>1</second>
+                 </time>
+                </property>
                 <property name="minimumTime">
                  <time>
                   <hour>0</hour>
@@ -456,13 +463,6 @@
                 </property>
                 <property name="timeSpec">
                  <enum>Qt::OffsetFromUTC</enum>
-                </property>
-                <property name="time">
-                 <time>
-                  <hour>13</hour>
-                  <minute>0</minute>
-                  <second>1</second>
-                 </time>
                 </property>
                </widget>
               </item>
@@ -1053,6 +1053,9 @@ p
              <property name="toolTip">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalBGs&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
+             <property name="maximum">
+              <number>999999</number>
+             </property>
             </widget>
            </item>
            <item row="5" column="0">
@@ -1485,7 +1488,7 @@ p
                 <bool>true</bool>
                </property>
                <attribute name="buttonGroup">
-                <string>dynoDirButtonGroup</string>
+                <string notr="true">dynoDirButtonGroup</string>
                </attribute>
               </widget>
              </item>
@@ -1498,7 +1501,7 @@ p
                 <string>Negative</string>
                </property>
                <attribute name="buttonGroup">
-                <string>dynoDirButtonGroup</string>
+                <string notr="true">dynoDirButtonGroup</string>
                </attribute>
               </widget>
              </item>
@@ -1518,7 +1521,7 @@ p
                 <bool>true</bool>
                </property>
                <attribute name="buttonGroup">
-                <string>dyno2DirButtonGroup</string>
+                <string notr="true">dyno2DirButtonGroup</string>
                </attribute>
               </widget>
              </item>
@@ -1531,7 +1534,7 @@ p
                 <string>Negative</string>
                </property>
                <attribute name="buttonGroup">
-                <string>dyno2DirButtonGroup</string>
+                <string notr="true">dyno2DirButtonGroup</string>
                </attribute>
               </widget>
              </item>
