@@ -337,7 +337,7 @@ Detector::ImageFormat Detector::imageFormat() const {
     return UNDEFINED;
   if (enableTiffPv->get().toBool())
     return TIFF;
-  else if (enableHdfPv->get().toBool())
+  else if (hdfReady()  &&  enableHdfPv->get().toBool())
     return HDF;
   else
     return UNDEFINED;
@@ -350,7 +350,7 @@ bool Detector::imageFormat(Detector::ImageFormat fmt) const {
   if (fmt==TIFF)
     return enableTiffPv->get().toBool();
   else if (fmt==HDF)
-    return enableHdfPv->get().toBool();
+    return hdfReady() && enableHdfPv->get().toBool();
   else
     return false;
 }
@@ -399,7 +399,7 @@ bool Detector::pathExists(Detector::ImageFormat fmt) const {
   if (fmt==TIFF)
     return pathExistsTiffPv->get().toBool();
   else if (fmt==HDF)
-    return pathExistsHdfPv->get().toBool();
+    return ! hdfReady() ||  pathExistsHdfPv->get().toBool();
   else
     return pathExists(TIFF) && pathExists(HDF);
 }
@@ -409,9 +409,11 @@ bool Detector::isWriting(Detector::ImageFormat fmt) const {
     return false;
   if (fmt==TIFF)
     return writeProggressTiffPv->get().toInt() || ( queUseTiffPv->isConnected() ? queUseTiffPv->get().toInt() : false );
-  else if (fmt==HDF)
+  else if (fmt==HDF) {
+    if ( ! hdfReady() )
+      return false;
     return writeProggressHdfPv->get().toInt() || ( queUseHdfPv->isConnected() ? queUseHdfPv->get().toInt() : false );
-  else
+  } else
     return isWriting(TIFF) || isWriting(HDF);
 }
 
@@ -429,9 +431,6 @@ bool Detector::setImageFormat(Detector::ImageFormat fmt) {
   enableHdfPv->set(fmt == HDF);
   qtWait(enableTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   qtWait(enableHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
-  //if ( fmt==HDF )
-  //  writeModeHdfPv->se ();
-
   return imageFormat() == fmt;
 }
 
@@ -497,6 +496,8 @@ bool Detector::setNameTemplate(ImageFormat fmt, const QString & ntemp) {
     nameTemplateTiffPv->set(ntemp.toLatin1().append(char(0)));
     qtWait(nameTemplateTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   } else if ( fmt == HDF  && nameTemplateHdfPv->isConnected() ) {
+    if ( ! hdfReady() )
+      return true;
     nameTemplateHdfPv->set(ntemp.toLatin1().append(char(0)));
     qtWait(nameTemplateHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
   } else {
@@ -520,10 +521,12 @@ bool Detector::setName(ImageFormat fmt, const QString & fname) {
     nameTiffPv->set(fname.toLatin1().append(char(0)));
     qtWait(nameTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
   } else if ( fmt == HDF  && nameHdfPv->isConnected() ) {
+    if ( ! hdfReady() )
+      return true;
     nameHdfPv->set(fname.toLatin1().append(char(0)));
     qtWait(nameHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
   } else {
-    return setName(TIFF, fname) & setName(HDF, fname);
+    return setName(TIFF, fname) && setName(HDF, fname);
   }
   return name(fmt) == fname ;
 
@@ -554,21 +557,21 @@ bool Detector::setPath(const QString & _path) {
 bool Detector::setAutoSave(bool autoSave) {
   if ( ! _camera )
     return true;
-  if ( autoSaveTiffPv->get().toBool() != autoSave ) {
+  if ( imageFormat() == TIFF ) {
+    autoIncrementTiffPv->set(1);
     autoSaveTiffPv->set(autoSave ? 1 : 0);
     qtWait(autoSaveTiffPv, SIGNAL(valueUpdated(QVariant)), 500);
+    return autoSaveTiffPv->get().toBool() == autoSave  &&
+           autoIncrementTiffPv->get().toBool();
   }
-  autoIncrementTiffPv->set(1);
-  if ( autoSaveHdfPv->get().toBool() != autoSave ) {
+  if ( imageFormat() == HDF ) {
+    autoIncrementHdfPv->set(1);
     autoSaveHdfPv->set(autoSave ? 1 : 0);
     qtWait(autoSaveHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
+    return autoSaveHdfPv->get().toBool() == autoSave &&
+           autoIncrementHdfPv->get().toBool() ;
   }
-  autoIncrementHdfPv->set(1);
-  return
-      autoSaveTiffPv->get().toBool() == autoSave  &&
-      autoIncrementTiffPv->get().toBool() &&
-      autoSaveHdfPv->get().toBool() == autoSave &&
-      autoIncrementHdfPv->get().toBool() ;
+  return true;
 }
 
 
@@ -591,9 +594,10 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
       if ( fileNumberTiffPv->get().toInt() !=0 )
         return false;
     }
-
   } else if (fmt == HDF) {
 
+    if ( ! hdfReady() )
+      return false;
     if ( captureStatusHdfPv->get().toInt() == 1 ) // capturing
       return false;
 
@@ -689,7 +693,6 @@ bool Detector::setHardwareTriggering(bool set) {
 
 
 bool Detector::start() {
-
   if ( ! _camera )
     return true;
   if ( ! aqPv->isConnected() || ! writeProggressTiffPv->isConnected() || isAcquiring() )
