@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Computed Tomography (CT)
+Exec=ctgui
+Icon=CTguiIcon
+Terminal=false
+Categories=Science;X-IMBL;
+StartupNotify=true

@@ -18,7 +18,7 @@
   </property>
   <property name="windowIcon">
    <iconset resource="ctgui.qrc">
-    <normaloff>:/icon.png</normaloff>:/icon.png</iconset>
+    <normaloff>:/CTguiIcon.png</normaloff>:/CTguiIcon.png</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayoutt">

@@ -44,6 +44,14 @@ config.path = /../../../../../../../../../../../etc
 # This is how I force it to be installed in /etc. I know it is a dirty trick
 INSTALLS += config
 
+icon.path = $$[INSTALLBASE]/share/icons
+icon.files += CTguiIcon.png 
+INSTALLS += icon 
+
+desktop.path = $$[INSTALLBASE]/share/applications
+desktop.files += CTgui.desktop
+INSTALLS += desktop 
+
 target.files = $$[TARGET]
 target.path = $$[INSTALLBASE]/bin
 INSTALLS += target
