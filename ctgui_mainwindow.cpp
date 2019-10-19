@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <QApplication>
 #include <QMessageBox>
+#include <QStandardPaths>
 
 #include "additional_classes.h"
 #include "ctgui_mainwindow.h"
@@ -27,8 +28,8 @@
 static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
 static const QString ssText = "Start experiment";
 
-const QString MainWindow::storedState = QDir::homePath()+"/.ctgui";
-
+const QString MainWindow::storedState =
+              QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/.ctgui";
 
 class HWstate {
 

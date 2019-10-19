@@ -1,29 +1,36 @@
 #include "shutter.h"
 #include <QSettings>
 #include <QFile>
+#include <QDir>
+#include <QStandardPaths>
 
+static const QString shuttersListName = "listOfKnownShutters.ini";
 
 QHash<QString, QStringList> readListOfKnownShutters() {
 
   QHash<QString, QStringList> toReturn;
 
-  QSettings config("/etc/listOfKnownShutters.ini", QSettings::IniFormat);
-  if ( config.status() )
-    return toReturn;
-
-  foreach (const QString shuttername, config.childGroups()) {
-    config.beginGroup(shuttername);
-    const QStringList shutterdesc = QStringList()
-        << config.value("doOpenPC").toString()
-        << config.value("doOpenVal").toString()
-        << config.value("doClosePC").toString()
-        << config.value("doCloseVal").toString()
-        << config.value("isOpenPC").toString()
-        << config.value("isOpenVal").toString()
-        << config.value("isClosedPC").toString()
-        << config.value("isClosedVal").toString();
-    config.endGroup();
-    toReturn[shuttername] = shutterdesc;
+  foreach(QString pth, QStringList() << QStandardPaths::standardLocations(QStandardPaths::AppDataLocation)
+                                     << QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation) ) {
+    QDir dir(pth);
+    foreach(QString cfg, dir.entryList(QStringList() << shuttersListName, QDir::Files) ) {
+      QSettings config(cfg, QSettings::IniFormat);
+      if ( ! config.status() )
+        foreach (const QString shuttername, config.childGroups()) {
+          config.beginGroup(shuttername);
+          const QStringList shutterdesc = QStringList()
+          << config.value("doOpenPC").toString()
+          << config.value("doOpenVal").toString()
+          << config.value("doClosePC").toString()
+          << config.value("doCloseVal").toString()
+          << config.value("isOpenPC").toString()
+          << config.value("isOpenVal").toString()
+          << config.value("isClosedPC").toString()
+          << config.value("isClosedVal").toString();
+          config.endGroup();
+          toReturn[shuttername] = shutterdesc;
+        }
+    }
   }
 
   return toReturn;
