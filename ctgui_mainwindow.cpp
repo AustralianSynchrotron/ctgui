@@ -393,7 +393,7 @@ void MainWindow::saveConfiguration(QString fileName) {
 
   QSettings config(fileName, QSettings::IniFormat);
 
-  config.setValue("version", QString(APP_VERSION));
+  config.setValue("version", QString::number(APP_VERSION));
 
   foreach (QObject * obj, configNames.keys())
     save_cfg(obj, configNames[obj], config);
@@ -1864,9 +1864,9 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
       setMotorSpeed(dyno2Motor, d2aSpeed);
     if (stopMe) goto acquireDynoExit;
 
-    dynoMotor->motor()->goLimit( ui->dynoPos->isChecked() ? 1 : -1 );
+    dynoMotor->motor()->goLimit( ui->dynoPos->isChecked() ? QCaMotor::POSITIVE : QCaMotor::NEGATIVE );
     if ( ui->dyno2->isChecked() )
-      dyno2Motor->motor()->goLimit( ui->dyno2Pos->isChecked() ? 1 : -1 );
+      dyno2Motor->motor()->goLimit( ui->dyno2Pos->isChecked() ? QCaMotor::POSITIVE : QCaMotor::NEGATIVE );
     dynoMotor->motor()->wait_start();
     if ( ui->dyno2->isChecked() )
       dyno2Motor->motor()->wait_start();
@@ -2508,7 +2508,7 @@ void MainWindow::engineRun () {
 
           if ( ! doTriggCT ) { // should be started after tct and det
             thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */
-                goLimit( thetaRange > 0 ? 1 : -1 );
+                goLimit( thetaRange > 0 ? QCaMotor::POSITIVE : QCaMotor::NEGATIVE );
             if (stopMe) goto onEngineExit;
             // accTravel/speed in the below string is required to compensate
             // for the coefficient 2 in addTravel
@@ -2525,8 +2525,7 @@ void MainWindow::engineRun () {
         det->start();
         if (doTriggCT) {
           tct->start(true);
-          thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */
-              goLimit( thetaRange > 0 ? 1 : -1 );
+          thetaMotor->motor()->goLimit( thetaRange > 0 ? QCaMotor::POSITIVE : QCaMotor::NEGATIVE );
         }
 
         if (stopMe) goto onEngineExit;
