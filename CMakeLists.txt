@@ -59,6 +59,11 @@ target_link_libraries(ctgui
   Qt5::Widgets
 )
 
+install(TARGETS ctgui
+    DESTINATION bin
+)
+
+
 install(FILES listOfKnownShutters.ini
     DESTINATION share
 )
@@ -71,7 +76,7 @@ install(FILES CTgui.desktop
     DESTINATION share/applications
 )
 
-install(FILES ctgui.log.sh
+install(FILES libexec/ctgui.log.sh
     DESTINATION libexec
 )
 
