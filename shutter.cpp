@@ -14,7 +14,7 @@ QHash<QString, QStringList> readListOfKnownShutters() {
                                      << QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation) ) {
     QDir dir(pth);
     foreach(QString cfg, dir.entryList(QStringList() << shuttersListName, QDir::Files) ) {
-      QSettings config(cfg, QSettings::IniFormat);
+      QSettings config(pth+'/'+cfg, QSettings::IniFormat);
       if ( ! config.status() )
         foreach (const QString shuttername, config.childGroups()) {
           config.beginGroup(shuttername);
@@ -32,6 +32,8 @@ QHash<QString, QStringList> readListOfKnownShutters() {
         }
     }
   }
+
+  qDebug() << toReturn;
 
   return toReturn;
 
