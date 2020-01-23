@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QDir>
 #include <QStandardPaths>
+#include <QStandardItemModel>
 
 static const QString shuttersListName = "listOfKnownShutters.ini";
 
@@ -10,11 +11,11 @@ QHash<QString, QStringList> readListOfKnownShutters() {
 
   QHash<QString, QStringList> toReturn;
 
+
   foreach(QString pth, QStringList() << QStandardPaths::standardLocations(QStandardPaths::AppDataLocation)
                                      << QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation) ) {
-    QDir dir(pth);
-    foreach(QString cfg, dir.entryList(QStringList() << shuttersListName, QDir::Files) ) {
-      QSettings config(pth+'/'+cfg, QSettings::IniFormat);
+    foreach(QString cfg, QDir(pth).entryList(QStringList() << shuttersListName, QDir::Files) ) {
+      QSettings config(pth + QDir::separator() + cfg, QSettings::IniFormat);
       if ( ! config.status() )
         foreach (const QString shuttername, config.childGroups()) {
           config.beginGroup(shuttername);
@@ -32,8 +33,6 @@ QHash<QString, QStringList> readListOfKnownShutters() {
         }
     }
   }
-
-  qDebug() << toReturn;
 
   return toReturn;
 
@@ -57,7 +56,11 @@ Shutter::Shutter(QWidget *parent)
   ui->setupUi(this);
   ui->selection->insertItems(0, listOfKnownShutters.keys());
   ui->selection->insertItem(0, "none"); // must be at the top (assumption for the onSelection())
+
   customUi->setupUi(customDlg);
+  customUi->doCls->setPlaceholderText("as above");
+  customUi->isCls->setPlaceholderText("as above");
+  customUi->loadPreset->insertItems(1, listOfKnownShutters.keys());
 
   ColumnResizer * resizer = new ColumnResizer(customDlg);
   resizer->addWidgetsFromGridLayout( dynamic_cast<QGridLayout*>(customUi->doOpn->layout()), 1);
@@ -65,6 +68,7 @@ Shutter::Shutter(QWidget *parent)
   resizer->addWidgetsFromGridLayout( dynamic_cast<QGridLayout*>(customUi->isOpn->layout()), 1);
   resizer->addWidgetsFromGridLayout( dynamic_cast<QGridLayout*>(customUi->isCls->layout()), 1);
 
+  connect(customUi->loadPreset, SIGNAL(activated(int)), SLOT(onLoadPreset()));
   connect(ui->selection, SIGNAL(activated(int)), SLOT(onSelection()));
   connect(ui->toggle, SIGNAL(pressed()), SLOT(toggle()));
   connect(ui->status, SIGNAL(pressed()), SLOT(requestUpdate()));
@@ -166,6 +170,11 @@ void Shutter::loadCustomDialog(const QStringList & desc) {
   customUi->isClsVal->setText(desc[7]);
 }
 
+void Shutter::onLoadPreset() {
+  loadCustomDialog( customUi->loadPreset->currentIndex() ?
+                    listOfKnownShutters[customUi->loadPreset->currentText()] : fakeShutter);
+}
+
 
 void Shutter::onSelection(){
   if ( ui->selection->currentIndex() == 0 ) // fake shutter
@@ -180,7 +189,6 @@ void Shutter::onSelection(){
   } else {
     setShutter(ui->selection->currentText());
   }
-
 }
 
 

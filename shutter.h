@@ -77,6 +77,7 @@ private slots:
   void onClosedUpdate(const QString & newClosed) {lastClosed=newClosed; onStatusUpdate();}
   void onStatusUpdate();
   void onSelection();
+  void onLoadPreset();
 
 signals:
 

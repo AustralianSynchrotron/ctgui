@@ -251,6 +251,7 @@ private:
 public:
   PVorCOM * pvc;
   UPVorCOM (QWidget *parent = 0);
+  void setPlaceholderText(const QString & text) { ui->name->setPlaceholderText(text); }
 private slots:
   void setValueText(const QString & txt);
   void setPVCname() { pvc->setName(ui->name->text()); }

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>758</width>
-    <height>223</height>
+    <height>329</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -49,16 +49,6 @@
    </item>
    <item row="5" column="2">
     <widget class="QLineEdit" name="isClsVal"/>
-   </item>
-   <item row="6" column="1" colspan="2">
-    <widget class="QDialogButtonBox" name="buttonBox">
-     <property name="orientation">
-      <enum>Qt::Horizontal</enum>
-     </property>
-     <property name="standardButtons">
-      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
-     </property>
-    </widget>
    </item>
    <item row="1" column="2">
     <widget class="QLineEdit" name="doOpnVal"/>
@@ -134,6 +124,41 @@
      </property>
      <property name="text">
       <string>Value to compare with</string>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="2">
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+   <item row="6" column="1">
+    <widget class="QComboBox" name="loadPreset">
+     <property name="currentIndex">
+      <number>0</number>
+     </property>
+     <property name="insertPolicy">
+      <enum>QComboBox::InsertAtBottom</enum>
+     </property>
+     <property name="sizeAdjustPolicy">
+      <enum>QComboBox::AdjustToContents</enum>
+     </property>
+     <item>
+      <property name="text">
+       <string>reset</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item row="6" column="0">
+    <widget class="QLabel" name="label_8">
+     <property name="text">
+      <string>Load:</string>
      </property>
     </widget>
    </item>
