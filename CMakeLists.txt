@@ -76,7 +76,7 @@ install(FILES CTgui.desktop
     DESTINATION share/applications
 )
 
-install(FILES libexec/ctgui.log.sh
+install(PROGRAMS libexec/ctgui.log.sh
     DESTINATION libexec
 )
 
