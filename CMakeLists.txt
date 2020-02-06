@@ -59,6 +59,14 @@ target_link_libraries(ctgui
   Qt5::Widgets
 )
 
+
+set(DESKTOPFILE "CTgui.desktop")
+configure_file(${DESKTOPFILE}.in ${DESKTOPFILE} @ONLY)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${DESKTOPFILE}
+    DESTINATION share/applications
+)
+
+
 install(TARGETS ctgui
     DESTINATION bin
 )
@@ -72,9 +80,6 @@ install(FILES CTguiIcon.png
     DESTINATION share/icons
 )
 
-install(FILES CTgui.desktop
-    DESTINATION share/applications
-)
 
 install(PROGRAMS libexec/ctgui.log.sh
     DESTINATION libexec

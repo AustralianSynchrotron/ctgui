@@ -1,7 +1,7 @@
 [Desktop Entry]
 Type=Application
 Name=Computed Tomography (CT)
-Exec=ctgui
+Exec=LD_LIBRARY_PATH="@CMAKE_INSTALL_PREFIX@/lib:$LD_LIBRARY_PATH" @CMAKE_INSTALL_PREFIX@/bin/ctgui
 Icon=CTguiIcon
 Terminal=false
 Categories=Science;X-IMBL;
