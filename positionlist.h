@@ -68,6 +68,7 @@ public:
   bool amOK() {return allOK;}
   void freezList(bool fz) {freezListUpdates=fz;}
   void emphasizeRow(int row=-1);
+  double position(int row) const {return ui->list->item(row, 0)->text().toDouble();}
 
 private slots:
 

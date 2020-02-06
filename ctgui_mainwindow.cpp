@@ -1945,11 +1945,11 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
   int currentLoop=0;
 
   if (moveLoop)
-    lMotor->goUserPosition( loopList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
+    lMotor->goUserPosition( loopList->position(0), QCaMotor::STARTED);
   if (stopMe) goto acquireMultiExit;
 
   if (moveSubLoop)
-    sMotor->goUserPosition( sloopList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
+    sMotor->goUserPosition( sloopList->position(0), QCaMotor::STARTED);
   if (stopMe) goto acquireMultiExit;
 
   do { // loop
@@ -1991,7 +1991,7 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
 
       currentSubLoop++;
       if (moveSubLoop && currentSubLoop < totalSubLoops)
-        sMotor->goUserPosition(sloopList->ui->list->item(currentSubLoop, 0)->text().toDouble(), QCaMotor::STARTED);
+        sMotor->goUserPosition(sloopList->position(currentSubLoop), QCaMotor::STARTED);
       if (stopMe) goto acquireMultiExit;
 
     } while (currentSubLoop < totalSubLoops) ;
@@ -1999,10 +1999,10 @@ int MainWindow::acquireMulti(const QString & filetemplate, int count) {
     currentLoop++;
     if (currentLoop < totalLoops) {
       if (moveLoop)
-        lMotor->goUserPosition(loopList->ui->list->item(currentLoop, 0)->text().toDouble(), QCaMotor::STARTED);
+        lMotor->goUserPosition(loopList->position(currentLoop), QCaMotor::STARTED);
       if (stopMe) goto acquireMultiExit;
       if (moveSubLoop)
-        sMotor->goUserPosition(sloopList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
+        sMotor->goUserPosition(sloopList->position(0), QCaMotor::STARTED);
       if (stopMe) goto acquireMultiExit;
     }
 
@@ -2279,11 +2279,11 @@ void MainWindow::engineRun () {
 
 
   if ( doSerial1D  &&  ui->endNumber->isChecked() && outSMotor->isConnected() )
-    outSMotor->goUserPosition( outerList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
+    outSMotor->goUserPosition( outerList->position(0), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
 
   if ( doSerial2D && inSMotor->isConnected() )
-    inSMotor->goUserPosition( innearList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
+    inSMotor->goUserPosition( innearList->position(0), QCaMotor::STARTED);
   if (stopMe) goto onEngineExit;
 
 
@@ -2418,6 +2418,9 @@ void MainWindow::engineRun () {
           setenv("CONTRASTTYPE", "SAMPLE", 1);
           if (stopMe) goto onEngineExit;
 
+          shutter->open();
+          if (stopMe) goto onEngineExit;
+
           if (ui->checkMulti->isChecked())
             acquireMulti(projectionName, ui->aqsPP->value());
           else if (ui->checkDyno->isChecked())
@@ -2522,7 +2525,10 @@ void MainWindow::engineRun () {
         }
 
         setenv("CONTRASTTYPE", "SAMPLE", 1);
+        shutter->open();
+        if (stopMe) goto onEngineExit;
         ui->preAqScript->script->execute();
+        if (stopMe) goto onEngineExit;
         det->start();
         if (doTriggCT) {
           tct->start(true);
@@ -2540,6 +2546,8 @@ void MainWindow::engineRun () {
         }
         if (stopMe) goto onEngineExit;
         ui->postAqScript->script->execute();
+        if (stopMe) goto onEngineExit;
+        shutter->close();
         if (stopMe) goto onEngineExit;
 
         if ( ! ongoingSeries ) {
@@ -2588,7 +2596,7 @@ void MainWindow::engineRun () {
 
       if ( ! timeToStop ) {
         if (doSerial2D  && inSMotor->isConnected())
-          inSMotor->goUserPosition( innearList->ui->list->item(currentScan2D, 0)->text().toDouble(), QCaMotor::STARTED);
+          inSMotor->goUserPosition( innearList->position(currentScan2D), QCaMotor::STARTED);
         if (stopMe) goto onEngineExit;
         qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
         if (stopMe) goto onEngineExit;
@@ -2615,9 +2623,9 @@ void MainWindow::engineRun () {
 
     if ( ! timeToStop ) {
       if ( doSerial1D  &&  ui->endNumber->isChecked()  &&  outSMotor->isConnected() )
-        outSMotor->goUserPosition(outerList->ui->list->item(currentScan1D, 0)->text().toDouble(), QCaMotor::STARTED);
+        outSMotor->goUserPosition(outerList->position(currentScan1D), QCaMotor::STARTED);
       if ( doSerial2D  &&  inSMotor->isConnected() )
-        inSMotor->goUserPosition( innearList->ui->list->item(0, 0)->text().toDouble(), QCaMotor::STARTED);
+        inSMotor->goUserPosition( innearList->position(0), QCaMotor::STARTED);
       if (stopMe) goto onEngineExit;
       qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
       if (stopMe) goto onEngineExit;

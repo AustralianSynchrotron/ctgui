@@ -273,7 +273,7 @@ void PositionList::emphasizeRow(int row) {
 void PositionList::moveMotorHere() {
   for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
     if ( sender() == ui->list->cellWidget(crow, 1) ) {
-      motui->motor()->goUserPosition( ui->list->item(crow, 0)->text().toDouble(), QCaMotor::STARTED );
+      motui->motor()->goUserPosition( position(crow), QCaMotor::STARTED );
       return;
     }
 }
