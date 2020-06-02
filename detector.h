@@ -22,6 +22,7 @@ public:
     CPro,
     HamaMama,
     Xenia,
+    XeniaPPS,
     BYPV
   };
 

@@ -11,9 +11,10 @@ while read pv timel val ; do
     counter=0
   else
     if (( $counter > 5 )) ; then
-        caput "${DETECTOR_PV}:CAM:TriggerMode" 2
-        sleep 0.2s
-        kill -9 $(ps --no-headers --ppid $$ | grep camonitor | sed 's/^ *//g' | cut -d' ' -f 1)
+        camonpid=$(ps --no-headers --ppid $$ | grep camonitor | sed 's/^ *//g' | cut -d' ' -f 1)
+        if [ ! -z "$camonpid" ] ; then
+            kill -9 $camonpid
+        fi
         exit 0
     fi
     (( counter++ ))

@@ -123,6 +123,7 @@ QString Detector::cameraName(Detector::Camera cam) {
   case CPro : return "CPro" ;
   case HamaMama : return "HamaMama";
   case Xenia : return "Xenia";
+  case XeniaPPS : return "Xenia+PPS";
   default: return QString();
   }
 }
@@ -136,6 +137,7 @@ Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="CPro") return CPro;
   if (_cameraName =="HamaMama") return HamaMama;
   if (_cameraName =="Xenia") return Xenia;
+  if (_cameraName =="Xenia+PPS") return XeniaPPS;
   return NONE;
 }
 
@@ -148,6 +150,7 @@ const QList<Detector::Camera> Detector::knownCameras = ( QList<Detector::Camera>
       << Detector::CPro
       << Detector::HamaMama
       << Detector::Xenia
+      << Detector::XeniaPPS
       ) ;
 
 
@@ -163,6 +166,7 @@ void Detector::setCamera(Camera _cam) {
   case CPro:       setCamera("SR08ID01DETIOC06"); break;
   case HamaMama:   setCamera("SR08ID01DETIOC08"); break;
   case Xenia:      setCamera("SR99ID01DALSA");    break;
+  case XeniaPPS:   setCamera("SR99ID01DALSA");    break;
   default:
     _camera = oldcam;
     foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -626,7 +630,10 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
   if ( _camera == HamaPapa ) {
      if ( ! setTriggerMode(1) )
        return false;
-  } else if ( _camera != Argus ) {
+  } else if ( _camera == XeniaPPS ) {
+      if ( ! setTriggerMode(2) )
+        return false;
+   } else if ( _camera != Argus ) {
      if ( ! setTriggerMode(0) )
        return false;
   }
@@ -661,6 +668,7 @@ bool Detector::setTriggerMode(int tmode) {
   if ( triggerMode() == tmode )
     return true;
 
+
   triggerModePv->set(tmode);
   qtWait(triggerModePv, SIGNAL(valueUpdated(QVariant)), 500);
   return triggerModePv->get().toInt() == tmode;
@@ -680,6 +688,9 @@ bool Detector::setHardwareTriggering(bool set) {
     case (PCOedge3B) :
       // mode = 2; // Ext + Soft
       mode = 4; // Ext Only
+      break;
+    case (XeniaPPS) :
+      mode = 2;
       break;
     default :
       mode = 1;

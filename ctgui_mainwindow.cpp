@@ -2656,6 +2656,7 @@ void MainWindow::engineRun () {
 
 onEngineExit:
 
+
   ui->scanProgress->setVisible(false);
   ui->serialProgress->setVisible(false);
 
@@ -2684,8 +2685,7 @@ onEngineExit:
   hw.restore();
 
   if ( inRun(ui->startStop) ) {
-    QProcess::execute("killall -9 $(ps --no-headers --ppid $$ | grep camonitor | sed 's/^ *//g' | cut -d' ' -f 1)");
-    //QProcess::execute(  QString("kill $( pgrep -l -P %1 | grep camonitor | cut -d' '  -f 1 )").arg( int(logProc.pid())) );
+    Script::executeOnce("kill -9 $(ps --no-headers --ppid $$ | grep camonitor | sed 's/^ *//g' | cut -d' ' -f 1) 2> /dev/null");
     logProc.terminate();
     logExec.close();
   }
