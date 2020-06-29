@@ -16,6 +16,7 @@ public:
     NONE=0,
     PCOedge2B,
     PCOedge3B,
+    PCOedgeFibre,
     ScintX,
     HamaPapa,
     Argus,

@@ -119,6 +119,7 @@ QString Detector::cameraName(Detector::Camera cam) {
   case HamaPapa : return "HamaPapa";
   case PCOedge2B : return "PCO.Edge 2B";
   case PCOedge3B : return "PCO.Edge 3B";
+  case PCOedgeFibre : return "PCO.Edge Fibre";
   case Argus : return "Argus";
   case CPro : return "CPro" ;
   case HamaMama : return "HamaMama";
@@ -134,6 +135,7 @@ Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="Argus") return Argus;
   if (_cameraName =="PCO.Edge 2B") return PCOedge2B;
   if (_cameraName =="PCO.Edge 3B") return PCOedge3B;
+  if (_cameraName =="PCO.Edge Fibre") return PCOedgeFibre;
   if (_cameraName =="CPro") return CPro;
   if (_cameraName =="HamaMama") return HamaMama;
   if (_cameraName =="Xenia") return Xenia;
@@ -147,6 +149,7 @@ const QList<Detector::Camera> Detector::knownCameras = ( QList<Detector::Camera>
       << Detector::Argus
       << Detector::PCOedge2B
       << Detector::PCOedge3B
+      << Detector::PCOedgeFibre
       << Detector::CPro
       << Detector::HamaMama
       << Detector::Xenia
@@ -158,15 +161,16 @@ void Detector::setCamera(Camera _cam) {
   const Camera oldcam=_camera;
   _camera = _cam;
   switch (_cam) {
-  case ScintX:     setCamera("SR08ID01DET05");    break;
-  case HamaPapa:   setCamera("SR08ID01DET04");    break;
-  case Argus:      setCamera("SR08ID01DET03");    break;
-  case PCOedge2B:  setCamera("SR08ID01DET01");    break;
-  case PCOedge3B:  setCamera("SR08ID01DET02");    break;
-  case CPro:       setCamera("SR08ID01DETIOC06"); break;
-  case HamaMama:   setCamera("SR08ID01DETIOC08"); break;
-  case Xenia:      setCamera("SR99ID01DALSA");    break;
-  case XeniaPPS:   setCamera("SR99ID01DALSA");    break;
+  case ScintX:        setCamera("SR08ID01DET05");    break;
+  case HamaPapa:      setCamera("SR08ID01DET04");    break;
+  case Argus:         setCamera("SR08ID01DET03");    break;
+  case PCOedge2B:     setCamera("SR08ID01DET01");    break;
+  case PCOedge3B:     setCamera("SR08ID01DET02");    break;
+  case PCOedgeFibre:  setCamera("SR08ID01DETIOC10"); break;
+  case CPro:          setCamera("SR08ID01DETIOC06"); break;
+  case HamaMama:      setCamera("SR08ID01DETIOC08"); break;
+  case Xenia:         setCamera("SR99ID01DALSA");    break;
+  case XeniaPPS:      setCamera("SR99ID01DALSA");    break;
   default:
     _camera = oldcam;
     foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -686,6 +690,7 @@ bool Detector::setHardwareTriggering(bool set) {
     switch ( _camera ) {
     case (PCOedge2B) :
     case (PCOedge3B) :
+    case (PCOedgeFibre) :
       // mode = 2; // Ext + Soft
       mode = 4; // Ext Only
       break;
