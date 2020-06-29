@@ -2686,6 +2686,8 @@ onEngineExit:
 
   if ( inRun(ui->startStop) ) {
     Script::executeOnce("kill -9 $(ps --no-headers --ppid $$ | grep camonitor | sed 's/^ *//g' | cut -d' ' -f 1) 2> /dev/null");
+    //Script::executeOnce("kill -9 $(pstree -a  -p " + QString::number(logProc.processId())
+    //                    + " | grep -v '{' | grep camonitor | sed 's .*camonitor,\\([0-9]*\\).* \\1 g')");
     logProc.terminate();
     logExec.close();
   }
