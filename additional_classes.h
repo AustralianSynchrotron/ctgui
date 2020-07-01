@@ -146,7 +146,8 @@ public:
   int waitStop();
   bool isRunning() const { return proc.state() != QProcess::NotRunning; }
   int evaluate(const QString & par = QString());
-  static int executeOnce(const QString & par = QString()) { Script scr; return scr.execute(par); }
+  static int executeOnce(const QString & _p,  const QString & par = QString()) {
+      Script scr; scr.setPath(_p) ; return scr.execute(par); }
 
 public slots:
   bool start(const QString & par = QString());
