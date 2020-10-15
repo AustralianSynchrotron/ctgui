@@ -42,6 +42,8 @@ private:
 
   Ui::MainWindow *ui;
   QHash<QObject*, QString> configNames;
+  float bgOrigin;
+  float bgAcquire;
 
   Shutter * shutter;
   Detector * det;
@@ -91,6 +93,7 @@ private:
   int acquireDyno(const QString & filetemplate, int count=1);
   int acquireMulti(const QString & filetemplate, int count=1);
   int acquireBG(const QString &filetemplate);
+  int moveToBG();
   int acquireDF(const QString &filetemplate, Shutter::State stateToGo);
 
 //  QFile * logFile;

@@ -76,6 +76,8 @@ public:
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
   isLoadingState(false),
+  bgOrigin(0),
+  bgAcquire(0),
   ui(new Ui::MainWindow),
   shutter(new Shutter(this)),
   det(new Detector(this)),
@@ -1035,6 +1037,7 @@ void MainWindow::updateUi_dfInterval() {
 
 }
 
+
 void MainWindow::updateUi_bgTravel() {
   QCaMotor * mot = bgMotor->motor();
   if ( ! sender() ) { // called from the constructor;
@@ -1047,11 +1050,18 @@ void MainWindow::updateUi_bgTravel() {
     connect( mot, SIGNAL(changedUserHiLimit(double)), thisSlot);
     connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
     connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
+    connect( mot, SIGNAL(stopped()), thisSlot);
   }
+
 
   if (mot->isConnected()) {
     ui->bgTravel->setSuffix(mot->getUnits());
     ui->bgTravel->setDecimals(mot->getPrecision());
+  }
+
+  if ( ! mot->isMoving() && ! inRun(ui->testFF) && ! inRun(ui->startStop) ) {
+    bgOrigin = mot->getUserPosition();
+    bgAcquire = bgOrigin + ui->bgTravel->value();
   }
 
   const int nofbgs = ui->nofBGs->value();
@@ -1060,7 +1070,7 @@ void MainWindow::updateUi_bgTravel() {
   const bool itemOK =
       ! nofbgs ||
       ( ui->bgTravel->value() != 0.0  &&
-      endpos > mot->getUserLoLimit() && endpos < mot->getUserHiLimit() ) ;
+      bgAcquire > mot->getUserLoLimit() && bgAcquire < mot->getUserHiLimit() ) ;
   check(ui->bgTravel, itemOK);
 
 }
@@ -1587,9 +1597,10 @@ void MainWindow::onFFtest() {
   det->waitWritten();
   HWstate hw(det, shutter);
 
-  acquireBG("");
-  det->waitWritten();
+  moveToBG();
   acquireDF("", Shutter::CLOSED);
+  det->waitWritten();
+  acquireBG("");
   det->waitWritten();
 
   det->setAutoSave(false);
@@ -2038,19 +2049,21 @@ acquireMultiExit:
 
 
 
-
-
+int MainWindow::moveToBG() {
+  if ( ! bgMotor->motor()->isConnected() || bgMotor->motor()->isMoving() ||  ui->nofBGs->value() <1 ||  bgOrigin == bgAcquire )
+    return -1;
+  bgMotor->motor()->goUserPosition( bgAcquire , QCaMotor::STARTED );
+}
 
 
 int MainWindow::acquireBG(const QString &filetemplate) {
 
   int ret = -1;
   const int bgs = ui->nofBGs->value();
-  const double bgTravel = ui->bgTravel->value();
   const double originalExposure = det->exposure();
   const QString origname = det->name(uiImageFormat());
 
-  if ( ! bgMotor->motor()->isConnected() || bgs <1 || bgTravel == 0.0 )
+  if ( ! bgMotor->motor()->isConnected() || bgs <1 || bgOrigin == bgAcquire )
     return ret;
 
   QString ftemplate = filetemplate.isEmpty()
@@ -2059,10 +2072,7 @@ int MainWindow::acquireBG(const QString &filetemplate) {
     ftemplate += "_";
 
   bgMotor->motor()->wait_stop();
-  const double bgStart = bgMotor->motor()->getUserPosition();
-
-  bgMotor->motor()->goUserPosition
-      ( bgStart + bgTravel, QCaMotor::STOPPED );
+  bgMotor->motor()->goUserPosition( bgAcquire, QCaMotor::STOPPED );
   if (stopMe) goto onBgExit;
 
   det->waitWritten();
@@ -2084,8 +2094,7 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   else
     ret = acquireDetector(ftemplate, bgs);
 
-  bgMotor->motor()->goUserPosition
-      ( bgStart, QCaMotor::STOPPED );
+  bgMotor->motor()->goUserPosition ( bgOrigin, QCaMotor::STARTED );
 
 onBgExit:
 
@@ -2096,8 +2105,8 @@ onBgExit:
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( originalExposure ) ;
 
-  if (!stopMe)
-    bgMotor->motor()->wait_stop();
+  // if (!stopMe)
+  //  bgMotor->motor()->wait_stop();
 
   return ret;
 
@@ -2175,7 +2184,6 @@ void MainWindow::engineRun () {
   const double
       inSerialStart = inSMotor->getUserPosition(),
       outSerialStart = outSMotor->getUserPosition(),
-      bgStart =  bgMotor->motor()->getUserPosition(),
       thetaStart = thetaMotor->motor()->getUserPosition(),
       thetaRange = ui->scanRange->value(),
       thetaSpeed = thetaMotor->motor()->getNormalSpeed();
@@ -2398,6 +2406,8 @@ void MainWindow::engineRun () {
           QString projectionName = sampleName + QString("T%1").arg(currentProjection, projectionDigs, 10, QChar('0') );
 
           QString bgdfN = combineNames(sn2, "BEFORE");
+          if (doBG && ! beforeBG)
+            moveToBG();          
           if (doDF && ! beforeDF) {
             acquireDF(bgdfN, Shutter::OPEN);
             beforeDF = dfInterval;
@@ -2412,6 +2422,8 @@ void MainWindow::engineRun () {
           beforeBG--;
 
           thetaMotor->motor()->wait_stop();
+          if (stopMe) goto onEngineExit;
+          bgMotor->motor()->wait_stop();
           if (stopMe) goto onEngineExit;
 
           det->waitWritten();
@@ -2444,18 +2456,18 @@ void MainWindow::engineRun () {
 
 
         QString bgdfN = combineNames(sn2, "AFTER");
-        if (doBG && ! beforeBG) {
-          acquireBG(bgdfN);
-          if (stopMe) goto onEngineExit;
-          beforeBG = bgInterval;
-        }
+        if (doBG && ! beforeBG)
+          moveToBG();
         if ( doDF && ! beforeDF ) {
           acquireDF(bgdfN, Shutter::CLOSED);
           if (stopMe) goto onEngineExit;
           beforeDF = dfInterval;
         }
-
-
+        if (doBG && ! beforeBG) {
+          acquireBG(bgdfN);
+          if (stopMe) goto onEngineExit;
+          beforeBG = bgInterval;
+        }
 
 
 
@@ -2465,6 +2477,8 @@ void MainWindow::engineRun () {
 
 
         QString bgdfN = combineNames(sn2, "BEFORE");
+        if ( doBG  && ui->bgIntervalBefore->isChecked() && (ui->ffOnEachScan->isChecked() || ! currentScan ) )
+          moveToBG();
         if ( doDF && ui->dfIntervalBefore->isChecked() && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
           acquireDF(bgdfN, Shutter::OPEN);
           if (stopMe) goto onEngineExit;
@@ -2499,6 +2513,7 @@ void MainWindow::engineRun () {
 
         if ( ! ongoingSeries || ! currentScan || doTriggCT ) {
 
+          bgMotor->motor()->wait_stop();
           thetaMotor->motor()->wait_stop();
           if (doTriggCT)
             tct->stop(false);
@@ -2553,10 +2568,12 @@ void MainWindow::engineRun () {
         if ( ! ongoingSeries ) {
           bgdfN = combineNames(sn2, "AFTER");
           if ( doBG  && ui->bgIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() )
-            acquireBG(bgdfN);
-          if (stopMe) goto onEngineExit;
+            moveToBG();
           if ( doDF && ui->dfIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() )
             acquireDF(bgdfN, Shutter::CLOSED);
+          if (stopMe) goto onEngineExit;
+          if ( doBG  && ui->bgIntervalAfter->isChecked() && ui->ffOnEachScan->isChecked() )
+            acquireBG(bgdfN);
           if (stopMe) goto onEngineExit;
         }
 
@@ -2633,12 +2650,14 @@ void MainWindow::engineRun () {
 
     if ( timeToStop && ! sasMode && ! ui->ffOnEachScan->isChecked() ) {
       QString bgdfN = combineNames(sn2, "AFTER");
-      if ( doBG && ui->bgIntervalAfter->isChecked() ) {
-        acquireBG(bgdfN);
-        if (stopMe) goto onEngineExit;
-      }
+      if ( doBG && ui->bgIntervalAfter->isChecked() ) 
+        moveToBG();
       if ( doDF && ui->dfIntervalAfter->isChecked() ) {
         acquireDF(bgdfN, Shutter::CLOSED);
+        if (stopMe) goto onEngineExit;
+      }
+      if ( doBG && ui->bgIntervalAfter->isChecked() ) {
+        acquireBG(bgdfN);
         if (stopMe) goto onEngineExit;
       }
     }
@@ -2676,7 +2695,7 @@ onEngineExit:
   }
   if ( doBG ) {
     bgMotor->motor()->stop(QCaMotor::STOPPED);
-    bgMotor->motor()->goUserPosition(bgStart, QCaMotor::STARTED);
+    bgMotor->motor()->goUserPosition(bgOrigin, QCaMotor::STARTED);
   }
 
   det->stop();
