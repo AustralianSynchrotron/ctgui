@@ -44,6 +44,7 @@ private:
   QHash<QObject*, QString> configNames;
   float bgOrigin;
   float bgAcquire;
+  float bgEnter;
 
   Shutter * shutter;
   Detector * det;

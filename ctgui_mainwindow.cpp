@@ -2050,8 +2050,11 @@ acquireMultiExit:
 
 
 int MainWindow::moveToBG() {
+  if (bgEnter != bgAcquire)
+    return 0;
   if ( ! bgMotor->motor()->isConnected() || bgMotor->motor()->isMoving() ||  ui->nofBGs->value() <1 ||  bgOrigin == bgAcquire )
     return -1;
+  bgEnter = bgMotor->motor()->getUserPosition();
   bgMotor->motor()->goUserPosition( bgAcquire , QCaMotor::STARTED );
 }
 
@@ -2072,6 +2075,8 @@ int MainWindow::acquireBG(const QString &filetemplate) {
     ftemplate += "_";
 
   bgMotor->motor()->wait_stop();
+  if (bgEnter == bgAcquire)
+    bgEnter = bgMotor->motor()->getUserPosition();
   bgMotor->motor()->goUserPosition( bgAcquire, QCaMotor::STOPPED );
   if (stopMe) goto onBgExit;
 
@@ -2093,8 +2098,9 @@ int MainWindow::acquireBG(const QString &filetemplate) {
     ret = acquireDyno(ftemplate, bgs);
   else
     ret = acquireDetector(ftemplate, bgs);
+  bgMotor->motor()->goUserPosition ( bgEnter, QCaMotor::STARTED );
+  bgEnter = bgAcquire;
 
-  bgMotor->motor()->goUserPosition ( bgOrigin, QCaMotor::STARTED );
 
 onBgExit:
 
@@ -2685,6 +2691,11 @@ onEngineExit:
   setMotorSpeed(thetaMotor, thetaSpeed);
   thetaMotor->motor()->goUserPosition(thetaStart, QCaMotor::STARTED);
 
+  if ( doBG ) {
+    bgMotor->motor()->stop(QCaMotor::STOPPED);
+    bgMotor->motor()->goUserPosition(bgOrigin, QCaMotor::STARTED);
+  }
+
   if (doSerial1D && outSMotor->isConnected()) {
     outSMotor->stop(QCaMotor::STOPPED);
     outSMotor->goUserPosition(outSerialStart, QCaMotor::STARTED);
@@ -2692,10 +2703,6 @@ onEngineExit:
   if (doSerial2D && inSMotor->isConnected()) {
     inSMotor->stop(QCaMotor::STOPPED);
     inSMotor->goUserPosition(inSerialStart, QCaMotor::STARTED);
-  }
-  if ( doBG ) {
-    bgMotor->motor()->stop(QCaMotor::STOPPED);
-    bgMotor->motor()->goUserPosition(bgOrigin, QCaMotor::STARTED);
   }
 
   det->stop();
