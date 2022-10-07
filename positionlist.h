@@ -8,7 +8,7 @@
 #include <QTableWidget>
 
 
-// to be used for the doble numbers in the list of positions
+// to be used for the double numbers in the list of positions
 // in the irregular step serial scans.
 
 class NTableDelegate : public QStyledItemDelegate {
@@ -54,6 +54,7 @@ class PositionList : public QWidget
 private:
   bool allOK;
   bool freezListUpdates;
+  static const int doMeCol = 3;
 
 public:
 
@@ -69,6 +70,12 @@ public:
   void freezList(bool fz) {freezListUpdates=fz;}
   void emphasizeRow(int row=-1);
   double position(int row) const {return ui->list->item(row, 0)->text().toDouble();}
+  bool doMe(int row) const { return row < ui->list->rowCount() &&
+                                    ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->isChecked(); }
+  void done(int row) { if (row < ui->list->rowCount())
+                         ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->setChecked(false); }
+  bool doAny() const;
+  bool doAll() const;
 
 private slots:
 
@@ -76,6 +83,7 @@ private slots:
   void updateNoF();
   void moveMotorHere();
   void getMotorPosition();
+  void updateToDo(int index);
 
 signals:
 

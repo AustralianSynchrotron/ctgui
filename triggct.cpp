@@ -1,5 +1,5 @@
 #include "triggct.h"
-#include <QTime>
+#include <QElapsedTimer>
 #include <QDebug>
 
 TriggCT::TriggCT(QObject *parent) :
@@ -54,7 +54,7 @@ bool TriggCT::setPrefix(const QString & newprefix, bool wait) {
   updateConnection();
 
   if ( wait && ! isConnected() ) {
-    QTime accTime;
+    QElapsedTimer accTime;
     accTime.start();
     while ( ! isConnected() && accTime.elapsed() < 500 )
       qtWait(this, SIGNAL(connectionChanged(bool)), 500);
@@ -74,7 +74,7 @@ bool TriggCT::setStartPosition(double pos, bool wait) {
 
 
   if ( wait ) {
-    QTime accTime;
+    QElapsedTimer accTime;
     accTime.start();
     while ( startPosPvRBV->isConnected() &&
             startPosition() != pos &&
@@ -94,7 +94,7 @@ bool TriggCT::setStep(double stp, bool wait) {
   stepPv->set(stp);
 
   if ( wait ) {
-    QTime accTime;
+    QElapsedTimer accTime;
     accTime.start();
     while ( stepPv->isConnected() &&
             step() != stp &&
@@ -115,7 +115,7 @@ bool TriggCT::setRange(double rng, bool wait) {
   rangePv->set(rng);
 
   if ( wait ) {
-    QTime accTime;
+    QElapsedTimer accTime;
     accTime.start();
     while ( rangePv->isConnected() &&
             range() != rng &&
@@ -136,7 +136,7 @@ bool TriggCT::setNofTrigs(int trgs, bool wait) {
   nofTrigsPv->set(trgs);
 
   if ( wait ) {
-    QTime accTime;
+    QElapsedTimer accTime;
     accTime.start();
     while ( nofTrigsPv->isConnected() &&
             trigs() != trgs &&
@@ -154,7 +154,7 @@ bool TriggCT::start(bool wait) {
     return false;
   outModePv->set("Auto");
   if (wait) {
-    QTime accTime;
+    QElapsedTimer accTime;
     accTime.start();
     while ( outModePvRBV->isConnected() &&
             outModePvRBV->get().toString() != "Auto" &&
@@ -170,7 +170,7 @@ bool TriggCT::stop(bool wait) {
     return false;
   outModePv->set("Off");
   if (wait) {
-    QTime accTime;
+    QElapsedTimer accTime;
     accTime.start();
     while ( outModePvRBV->isConnected() &&
             outModePvRBV->get().toString() != "Off" &&

@@ -58,7 +58,6 @@ private:
 };
 
 
-
 class QPTEext : public QPlainTextEdit {
   Q_OBJECT;
 public:

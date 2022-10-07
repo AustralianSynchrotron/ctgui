@@ -6,8 +6,9 @@
 #include <QClipboard>
 #include <QMessageBox>
 
-QSCheckBox::QSCheckBox(QWidget * parent) :
-  QCheckBox(parent) {}
+QSCheckBox::QSCheckBox(QWidget * parent)
+  : QCheckBox(parent)
+{}
 
 
 
@@ -286,7 +287,7 @@ bool Script::start(const QString & par) {
     return false;
   if (path().isEmpty())
     return true;
-  proc.start(shell + " " + fileExec.fileName() + " " + par );
+  proc.start(shell, QStringList() << fileExec.fileName() << par );
   return isRunning();
 }
 
@@ -314,7 +315,7 @@ const QString & Script::setPath(const QString &_p) {
 
 int Script::evaluate(const QString & par) {
   QProcess tempproc;
-  tempproc.start(shell + " -n " + fileExec.fileName() + " " + par);
+  tempproc.start(shell, QStringList() << "-n" << fileExec.fileName() << par);
   tempproc.waitForFinished();
   return tempproc.exitCode();
 }

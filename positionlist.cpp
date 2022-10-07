@@ -1,6 +1,7 @@
 #include "positionlist.h"
 #include "ui_positionlist.h"
 #include <QClipboard>
+#include <QPainter>
 
 
 
@@ -37,6 +38,61 @@ void NTableDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionVie
 {
   editor->setGeometry(option.rect);
 }
+
+
+
+
+
+
+/*
+class PListHeader : public QHeaderView
+{
+public:
+    using QHeaderView::QHeaderView;
+
+protected:
+
+    void paintSection(QPainter* painter, const QRect &rect, int logicalIndex) const override
+    {
+        painter->save();
+        QHeaderView::paintSection(painter, rect, logicalIndex);
+        painter->restore();
+
+        if (model() && logicalIndex == 3)
+        {
+            QStyleOptionButton option;
+            option.init(this);
+
+            QRect checkbox_rect = style()->subElementRect(QStyle::SubElement::SE_CheckBoxIndicator, &option, this);
+            checkbox_rect.moveRight(rect.right());
+
+            bool checked = model()->headerData(logicalIndex, orientation(), Qt::CheckStateRole).toBool();
+
+            option.text=QString("Do");
+            option.rect = checkbox_rect;
+            option.state = checked ? QStyle::State_On : QStyle::State_Off;
+
+            style()->drawPrimitive(QStyle::PE_IndicatorCheckBox, &option, painter);
+        }
+    }
+
+    void mouseReleaseEvent(QMouseEvent* event) override
+    {
+        QHeaderView::mouseReleaseEvent(event);
+        if(model())
+        {
+            int section = logicalIndexAt(event->pos());
+            if (section >= 0)
+            {
+                bool checked = model()->headerData(section, orientation(), Qt::CheckStateRole).toBool();
+                model()->setHeaderData(section, orientation(), !checked, Qt::CheckStateRole);
+                viewport()->update();
+            }
+        }
+    }
+};
+
+*/
 
 
 
@@ -94,24 +150,28 @@ PositionList::PositionList(QWidget *parent)
   connect( ui->list, SIGNAL(itemChanged(QTableWidgetItem*)), SLOT(updateAmOK()));
   connect( ui->irregular, SIGNAL(toggled(bool)), SLOT(updateAmOK()));
   connect( ui->step, SIGNAL(valueChanged(double)), SLOT(updateAmOK()));
-
   connect( ui->nof, SIGNAL(valueChanged(int)), SIGNAL(parameterChanged()));
   connect( ui->step, SIGNAL(valueChanged(double)), SIGNAL(parameterChanged()));
   connect( ui->irregular, SIGNAL(toggled(bool)), SIGNAL(parameterChanged()));
   connect( ui->list, SIGNAL(itemChanged(QTableWidgetItem*)), SIGNAL(parameterChanged()));
-
+  connect( ui->list->horizontalHeader(), SIGNAL(sectionClicked(int)), SLOT(updateToDo(int)));
   connect( ui->irregular, SIGNAL(toggled(bool)), ui->step, SLOT(setDisabled(bool)));
 
   ui->list->setItemDelegateForColumn(0, new NTableDelegate(ui->list));
+  //PListHeader * header = new PListHeader(Qt::Horizontal, ui->list);
+  //header->setStretchLastSection(false);
+  //ui->list->setHorizontalHeader(header);
   ui->list->horizontalHeader()->setStretchLastSection(false);
   #if QT_VERSION >= 0x050000
   ui->list->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
   ui->list->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
   ui->list->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);
+  ui->list->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Fixed);
   #else
   ui->list->horizontalHeader()->setResizeMode(0, QHeaderView::Stretch);
   ui->list->horizontalHeader()->setResizeMode(1, QHeaderView::Fixed);
   ui->list->horizontalHeader()->setResizeMode(2, QHeaderView::Fixed);
+  ui->list->horizontalHeader()->setResizeMode(3, QHeaderView::Fixed);
   #endif
 
   updateNoF();
@@ -158,12 +218,12 @@ void PositionList::updateNoF() {
   const int steps = ui->nof->value();
 
   while ( steps < ui->list->rowCount() ) {
-
     delete ui->list->cellWidget( ui->list->rowCount()-1, 1 );
     delete ui->list->cellWidget( ui->list->rowCount()-1, 2 );
     ui->list->removeRow( ui->list->rowCount()-1 );
+  }
 
-  } while ( steps > ui->list->rowCount() ) {
+  while ( steps > ui->list->rowCount() ) {
 
     const int crc = ui->list->rowCount();
     ui->list->insertRow(crc);
@@ -183,6 +243,12 @@ void PositionList::updateNoF() {
     btn->setToolTip("Get current motor position");
     ui->list->setCellWidget(crc, 2, btn );
     ui->list->resizeColumnToContents(2);
+
+    QSCheckBox * dome = new QSCheckBox(this);
+    dome->setToolTip("If not ticked, will skip this scan in the experiment.");
+    dome->setStyleSheet( "text-align: center; margin-left:50%; margin-right:50%;" );
+    ui->list->setCellWidget(crc, doMeCol, dome );
+    ui->list->resizeColumnToContents(doMeCol);
 
     const double mpos = motui ? motui->motor()->getUserPosition() :  0 ;
     ui->list->setItem(crc, 0, new QTableWidgetItem( QString::number(mpos) ) );
@@ -284,4 +350,28 @@ void PositionList::getMotorPosition() {
       const double mpos = motui ? motui->motor()->getUserPosition() :  0 ;
       ui->list->item(crow, 0)->setText(QString::number(mpos));
     }
+}
+
+
+bool PositionList::doAny() const {
+  for (int crow=0 ; crow < ui->list->rowCount() ; crow++)
+    if (doMe(crow))
+      return true;
+  return false;
+}
+
+bool PositionList::doAll() const {
+  for (int crow=0 ; crow < ui->list->rowCount() ; crow++)
+    if (!doMe(crow))
+      return false;
+  return true;
+}
+
+
+void PositionList::updateToDo(int index) {
+  if (index!=3)
+    return;
+  const bool setState = ! doAll();
+  for (int crow=0 ; crow < ui->list->rowCount() ; crow++)
+    ((QSCheckBox*)ui->list->cellWidget(crow, doMeCol))->setChecked(setState);
 }

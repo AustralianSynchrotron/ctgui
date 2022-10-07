@@ -2056,6 +2056,7 @@ int MainWindow::moveToBG() {
     return -1;
   bgEnter = bgMotor->motor()->getUserPosition();
   bgMotor->motor()->goUserPosition( bgAcquire , QCaMotor::STARTED );
+  return 1;
 }
 
 
@@ -2186,7 +2187,7 @@ void MainWindow::engineRun () {
 
   const QString origname = det->name(uiImageFormat());
   HWstate hw(det, shutter);
- 
+
   bgOrigin = bgMotor->motor()->getUserPosition();
   bgAcquire = bgOrigin + ui->bgTravel->value();
   bgEnter = bgAcquire;
@@ -2236,7 +2237,7 @@ void MainWindow::engineRun () {
   if ( inRun(ui->startStop) )
     foreach(QWidget * tab, ui->control->tabs())
       tab->setEnabled(false);
-  QTime inCTtime;
+  QElapsedTimer inCTtime;
   inCTtime.start();
   bool timeToStop=false;
 
@@ -2291,7 +2292,7 @@ void MainWindow::engineRun () {
                       + " " + thetaMotor->motor()->getPv()
                       + " >> " + logName ).toLatin1() );
     logExec.flush();
-    logProc.start( "/bin/sh " + logExec.fileName() );
+    logProc.start( "/bin/sh", QStringList() << logExec.fileName() );
 
   }
 
@@ -2417,7 +2418,7 @@ void MainWindow::engineRun () {
 
           QString bgdfN = combineNames(sn2, "BEFORE");
           if (doBG && ! beforeBG)
-            moveToBG();          
+            moveToBG();
           if (doDF && ! beforeDF) {
             acquireDF(bgdfN, Shutter::CLOSED);
             beforeDF = dfInterval;
@@ -2543,7 +2544,7 @@ void MainWindow::engineRun () {
         ui->preAqScript->script->execute();
         if (stopMe) goto onEngineExit;
 
-        if ( ! doTriggCT && ( currentScan || ! ongoingSeries ) ) { 
+        if ( ! doTriggCT && ( currentScan || ! ongoingSeries ) ) {
             thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */
                 goLimit( thetaRange > 0 ? QCaMotor::POSITIVE : QCaMotor::NEGATIVE );
             if (stopMe) goto onEngineExit;
@@ -2661,7 +2662,7 @@ void MainWindow::engineRun () {
 
     if ( timeToStop && ! sasMode && ! ui->ffOnEachScan->isChecked() ) {
       QString bgdfN = combineNames(sn2, "AFTER");
-      if ( doBG && ui->bgIntervalAfter->isChecked() ) 
+      if ( doBG && ui->bgIntervalAfter->isChecked() )
         moveToBG();
       if ( doDF && ui->dfIntervalAfter->isChecked() ) {
         acquireDF(bgdfN, Shutter::CLOSED);
