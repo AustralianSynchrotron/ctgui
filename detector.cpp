@@ -125,6 +125,8 @@ QString Detector::cameraName(Detector::Camera cam) {
   case HamaMama : return "HamaMama";
   case Xenia : return "Xenia";
   case XeniaPPS : return "Xenia+PPS";
+  case Eiger : return "Eiger";
+  case EigerPPS : return "Eiger+PPS";
   default: return QString();
   }
 }
@@ -140,6 +142,8 @@ Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="HamaMama") return HamaMama;
   if (_cameraName =="Xenia") return Xenia;
   if (_cameraName =="Xenia+PPS") return XeniaPPS;
+  if (_cameraName =="Eiger") return Eiger;
+  if (_cameraName =="Eiger+PPS") return EigerPPS;
   return NONE;
 }
 
@@ -154,6 +158,8 @@ const QList<Detector::Camera> Detector::knownCameras = ( QList<Detector::Camera>
       << Detector::HamaMama
       << Detector::Xenia
       << Detector::XeniaPPS
+      << Detector::Eiger
+      << Detector::EigerPPS
       ) ;
 
 
@@ -171,6 +177,8 @@ void Detector::setCamera(Camera _cam) {
   case HamaMama:      setCamera("SR08ID01DETIOC08"); break;
   case Xenia:         setCamera("SR99ID01DALSA");    break;
   case XeniaPPS:      setCamera("SR99ID01DALSA");    break;
+  case Eiger:         setCamera("SR08ID01E2");       break;
+  case EigerPPS:      setCamera("SR08ID01E2");       break;
   default:
     _camera = oldcam;
     foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )
@@ -482,8 +490,8 @@ bool Detector::setNumber(int val) {
   const int reqIM = val>1 ? 1 : 0;
   setImageMode(reqIM);
 
-  if (val == 1)
-    setPeriod(0);
+  //if (val == 1)
+  //  setPeriod(0);
 
   return
       number() == val &&
@@ -634,7 +642,7 @@ bool Detector::prepareForAcq(Detector::ImageFormat fmt, int nofFrames) {
   if ( _camera == HamaPapa ) {
      if ( ! setTriggerMode(1) )
        return false;
-  } else if ( _camera == XeniaPPS ) {
+  } else if ( _camera == XeniaPPS  ||  _camera == EigerPPS ) {
       if ( ! setTriggerMode(2) )
         return false;
    } else if ( _camera != Argus ) {
@@ -695,7 +703,11 @@ bool Detector::setHardwareTriggering(bool set) {
       mode = 4; // Ext Only
       break;
     case (XeniaPPS) :
+    case (EigerPPS) :
       mode = 2;
+      break;
+    case (Eiger) :
+      mode = 0;
       break;
     default :
       mode = 1;

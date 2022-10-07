@@ -4,6 +4,8 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QStandardItemModel>
+#include <unistd.h>
+
 
 static const QString shuttersListName = "listOfKnownShutters.ini";
 
@@ -120,21 +122,28 @@ void Shutter::onStatusUpdate() {
 }
 
 
-void Shutter::waitForUpdate() {
+void Shutter::waitForState(State st) {
   requestUpdate();
-  qtWait(this, SIGNAL(stateUpdated(State)), 2000);
+  if (state() != st)
+    qtWait(this, SIGNAL(stateUpdated(State)), 2000);
+  if (state() != st) { // do it one more time 
+    requestUpdate();
+    qtWait(this, SIGNAL(stateUpdated(State)), 2000);
+  }
 }
 
 void Shutter::open(bool wait) {
   doOpen.first->put(doOpen.second);
-  if (wait)
-    waitForUpdate();
+  usleep(100000); 
+  if (wait && state() != OPEN)
+    waitForState(OPEN);
 }
 
 void Shutter::close(bool wait) {
   doClose.first->put(doClose.second);
-  if (wait)
-    waitForUpdate();
+  usleep(100000);
+  if (wait && state() != CLOSED)    
+    waitForState(CLOSED);
 }
 
 

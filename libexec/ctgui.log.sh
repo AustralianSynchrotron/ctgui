@@ -8,7 +8,10 @@ if [ -z "${1}" ] ; then
   exit 1
 fi
 NUMPV="${1}:CAM:NumImagesCounter_RBV"
-IMGPV="${1}:TIFF:FileName"
+TIFFPV="${1}:TIFF:FileName"
+HDF5PV="${1}:HDF:FileName"
+TIFFACTIVE="${1}:TIFF:EnableCallbacks"
+HDF5ACTIVE="${1}:HDF:EnableCallbacks"
 AQSPV="${1}:CAM:Acquire_RBV"
 
 if [ -z "${2}" ] ; then
@@ -22,12 +25,13 @@ shift 2
 OTHERPVS="$@"
 
 ROT=0
-IMG=""
+FMT=""
+TIFFname=""
+HDF5name=""
 AQS=0
 
-camonitor -p 99 -n -S $ROTPV $NUMPV $IMGPV $AQSPV | sed -u "s/  \+/ /g" |
+camonitor -p 99 -n -S $ROTPV $NUMPV $TIFFPV $HDF5PV $TIFFACTIVE $HDF5ACTIVE $AQSPV | sed -u "s/  \+/ /g" |
 while read pv date time val ; do
-
   case "$pv" in
     ${AQSPV} )
       val=$(echo $val | sed "s: .*::g") # to remove "STATE MINOR" message
@@ -36,12 +40,21 @@ while read pv date time val ; do
         if [ "$AQS" == "0" ] ; then
           echo "${date}_${time} Acquisition finished."
         else
-          echo "${date}_${time} Acquisition started with the image filename prefix \"${IMG}\"."
+          IMG=""
+          if [ "$FMT" == "TIFF" ] ; then
+            IMG="$TIFFname"
+          elif [ "$FMT" == "HDF5" ] ; then  
+            IMG="$HDF5name"
+          fi 
+          echo "${date}_${time} Acquisition started with ${FMT} filename prefix \"${IMG}\"."
         fi
       fi
       ;;
+    ${TIFFPV} )  TIFFname="$val" ;;
+    ${HDF5PV} )  HDF5name="$val" ;;
+    ${TIFFACTIVE} ) if [ "$val" == "1" ] ; then FMT="TIFF" ; fi ;;
+    ${HDF5ACTIVE} ) if [ "$val" == "1" ] ; then FMT="HDF5" ; fi ;; 
     ${ROTPV} ) ROT="$val" ;;
-    ${IMGPV} ) IMG="$val" ;;
     ${NUMPV} )
       if [ "$val" != "0" ] && [ "$AQS" == "1" ] ; then
         echo "${date}_${time} $(( ${val} - 1 )) ${ROT}"

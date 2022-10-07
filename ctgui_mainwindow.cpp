@@ -78,6 +78,7 @@ MainWindow::MainWindow(QWidget *parent) :
   isLoadingState(false),
   bgOrigin(0),
   bgAcquire(0),
+  bgEnter(0),
   ui(new Ui::MainWindow),
   shutter(new Shutter(this)),
   det(new Detector(this)),
@@ -1059,9 +1060,10 @@ void MainWindow::updateUi_bgTravel() {
     ui->bgTravel->setDecimals(mot->getPrecision());
   }
 
-  if ( ! mot->isMoving() && ! inRun(ui->testFF) && ! inRun(ui->startStop) ) {
+  if (  bgEnter == bgAcquire  &&  ! mot->isMoving() && ! inRun(ui->testFF) && ! inRun(ui->startStop) ) {
     bgOrigin = mot->getUserPosition();
     bgAcquire = bgOrigin + ui->bgTravel->value();
+    bgEnter = bgAcquire;
   }
 
   const int nofbgs = ui->nofBGs->value();
@@ -2050,8 +2052,6 @@ acquireMultiExit:
 
 
 int MainWindow::moveToBG() {
-  if (bgEnter != bgAcquire)
-    return 0;
   if ( ! bgMotor->motor()->isConnected() || bgMotor->motor()->isMoving() ||  ui->nofBGs->value() <1 ||  bgOrigin == bgAcquire )
     return -1;
   bgEnter = bgMotor->motor()->getUserPosition();
@@ -2091,16 +2091,13 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   shutter->open();
   if (stopMe) goto onBgExit;
 
-  det->setPeriod(0);
+  det->setPeriod(det->exposure());
   if (ui->checkMulti->isChecked() && ! ui->singleBg->isChecked() )
     ret = acquireMulti(ftemplate, bgs);
   else if (ui->checkDyno->isChecked())
     ret = acquireDyno(ftemplate, bgs);
   else
     ret = acquireDetector(ftemplate, bgs);
-  bgMotor->motor()->goUserPosition ( bgEnter, QCaMotor::STARTED );
-  bgEnter = bgAcquire;
-
 
 onBgExit:
 
@@ -2111,6 +2108,9 @@ onBgExit:
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( originalExposure ) ;
 
+  shutter->close();
+  bgMotor->motor()->goUserPosition ( bgEnter, QCaMotor::STARTED );
+  bgEnter = bgAcquire;
   // if (!stopMe)
   //  bgMotor->motor()->wait_stop();
 
@@ -2142,7 +2142,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
 
   setenv("CONTRASTTYPE", "DF", 1);
 
-  det->setPeriod(0);
+  det->setPeriod(det->exposure());
 
   ret = acquireDetector(ftemplate, dfs);
   if (stopMe) goto onDfExit;
@@ -2186,6 +2186,10 @@ void MainWindow::engineRun () {
 
   const QString origname = det->name(uiImageFormat());
   HWstate hw(det, shutter);
+ 
+  bgOrigin = bgMotor->motor()->getUserPosition();
+  bgAcquire = bgOrigin + ui->bgTravel->value();
+  bgEnter = bgAcquire;
 
   const double
       inSerialStart = inSMotor->getUserPosition(),
@@ -2415,7 +2419,7 @@ void MainWindow::engineRun () {
           if (doBG && ! beforeBG)
             moveToBG();          
           if (doDF && ! beforeDF) {
-            acquireDF(bgdfN, Shutter::OPEN);
+            acquireDF(bgdfN, Shutter::CLOSED);
             beforeDF = dfInterval;
             if (stopMe) goto onEngineExit;
           }
@@ -2486,7 +2490,7 @@ void MainWindow::engineRun () {
         if ( doBG  && ui->bgIntervalBefore->isChecked() && (ui->ffOnEachScan->isChecked() || ! currentScan ) )
           moveToBG();
         if ( doDF && ui->dfIntervalBefore->isChecked() && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
-          acquireDF(bgdfN, Shutter::OPEN);
+          acquireDF(bgdfN, Shutter::CLOSED);
           if (stopMe) goto onEngineExit;
         }
         if ( doBG  && ui->bgIntervalBefore->isChecked() && (ui->ffOnEachScan->isChecked() || ! currentScan ) ) {
@@ -2512,7 +2516,7 @@ void MainWindow::engineRun () {
 
         if (doTriggCT || ui->checkExtTrig->isChecked() ) {
           det->setHardwareTriggering(true);
-          det->setPeriod(0);
+          det->setPeriod(det->exposure());
         } else {
           det->setPeriod( qAbs(thetaRange) / (totalProjections * speed)  ) ;
         }
@@ -2531,18 +2535,6 @@ void MainWindow::engineRun () {
           setMotorSpeed(thetaMotor, speed);
           if (stopMe) goto onEngineExit;
 
-          if ( ! doTriggCT ) { // should be started after tct and det
-            thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */
-                goLimit( thetaRange > 0 ? QCaMotor::POSITIVE : QCaMotor::NEGATIVE );
-            if (stopMe) goto onEngineExit;
-            // accTravel/speed in the below string is required to compensate
-            // for the coefficient 2 in addTravel
-            // qtWait(1000*(accTime + accTravel/speed));
-            usleep(1000000*(accTime + accTravel/speed));
-
-            if (stopMe) goto onEngineExit;
-          }
-
         }
 
         setenv("CONTRASTTYPE", "SAMPLE", 1);
@@ -2550,7 +2542,20 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
         ui->preAqScript->script->execute();
         if (stopMe) goto onEngineExit;
+
+        if ( ! doTriggCT && ( currentScan || ! ongoingSeries ) ) { 
+            thetaMotor->motor()-> /* goRelative( ( thetaRange + addTravel ) * 1.05 ) */
+                goLimit( thetaRange > 0 ? QCaMotor::POSITIVE : QCaMotor::NEGATIVE );
+            if (stopMe) goto onEngineExit;
+            // accTravel/speed in the below string is required to compensate
+            // for the coefficient 2 in addTravel
+            // qtWait(1000*(accTime + accTravel/speed));
+            usleep(1000000*(accTime + accTravel/speed));
+            if (stopMe) goto onEngineExit;
+        }
+
         det->start();
+
         if (doTriggCT) {
           tct->start(true);
           thetaMotor->motor()->goLimit( thetaRange > 0 ? QCaMotor::POSITIVE : QCaMotor::NEGATIVE );
@@ -2695,7 +2700,6 @@ onEngineExit:
     bgMotor->motor()->stop(QCaMotor::STOPPED);
     bgMotor->motor()->goUserPosition(bgOrigin, QCaMotor::STARTED);
   }
-
   if (doSerial1D && outSMotor->isConnected()) {
     outSMotor->stop(QCaMotor::STOPPED);
     outSMotor->goUserPosition(outSerialStart, QCaMotor::STARTED);

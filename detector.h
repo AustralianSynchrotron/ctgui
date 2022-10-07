@@ -24,6 +24,8 @@ public:
     HamaMama,
     Xenia,
     XeniaPPS,
+    Eiger,
+    EigerPPS,
     BYPV
   };
 
