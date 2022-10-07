@@ -2610,6 +2610,8 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
       }
 
+      if (doSerial2D)
+        innearList->done(currentScan2D);
       currentScan2D++;
       currentScan++;
 
@@ -2629,6 +2631,9 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
         qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
         if (stopMe) goto onEngineExit;
+      } else {
+        if (doSerial2D)
+          innearList->todo();
       }
 
 
@@ -2641,7 +2646,8 @@ void MainWindow::engineRun () {
     if(doSerial2D)
       ui->post2DScript->script->execute();
     if (stopMe) goto onEngineExit;
-
+    if (doSerial1D)
+      outerList->done(currentScan1D);
     currentScan1D++;
 
     timeToStop =
@@ -2658,6 +2664,9 @@ void MainWindow::engineRun () {
       if (stopMe) goto onEngineExit;
       qtWait(this, SIGNAL(requestToStopAcquisition()), scanDelay);
       if (stopMe) goto onEngineExit;
+    } else {
+      if (doSerial1D)
+        outerList->todo();
     }
 
     if ( timeToStop && ! sasMode && ! ui->ffOnEachScan->isChecked() ) {

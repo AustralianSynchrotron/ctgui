@@ -353,6 +353,25 @@ void PositionList::getMotorPosition() {
 }
 
 
+void PositionList::done(int row) {
+  if (row<0)
+    for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
+      done(crow);
+  else if (row < ui->list->rowCount())
+    ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->setChecked(false);
+}
+
+
+void PositionList::todo(int row) {
+  if (row<0)
+    for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
+      todo(crow);
+  else if (row < ui->list->rowCount())
+    ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->setChecked(true);
+}
+
+
+
 bool PositionList::doAny() const {
   for (int crow=0 ; crow < ui->list->rowCount() ; crow++)
     if (doMe(crow))

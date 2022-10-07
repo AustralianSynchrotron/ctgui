@@ -72,8 +72,8 @@ public:
   double position(int row) const {return ui->list->item(row, 0)->text().toDouble();}
   bool doMe(int row) const { return row < ui->list->rowCount() &&
                                     ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->isChecked(); }
-  void done(int row) { if (row < ui->list->rowCount())
-                         ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->setChecked(false); }
+  void done(int row=-1);
+  void todo(int row=-1);
   bool doAny() const;
   bool doAll() const;
 
