@@ -246,6 +246,7 @@ void PositionList::updateNoF() {
     QSCheckBox * dome = new QSCheckBox(this);
     dome->setToolTip("If not ticked, will skip this scan in the experiment.");
     dome->setStyleSheet( "text-align: center; margin-left:50%; margin-right:50%;" );
+    dome->setChecked(true);
     ui->list->setCellWidget(crc, doMeCol, dome );
     ui->list->resizeColumnToContents(doMeCol);
 
@@ -352,6 +353,12 @@ void PositionList::getMotorPosition() {
 }
 
 
+void PositionList::position(int row, double pos) {
+  if (row<0 || row>ui->list->rowCount())
+    return;
+  ui->list->item(row, 0)->setText(QString::number(pos));
+}
+
 void PositionList::done(int row) {
   if (row<0)
     for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
@@ -368,7 +375,6 @@ void PositionList::todo(int row) {
   else if (row < ui->list->rowCount())
     ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->setChecked(true);
 }
-
 
 
 bool PositionList::doAny() const {

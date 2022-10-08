@@ -371,7 +371,9 @@ static void save_cfg(const QObject * obj, const QString & key, QSettings & confi
     config.setValue(key,
                     dynamic_cast<const QButtonGroup*>(obj)->checkedButton() ?
                       dynamic_cast<const QButtonGroup*>(obj)->checkedButton()->text() : QString() );
+  /*
   else if (dynamic_cast<const QTableWidget*>(obj)) {
+    const QTableWidget * twdg = dynamic_cast<const QTableWidget*>(obj);
     config.beginWriteArray(key);
     int index = 0;
     foreach (QTableWidgetItem * item,
@@ -380,14 +382,23 @@ static void save_cfg(const QObject * obj, const QString & key, QSettings & confi
       config.setValue("position", item ? item->text() : "");
     }
     config.endArray();
-  } else if (dynamic_cast<const PositionList*>(obj)) {
+  } */
+  else if (dynamic_cast<const PositionList*>(obj)) {
     const PositionList *pl = dynamic_cast<const PositionList*>(obj);
     save_cfg(pl->ui->label, key, config);
     save_cfg(pl->motui->motor(), key + "/motor", config);
     save_cfg(pl->ui->nof, key + "/nofsteps", config);
     save_cfg(pl->ui->step, key + "/step", config);
     save_cfg(pl->ui->irregular, key + "/irregular", config);
-    save_cfg(pl->ui->list, key + "/positions", config);
+    //save_cfg(pl->ui->list, key + "/positions", config);
+    int steps = pl->ui->list->rowCount();
+    config.beginWriteArray(key + "/positions");
+    for (int index=0; index < steps ; index++) {
+      config.setArrayIndex(index);
+      config.setValue("pos", pl->position(index));
+      config.setValue("doit", pl->doMe(index));
+    }
+    config.endArray();
   } else if (dynamic_cast<const Shutter*>(obj)) {
     const Shutter * shut = dynamic_cast<const Shutter*>(obj);
     save_cfg(shut->ui->selection, key, config);
@@ -405,6 +416,7 @@ void MainWindow::saveConfiguration(QString fileName) {
     fileName = QFileDialog::getSaveFileName(0, "Save configuration", QDir::currentPath());
 
   QSettings config(fileName, QSettings::IniFormat);
+  config.clear();
 
   config.setValue("version", QString::number(APP_VERSION));
 
@@ -474,7 +486,7 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
     foreach (QAbstractButton * but, dynamic_cast<QButtonGroup*>(obj)->buttons())
       if (but->text() == value.toString())
         but->setChecked(true);
-  } else if (dynamic_cast<QTableWidget*>(obj)) {
+  } /* else if (dynamic_cast<QTableWidget*>(obj)) {
     QTableWidget * twdg = dynamic_cast<QTableWidget*>(obj);
     int stepssize = config.beginReadArray(key);
     for (int i = 0; i < stepssize; ++i) {
@@ -483,13 +495,28 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
         twdg->item(i,0)->setText(config.value("position").toString());
     }
     config.endArray();
-  } else if (dynamic_cast<PositionList*>(obj)) {
+  } */ else if (dynamic_cast<PositionList*>(obj)) {
     PositionList *pl = dynamic_cast<PositionList*>(obj);
     load_cfg(pl->motui->motor(), key + "/motor", config);
     load_cfg(pl->ui->irregular, key + "/irregular", config);
     load_cfg(pl->ui->nof, key + "/nofsteps", config);
     load_cfg(pl->ui->step, key + "/step", config);
-    load_cfg(pl->ui->list, key + "/positions", config);
+    //load_cfg(pl->ui->list, key + "/positions", config);
+    int steps = config.beginReadArray(key + "/positions");
+    if (steps != pl->ui->list->rowCount()) {
+      qDebug() << "Inconsistent number of steps and array size for the position list" << key;
+      steps = qMin(steps, pl->ui->list->rowCount());
+    }
+    for (int index=0; index < steps ; index++) {
+      config.setArrayIndex(index);
+      if (config.contains("pos"))
+        pl->position(index, config.value("pos").toDouble());
+      if (config.contains("doit") && ! config.value("doit").toBool() )
+        pl->done(index);
+      else
+        pl->todo(index);
+    }
+    config.endArray();
   } else if (dynamic_cast<Shutter*>(obj)) {
     Shutter * shut = dynamic_cast<Shutter*>(obj);
     QVariant customValue = config.value(key+"_custom");
@@ -2686,6 +2713,7 @@ void MainWindow::engineRun () {
         ui->serialProgress->setValue(currentScan);
 
       timeToStop = inRun(ui->testScan)
+          || ! doSerial2D
           || currentScan2D >= totalScans2D
           || ( ui->endNumber->isChecked() && currentScan2D < 0 )
           || ( ui->endTime->isChecked() &&  inCTtime.elapsed() + scanDelay >= scanTime )
@@ -2720,8 +2748,8 @@ void MainWindow::engineRun () {
         currentScan1D++;
     }
 
-    timeToStop =
-        ! doSerial1D || inRun(ui->testScan)
+    timeToStop = inRun(ui->testScan)
+        || ! doSerial1D
         || ( ui->endNumber->isChecked()  &&  currentScan1D < 0 )
         || ( ui->endTime->isChecked()  &&  inCTtime.elapsed() + scanDelay >= scanTime )
         || ( ui->endCondition->isChecked()  &&  ui->conditionScript->script->execute() );

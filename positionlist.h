@@ -54,10 +54,10 @@ class PositionList : public QWidget
 private:
   bool allOK;
   bool freezListUpdates;
-  static const int doMeCol = 3;
 
 public:
 
+  static const int doMeCol = 3;
   Ui::PositionList * const ui; // do not change outside public only to store
   QCaMotorGUI * motui; // do not change outside public only to move and store
 
@@ -70,7 +70,7 @@ public:
   void freezList(bool fz) {freezListUpdates=fz;}
   void emphasizeRow(int row=-1);
   double position(int row) const {return ui->list->item(row, 0)->text().toDouble();}
-
+  void position(int row, double pos);
   bool doMe(int row) const { return row < ui->list->rowCount() &&
                                     ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->isChecked(); }
   void done(int row=-1);
