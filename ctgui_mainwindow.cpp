@@ -745,7 +745,8 @@ void MainWindow::updateUi_serials() {
     connect(ui->serial2D, SIGNAL(toggled(bool)), ui->pre2DSlabel, SLOT(setVisible(bool)));
     connect(ui->serial2D, SIGNAL(toggled(bool)), ui->post2DScript, SLOT(setVisible(bool)));
     connect(ui->serial2D, SIGNAL(toggled(bool)), ui->post2DSlabel, SLOT(setVisible(bool)));
-    ui->serial2D->toggle(); ui->serial2D->toggle(); // twice to keep initial state
+    ui->serial2D->toggle();
+    ui->serial2D->toggle(); // twice to keep initial state
 
     connect(ui->endNumber, SIGNAL(toggled(bool)), ui->outerListPlace, SLOT(setVisible(bool)));
     connect(ui->endTime,   SIGNAL(toggled(bool)), ui->acquisitionTimeWdg, SLOT(setVisible(bool)));
@@ -759,12 +760,14 @@ void MainWindow::updateUi_serials() {
   }
 
 
-  ui->swapSerialLists->setVisible( ui->serial2D->isChecked() && ui->endNumber->isChecked() );
-  ui->serialTabSpacer->setHidden( ui->serial2D->isChecked() || ui->endNumber->isChecked() );
+  const bool do2D = ui->serial2D->isChecked();
+  ui->serial2D->setVisible(ui->endNumber->isChecked());
+  ui->swapSerialLists->setVisible( do2D && ui->endNumber->isChecked() );
+  ui->serialTabSpacer->setHidden( do2D || ui->endNumber->isChecked() );
   innearList->putLabel("innear\nloop\n\n[Z]");
-  outerList->putLabel(ui->serial2D->isChecked() ? "outer\nloop\n\n[Y]" : "[Y]");
+  outerList->putLabel( do2D ? "outer\nloop\n\n[Y]" : "[Y]");
 
-  check(ui->serial2D, ! ui->serial2D->isChecked() || innearList->amOK() );
+  check(ui->serial2D, ! do2D || innearList->amOK() );
   check(ui->endNumber, ! ui->endNumber->isChecked() || outerList->amOK() );
 
 }

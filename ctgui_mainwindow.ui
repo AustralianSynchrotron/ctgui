@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>6</number>
+       <number>1</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -385,9 +385,6 @@
                 </property>
                 <property name="displayFormat">
                  <string>HH:mm:ss.z</string>
-                </property>
-                <property name="timeSpec">
-                 <enum>Qt::OffsetFromUTC</enum>
                 </property>
                </widget>
               </item>
@@ -1963,133 +1960,119 @@ p
         <item>
          <widget class="QWidget" name="detectorWidget" native="true">
           <layout class="QGridLayout" name="gridLayout_3">
-           <item row="7" column="1" colspan="3">
+           <item row="6" column="1" colspan="3">
             <widget class="QLabel" name="detFileLastName">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="12" column="1">
+           <item row="11" column="1">
             <widget class="QLabel" name="hdfEnabled">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="3" column="3">
+           <item row="2" column="3">
             <widget class="QLabel" name="detStatus">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="12" column="0">
+           <item row="11" column="0">
             <widget class="QLabel" name="label_45">
              <property name="text">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;HDF5&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
            </item>
-           <item row="7" column="0">
+           <item row="6" column="0">
             <widget class="QLabel" name="label_40">
              <property name="text">
               <string>Last file</string>
              </property>
             </widget>
            </item>
-           <item row="2" column="0" colspan="4">
+           <item row="1" column="0" colspan="4">
             <widget class="Line" name="line_12">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
-           <item row="12" column="3">
+           <item row="11" column="3">
             <widget class="QLabel" name="detFileTemplateHdf">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="5" column="0">
+           <item row="4" column="0">
             <widget class="QLabel" name="label_18">
              <property name="text">
               <string>Trigger mode</string>
              </property>
             </widget>
            </item>
-           <item row="6" column="0">
+           <item row="5" column="0">
             <widget class="QLabel" name="label_20">
              <property name="text">
               <string>Images acquired</string>
              </property>
             </widget>
            </item>
-           <item row="9" column="3">
+           <item row="8" column="3">
             <widget class="QLabel" name="detFileTemplateTiff">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="4" column="2">
+           <item row="3" column="2">
             <widget class="QLabel" name="label_8">
              <property name="text">
               <string>Period</string>
              </property>
             </widget>
            </item>
-           <item row="4" column="3">
+           <item row="3" column="3">
             <widget class="QVariantLabel" name="detPeriod">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="9" column="2">
+           <item row="8" column="2">
             <widget class="QLabel" name="label_22">
              <property name="text">
               <string>File template</string>
              </property>
             </widget>
            </item>
-           <item row="10" column="2">
+           <item row="9" column="2">
             <widget class="QLabel" name="label_23">
              <property name="text">
               <string>File name</string>
              </property>
             </widget>
            </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_12">
-             <property name="text">
-              <string>Secondary shutter</string>
-             </property>
-            </widget>
-           </item>
-           <item row="13" column="3">
+           <item row="12" column="3">
             <widget class="QLabel" name="detFileNameHdf">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="4" column="0">
+           <item row="3" column="0">
             <widget class="QLabel" name="label_6">
              <property name="text">
               <string>Exposure</string>
              </property>
             </widget>
            </item>
-           <item row="13" column="2">
-            <widget class="QLabel" name="label_49">
-             <property name="text">
-              <string>File name</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="2">
+           <item row="2" column="2">
             <widget class="QLabel" name="label_16">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -2102,14 +2085,21 @@ p
              </property>
             </widget>
            </item>
-           <item row="9" column="1">
+           <item row="12" column="2">
+            <widget class="QLabel" name="label_49">
+             <property name="text">
+              <string>File name</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1">
             <widget class="QLabel" name="tiffEnabled">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="3" column="0">
+           <item row="2" column="0">
             <widget class="QLabel" name="label_2">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
@@ -2122,14 +2112,14 @@ p
              </property>
             </widget>
            </item>
-           <item row="14" column="0" colspan="4">
+           <item row="13" column="0" colspan="4">
             <widget class="Line" name="line_3">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
-           <item row="15" column="0" colspan="4">
+           <item row="14" column="0" colspan="4">
             <layout class="QGridLayout" name="gridLayout_11">
              <item row="0" column="0">
               <widget class="QLabel" name="preAqScriptLabel_3">
@@ -2159,21 +2149,21 @@ p
              </item>
             </layout>
            </item>
-           <item row="13" column="0">
+           <item row="12" column="0">
             <widget class="QLabel" name="label_46">
              <property name="text">
               <string>Path</string>
              </property>
             </widget>
            </item>
-           <item row="3" column="1">
+           <item row="2" column="1">
             <widget class="QComboBox" name="detSelection">
              <property name="editable">
               <bool>true</bool>
              </property>
             </widget>
            </item>
-           <item row="6" column="1">
+           <item row="5" column="1">
             <layout class="QHBoxLayout" name="horizontalLayout_13">
              <item>
               <widget class="QVariantLabel" name="detImageCounter">
@@ -2210,154 +2200,215 @@ p
              </item>
             </layout>
            </item>
-           <item row="5" column="1">
+           <item row="4" column="1">
             <widget class="QLabel" name="detTriggerMode">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="12" column="2">
+           <item row="11" column="2">
             <widget class="QLabel" name="label_48">
              <property name="text">
               <string>File template</string>
              </property>
             </widget>
            </item>
-           <item row="10" column="3">
+           <item row="9" column="3">
             <widget class="QLabel" name="detFileNameTiff">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="9" column="0">
+           <item row="8" column="0">
             <widget class="QLabel" name="label_41">
              <property name="text">
               <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;TIFF&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
             </widget>
            </item>
-           <item row="13" column="1">
+           <item row="12" column="1">
             <widget class="QLabel" name="detPathHdf">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="11" column="1" colspan="3">
+           <item row="10" column="1" colspan="3">
             <widget class="Line" name="line_10">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
-           <item row="10" column="1">
+           <item row="9" column="1">
             <widget class="QLabel" name="detPathTiff">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="4" column="1">
+           <item row="3" column="1">
             <widget class="QVariantLabel" name="detExposure">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="5" column="2">
+           <item row="4" column="2">
             <widget class="QLabel" name="label_19">
              <property name="text">
               <string>Image mode</string>
              </property>
             </widget>
            </item>
-           <item row="8" column="1" colspan="3">
+           <item row="7" column="1" colspan="3">
             <widget class="Line" name="line_8">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
-           <item row="5" column="3">
+           <item row="4" column="3">
             <widget class="QLabel" name="detImageMode">
              <property name="text">
               <string>TextLabel</string>
              </property>
             </widget>
            </item>
-           <item row="10" column="0">
+           <item row="9" column="0">
             <widget class="QLabel" name="label_28">
              <property name="text">
               <string>Path</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_25">
-             <property name="text">
-              <string>Primary shutter</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1">
-            <widget class="QWidget" name="placeShutterSelection" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout_6">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-             </layout>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QWidget" name="placePShutterSelection" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout_15">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-             </layout>
-            </widget>
-           </item>
-           <item row="0" column="2" rowspan="2">
-            <widget class="QLabel" name="label_21">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="text">
-              <string>Status</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="3">
-            <layout class="QHBoxLayout" name="horizontalLayout_25">
+           <item row="0" column="1" colspan="3">
+            <layout class="QHBoxLayout" name="horizontalLayout_35">
+             <item>
+              <widget class="QLabel" name="label_30">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string>This shutter operates only in the beginning and end of the experiment.</string>
+               </property>
+               <property name="text">
+                <string>primary</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QWidget" name="placePShutterSelection" native="true">
+               <layout class="QHBoxLayout" name="horizontalLayout_15">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QWidget" name="placePShutterToggle" native="true">
+               <layout class="QHBoxLayout" name="horizontalLayout_24">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QWidget" name="placePShutterStatus" native="true">
+                  <layout class="QHBoxLayout" name="horizontalLayout_29">
+                   <property name="spacing">
+                    <number>0</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_21">
+               <property name="text">
+                <string>    </string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_12">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="toolTip">
+                <string>This shutter is operates on each image series.</string>
+               </property>
+               <property name="text">
+                <string>secondary</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QWidget" name="placeShutterSelection" native="true">
+               <layout class="QHBoxLayout" name="horizontalLayout_6">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+               </layout>
+              </widget>
+             </item>
              <item>
               <widget class="QWidget" name="placeShutterToggle" native="true">
                <layout class="QHBoxLayout" name="horizontalLayout_20">
@@ -2402,51 +2453,12 @@ p
              </item>
             </layout>
            </item>
-           <item row="0" column="3">
-            <layout class="QHBoxLayout" name="horizontalLayout_28">
-             <item>
-              <widget class="QWidget" name="placePShutterToggle" native="true">
-               <layout class="QHBoxLayout" name="horizontalLayout_24">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QWidget" name="placePShutterStatus" native="true">
-                  <layout class="QHBoxLayout" name="horizontalLayout_29">
-                   <property name="spacing">
-                    <number>0</number>
-                   </property>
-                   <property name="leftMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                  </layout>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-            </layout>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_29">
+             <property name="text">
+              <string>Shutters</string>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>
