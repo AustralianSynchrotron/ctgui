@@ -45,36 +45,33 @@ void NTableDelegate::updateEditorGeometry(QWidget *editor, const QStyleOptionVie
 
 
 /*
-class PListHeader : public QHeaderView
-{
+class PListHeader : public QHeaderView {
 public:
-    using QHeaderView::QHeaderView;
+  using QHeaderView::QHeaderView;
 
 protected:
+  void paintSection(QPainter* painter, const QRect &rect, int logicalIndex) const override {
+    painter->save();
+    QHeaderView::paintSection(painter, rect, logicalIndex);
+    painter->restore();
+    if ( ! model() || logicalIndex != 3)
+      return;
 
-    void paintSection(QPainter* painter, const QRect &rect, int logicalIndex) const override
-    {
-        painter->save();
-        QHeaderView::paintSection(painter, rect, logicalIndex);
-        painter->restore();
+    QStyleOptionButton option;
+    option.init(this);
 
-        if (model() && logicalIndex == 3)
-        {
-            QStyleOptionButton option;
-            option.init(this);
+    QRect checkbox_rect = style()->subElementRect(QStyle::SubElement::SE_CheckBoxIndicator, &option, this);
+    checkbox_rect.moveRight(rect.right());
 
-            QRect checkbox_rect = style()->subElementRect(QStyle::SubElement::SE_CheckBoxIndicator, &option, this);
-            checkbox_rect.moveRight(rect.right());
+    bool checked = model()->headerData(logicalIndex, orientation(), Qt::CheckStateRole).toBool();
 
-            bool checked = model()->headerData(logicalIndex, orientation(), Qt::CheckStateRole).toBool();
+    //option.text=QString("Do");
+    option.rect = checkbox_rect;
+    option.state = checked ? QStyle::State_On : QStyle::State_Off;
+    option.state = QStyle::State_Off;
 
-            option.text=QString("Do");
-            option.rect = checkbox_rect;
-            option.state = checked ? QStyle::State_On : QStyle::State_Off;
-
-            style()->drawPrimitive(QStyle::PE_IndicatorCheckBox, &option, painter);
-        }
-    }
+    style()->drawPrimitive(QStyle::PE_IndicatorCheckBox, &option, painter);
+  }
 
     void mouseReleaseEvent(QMouseEvent* event) override
     {
@@ -90,9 +87,11 @@ protected:
             }
         }
     }
-};
 
+};
 */
+
+
 
 
 
@@ -158,20 +157,20 @@ PositionList::PositionList(QWidget *parent)
   connect( ui->irregular, SIGNAL(toggled(bool)), ui->step, SLOT(setDisabled(bool)));
 
   ui->list->setItemDelegateForColumn(0, new NTableDelegate(ui->list));
+  QHeaderView * header = ui->list->horizontalHeader();
   //PListHeader * header = new PListHeader(Qt::Horizontal, ui->list);
-  //header->setStretchLastSection(false);
   //ui->list->setHorizontalHeader(header);
-  ui->list->horizontalHeader()->setStretchLastSection(false);
+  header->setStretchLastSection(false);
   #if QT_VERSION >= 0x050000
-  ui->list->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
-  ui->list->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
-  ui->list->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);
-  ui->list->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Fixed);
+  header->setSectionResizeMode(0, QHeaderView::Stretch);
+  header->setSectionResizeMode(1, QHeaderView::Fixed);
+  header->setSectionResizeMode(2, QHeaderView::Fixed);
+  header->setSectionResizeMode(3, QHeaderView::Fixed);
   #else
-  ui->list->horizontalHeader()->setResizeMode(0, QHeaderView::Stretch);
-  ui->list->horizontalHeader()->setResizeMode(1, QHeaderView::Fixed);
-  ui->list->horizontalHeader()->setResizeMode(2, QHeaderView::Fixed);
-  ui->list->horizontalHeader()->setResizeMode(3, QHeaderView::Fixed);
+  header->setResizeMode(0, QHeaderView::Stretch);
+  header->setResizeMode(1, QHeaderView::Fixed);
+  header->setResizeMode(2, QHeaderView::Fixed);
+  header->setResizeMode(3, QHeaderView::Fixed);
   #endif
 
   updateNoF();
@@ -384,6 +383,13 @@ bool PositionList::doAll() const {
     if (!doMe(crow))
       return false;
   return true;
+}
+
+int PositionList::nextToDo() const {
+  for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
+    if (((QSCheckBox*)ui->list->cellWidget(crow, doMeCol))->isChecked() )
+      return crow;
+  return -1;
 }
 
 

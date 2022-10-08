@@ -70,12 +70,14 @@ public:
   void freezList(bool fz) {freezListUpdates=fz;}
   void emphasizeRow(int row=-1);
   double position(int row) const {return ui->list->item(row, 0)->text().toDouble();}
+
   bool doMe(int row) const { return row < ui->list->rowCount() &&
                                     ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->isChecked(); }
   void done(int row=-1);
   void todo(int row=-1);
   bool doAny() const;
   bool doAll() const;
+  int nextToDo() const;
 
 private slots:
 

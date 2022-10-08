@@ -1460,10 +1460,11 @@ void MainWindow::check(QWidget * obj, bool status) {
   }
 
   bool tabOK=status;
-  if ( status )
+  if ( status ) {
     foreach ( ReqP tabel, preReq)
       if ( tabel.second == tab )
         tabOK &= tabel.first;
+  }
 
   const bool anyInRun = inRun(ui->startStop)
       || inRun(ui->testDetector)
@@ -1503,10 +1504,11 @@ void MainWindow::check(QWidget * obj, bool status) {
   }
 
   bool readyToStartCT=status;
-  if ( status )
+  if ( status ) {
     foreach ( ReqP tabel, preReq)
       if ( ! tabel.second )
         readyToStartCT &= tabel.first;
+  }
   ui->startStop->setEnabled(readyToStartCT || anyInRun );
   ui->startStop->setStyleSheet( anyInRun  ?  warnStyle  :  "" );
   ui->startStop->setText( anyInRun  ?  "Stop"  :  ssText );
@@ -2234,9 +2236,10 @@ void MainWindow::engineRun () {
 
   foreach(PositionList * lst, findChildren<PositionList*>())
     lst->freezList(true);
-  if ( inRun(ui->startStop) )
+  if ( inRun(ui->startStop) ) {
     foreach(QWidget * tab, ui->control->tabs())
       tab->setEnabled(false);
+  }
   QElapsedTimer inCTtime;
   inCTtime.start();
   bool timeToStop=false;
@@ -2296,15 +2299,39 @@ void MainWindow::engineRun () {
 
   }
 
+  if (   ui->endNumber->isChecked()
+     && (  ( doSerial1D  && !  outerList->doAll() )
+        || ( doSerial2D  && ! innearList->doAll() ) )
+     && QMessageBox::No == QMessageBox::question
+         (this, "Skippins scans",
+          "Some scans in the series are marked to be skipped.\n\n"
+          " Do you want to proceed?\n"
+          , QMessageBox::Yes | QMessageBox::No, QMessageBox::No)  )
+    goto onEngineExit;
 
-  if ( doSerial1D  &&  ui->endNumber->isChecked() && outSMotor->isConnected() )
-    outSMotor->goUserPosition( outerList->position(0), QCaMotor::STARTED);
+  if ( doSerial1D  &&  ui->endNumber->isChecked() ) {
+    currentScan1D = outerList->nextToDo();
+    if ( currentScan1D < 0 ) {
+      qDebug() << "No position selected in innear list.";
+      goto onEngineExit;
+    }
+    if ( outSMotor->isConnected() )
+      outSMotor->goUserPosition( outerList->position(currentScan1D), QCaMotor::STARTED);
+  }
   if (stopMe) goto onEngineExit;
 
-  if ( doSerial2D && inSMotor->isConnected() )
-    inSMotor->goUserPosition( innearList->position(0), QCaMotor::STARTED);
+  if ( doSerial2D ) {
+    if (ui->endNumber->isChecked()) {
+      currentScan2D = innearList->nextToDo();
+      if ( currentScan2D < 0 ) {
+        qDebug() << "No position selected in innear list.";
+        goto onEngineExit;
+      }
+    }
+    if ( inSMotor->isConnected() )
+      inSMotor->goUserPosition( innearList->position(currentScan2D), QCaMotor::STARTED);
+  }
   if (stopMe) goto onEngineExit;
-
 
   if (doTriggCT) {
     tct->setStartPosition(thetaStart, true);
@@ -2341,6 +2368,19 @@ void MainWindow::engineRun () {
     if (stopMe) goto onEngineExit;
 
     currentScan2D=0;
+    if ( doSerial2D ) {
+      if (ui->endNumber->isChecked()) {
+        currentScan2D = innearList->nextToDo();
+        if ( currentScan2D < 0 ) {
+          qDebug() << "No position selected in innear list.";
+          goto onEngineExit;
+        }
+      }
+      if ( inSMotor->isConnected() )
+        inSMotor->goUserPosition( innearList->position(currentScan2D), QCaMotor::STARTED);
+      if (stopMe) goto onEngineExit;
+    }
+
     if(doSerial2D)
       ui->pre2DScript->script->execute();
     if (stopMe) goto onEngineExit;
@@ -2610,9 +2650,13 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
       }
 
-      if (doSerial2D)
+      if (doSerial2D) {
         innearList->done(currentScan2D);
-      currentScan2D++;
+        if (ui->endNumber->isChecked())
+          currentScan2D = innearList->nextToDo();
+        else
+          currentScan2D++;
+      }
       currentScan++;
 
       if ( ui->endTime->isChecked() )
@@ -2622,6 +2666,7 @@ void MainWindow::engineRun () {
 
       timeToStop = inRun(ui->testScan)
           || currentScan2D >= totalScans2D
+          || ( ui->endNumber->isChecked() && currentScan2D < 0 )
           || ( ui->endTime->isChecked() &&  inCTtime.elapsed() + scanDelay >= scanTime )
           || ( ui->endCondition->isChecked()  &&  ui->conditionScript->script->execute() );
 
@@ -2646,13 +2691,17 @@ void MainWindow::engineRun () {
     if(doSerial2D)
       ui->post2DScript->script->execute();
     if (stopMe) goto onEngineExit;
-    if (doSerial1D)
+    if (doSerial1D) {
       outerList->done(currentScan1D);
-    currentScan1D++;
+      if (ui->endNumber->isChecked())
+        currentScan1D = outerList->nextToDo();
+      else
+        currentScan1D++;
+    }
 
     timeToStop =
         ! doSerial1D || inRun(ui->testScan)
-        || ( ui->endNumber->isChecked()  &&  currentScan1D >= totalScans1D )
+        || ( ui->endNumber->isChecked()  &&  currentScan1D < 0 )
         || ( ui->endTime->isChecked()  &&  inCTtime.elapsed() + scanDelay >= scanTime )
         || ( ui->endCondition->isChecked()  &&  ui->conditionScript->script->execute() );
 
