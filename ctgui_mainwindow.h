@@ -46,7 +46,8 @@ private:
   float bgAcquire;
   float bgEnter;
 
-  Shutter * shutter;
+  Shutter * shutterPri;
+  Shutter * shutterSec;
   Detector * det;
   TriggCT * tct;
 

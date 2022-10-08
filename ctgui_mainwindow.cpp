@@ -35,8 +35,10 @@ class HWstate {
 
 private:
   Detector * det;
-  Shutter * shut;
-  Shutter::State shutsate;
+  Shutter * shutSec;
+  Shutter::State shutSecSate;
+  Shutter * shutPri;
+  Shutter::State shutPriSate;
   QString dettifname;
   QString dethdfname;
   int detimode;
@@ -45,14 +47,15 @@ private:
 
 public:
 
-  HWstate(Detector *_det, Shutter * _shut)
-    : det(_det), shut(_shut)
+  HWstate(Detector *_det, Shutter * _shutS, Shutter * _shutP)
+    : det(_det), shutSec(_shutS), shutPri(_shutP)
   {
     store();
   }
 
   void store() {
-    shutsate = shut->state();
+    shutSecSate = shutSec->state();
+    shutPriSate = shutPri->state();
     dettifname = det->name(Detector::TIFF);
     dethdfname = det->name(Detector::HDF);
     detimode = det->imageMode();
@@ -61,7 +64,8 @@ public:
   }
 
   void restore() {
-    // shut->setState(shutsate);
+    // shutSec->setState(shutSecState);
+    // shutPri->setState(shutPriState);
     det->setName(Detector::TIFF, dettifname) ;
     det->setName(Detector::HDF, dethdfname) ;
     det->setImageMode(detimode);
@@ -80,7 +84,8 @@ MainWindow::MainWindow(QWidget *parent) :
   bgAcquire(0),
   bgEnter(0),
   ui(new Ui::MainWindow),
-  shutter(new Shutter(this)),
+  shutterPri(new Shutter(this)),
+  shutterSec(new Shutter(this)),
   det(new Detector(this)),
   tct(new TriggCT(this)),
   thetaMotor(new QCaMotorGUI),
@@ -156,10 +161,13 @@ MainWindow::MainWindow(QWidget *parent) :
   ui->placeDyno2Motor->layout()->addWidget(dyno2Motor->setupButton());
   ui->placeDyno2Current->layout()->addWidget(dyno2Motor->currentPosition(true));
 
+  ui->placePShutterSelection->layout()->addWidget(shutterPri->ui->selection);
+  ui->placePShutterStatus->layout()->addWidget(shutterPri->ui->status);
+  ui->placePShutterToggle->layout()->addWidget(shutterPri->ui->toggle);
 
-  ui->placeShutterSelection->layout()->addWidget(shutter->ui->selection);
-  ui->placeShutterStatus->layout()->addWidget(shutter->ui->status);
-  ui->placeShutterToggle->layout()->addWidget(shutter->ui->toggle);
+  ui->placeShutterSelection->layout()->addWidget(shutterSec->ui->selection);
+  ui->placeShutterStatus->layout()->addWidget(shutterSec->ui->status);
+  ui->placeShutterToggle->layout()->addWidget(shutterSec->ui->toggle);
 
   connect(ui->browseExpPath, SIGNAL(clicked()), SLOT(onWorkingDirBrowse()));
   connect(ui->checkSerial, SIGNAL(toggled(bool)), SLOT(onSerialCheck()));
@@ -285,7 +293,8 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[ui->dyno2DirButtonGroup] = "dyno/dyno2/direction";
   configNames[ui->dynoDirectionLock] = "dyno/dyno2/dirLock";
 
-  configNames[shutter] = "hardware/shutterBox";
+  configNames[shutterSec] = "hardware/shutterBox";
+  configNames[shutterPri] = "hardware/primaryShutterBox";
   configNames[ui->detSelection] = "hardware/detectorBox";
   configNames[ui->preAqScript] = "hardware/preacquire";
   configNames[ui->postAqScript] = "hardware/postacquire";
@@ -1549,10 +1558,11 @@ void MainWindow::onSerialTest() {
   stopMe=false;
   const QString butText = mkRun(ui->testSerial, true, "Stop");
   det->waitWritten();
-  HWstate hw(det, shutter);
+  HWstate hw(det, shutterSec, shutterPri);
   ui->ssWidget->setEnabled(false);
 
-  shutter->open();
+  shutterPri->open();
+  shutterSec->open();
   engineRun();
 
   hw.restore();
@@ -1573,9 +1583,10 @@ void MainWindow::onScanTest() {
   const QString butText = mkRun(ui->testScan, true, "Stop");
   ui->scanWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutter);
+  HWstate hw(det, shutterSec, shutterPri);
 
-  shutter->open();
+  shutterPri->open();
+  shutterSec->open();
   engineRun();
 
   hw.restore();
@@ -1599,13 +1610,14 @@ void MainWindow::onFFtest() {
   const QString butText = mkRun(ui->testFF, true, "Stop");
   ui->ffWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutter);
+  HWstate hw(det, shutterSec, shutterPri);
 
   moveToBG();
   acquireDF("", Shutter::CLOSED);
   det->waitWritten();
   acquireBG("");
   det->waitWritten();
+  shutterPri->close();
 
   det->setAutoSave(false);
   hw.restore();
@@ -1628,12 +1640,14 @@ void MainWindow::onLoopTest() {
   const QString butText = mkRun(ui->testMulti, true, "Stop");
   ui->multiWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutter);
+  HWstate hw(det, shutterSec, shutterPri);
 
-  shutter->open();
+  shutterPri->open();
+  shutterSec->open();
   acquireMulti("",  ( ui->aqMode->currentIndex() == STEPNSHOT  &&  ! ui->checkDyno->isChecked() )  ?
                       ui->aqsPP->value() : 1);
-  shutter->close();
+  shutterSec->close();
+  shutterPri->close();
   det->waitWritten();
 
   det->setAutoSave(false);
@@ -1654,11 +1668,13 @@ void MainWindow::onDynoTest() {
   const QString butText = mkRun(ui->testDyno, true, "Stop");
   ui->dynoWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutter);
+  HWstate hw(det, shutterSec, shutterPri);
 
-  shutter->open();
+  shutterPri->open();
+  shutterSec->open();
   acquireDyno("");
-  shutter->close();
+  shutterSec->close();
+  shutterPri->close();
   det->waitWritten();
 
   det->setAutoSave(false);
@@ -1682,7 +1698,7 @@ void MainWindow::onDetectorTest() {
   const QString butText = mkRun(ui->testDetector, true, "Stop");
   ui->detectorWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutter);
+  HWstate hw(det, shutterSec, shutterPri);
 
   int nofFrames = 0;
   if ( ui->aqMode->currentIndex() != STEPNSHOT )
@@ -1692,9 +1708,11 @@ void MainWindow::onDetectorTest() {
   else
     nofFrames = ui->aqsPP->value();
 
-  shutter->open();
+  shutterPri->open();
+  shutterSec->open();
   acquireDetector(det->name(uiImageFormat()) + "_SAMPLE", nofFrames);
-  shutter->close();
+  shutterSec->close();
+  shutterPri->close();
   det->waitWritten();
 
   det->setAutoSave(false);
@@ -2091,7 +2109,8 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( ui->bgExposure->value() ) ;
 
-  shutter->open();
+  shutterSec->open();
+  shutterPri->open();
   if (stopMe) goto onBgExit;
 
   det->setPeriod(det->exposure());
@@ -2111,7 +2130,7 @@ onBgExit:
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( originalExposure ) ;
 
-  shutter->close();
+  shutterSec->close();
   bgMotor->motor()->goUserPosition ( bgEnter, QCaMotor::STARTED );
   bgEnter = bgAcquire;
   // if (!stopMe)
@@ -2133,7 +2152,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
   if ( dfs<1 )
     return 0;
 
-  shutter->close();
+  shutterSec->close();
   if (stopMe) goto onDfExit;
   det->waitWritten();
   if (stopMe) goto onDfExit;
@@ -2151,11 +2170,11 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
   if (stopMe) goto onDfExit;
 
   if (stateToGo == Shutter::OPEN)
-    shutter->open();
+    shutterSec->open();
   else if (stateToGo == Shutter::CLOSED)
-    shutter->close();
-  if ( ! stopMe && shutter->state() != stateToGo)
-    qtWait(shutter, SIGNAL(stateUpdated(State)), 500); /**/
+    shutterSec->close();
+  if ( ! stopMe && shutterSec->state() != stateToGo)
+    qtWait(shutterSec, SIGNAL(stateUpdated(State)), 500); /**/
 
 
 onDfExit:
@@ -2188,7 +2207,7 @@ void MainWindow::engineRun () {
   QCaMotor * const outSMotor = outerList->motui->motor();
 
   const QString origname = det->name(uiImageFormat());
-  HWstate hw(det, shutter);
+  HWstate hw(det, shutterSec, shutterPri);
 
   bgOrigin = bgMotor->motor()->getUserPosition();
   bgAcquire = bgOrigin + ui->bgTravel->value();
@@ -2481,7 +2500,8 @@ void MainWindow::engineRun () {
           setenv("CONTRASTTYPE", "SAMPLE", 1);
           if (stopMe) goto onEngineExit;
 
-          shutter->open();
+          shutterPri->open();
+          shutterSec->open();
           if (stopMe) goto onEngineExit;
 
           if (ui->checkMulti->isChecked())
@@ -2579,7 +2599,8 @@ void MainWindow::engineRun () {
         }
 
         setenv("CONTRASTTYPE", "SAMPLE", 1);
-        shutter->open();
+        shutterPri->open();
+        shutterSec->open();
         if (stopMe) goto onEngineExit;
         ui->preAqScript->script->execute();
         if (stopMe) goto onEngineExit;
@@ -2614,7 +2635,7 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
         ui->postAqScript->script->execute();
         if (stopMe) goto onEngineExit;
-        shutter->close();
+        shutterSec->close();
         if (stopMe) goto onEngineExit;
 
         if ( ! ongoingSeries ) {
@@ -2749,7 +2770,8 @@ onEngineExit:
   ui->scanProgress->setVisible(false);
   ui->serialProgress->setVisible(false);
 
-  shutter->close();
+  shutterPri->close();
+  shutterSec->close();
 
   thetaMotor->motor()->stop(QCaMotor::STOPPED);
   setMotorSpeed(thetaMotor, thetaSpeed);
