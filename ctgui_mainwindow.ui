@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>1325</width>
-    <height>1154</height>
+    <height>905</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>0</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
