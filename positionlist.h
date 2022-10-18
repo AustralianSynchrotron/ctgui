@@ -26,12 +26,12 @@ public:
 class QTableWidgetWithCopyPaste : public QTableWidget
 {
 public:
-  QTableWidgetWithCopyPaste(int rows, int columns, QWidget *parent) :
-      QTableWidget(rows, columns, parent)
+  QTableWidgetWithCopyPaste(int rows, int columns, QWidget *parent)
+    : QTableWidget(rows, columns, parent)
   {};
 
-  QTableWidgetWithCopyPaste(QWidget *parent) :
-    QTableWidget(parent)
+  QTableWidgetWithCopyPaste(QWidget *parent)
+    : QTableWidget(parent)
   {};
 
 private:
@@ -54,6 +54,9 @@ class PositionList : public QWidget
 private:
   bool allOK;
   bool freezListUpdates;
+  QSCheckBox * chBox(int row) const {
+    return (QSCheckBox*) ui->list->cellWidget(row, doMeCol)->findChild<QSCheckBox*>();
+  }
 
 public:
 
@@ -71,8 +74,7 @@ public:
   void emphasizeRow(int row=-1);
   double position(int row) const {return ui->list->item(row, 0)->text().toDouble();}
   void position(int row, double pos);
-  bool doMe(int row) const { return row < ui->list->rowCount() &&
-                                    ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->isChecked(); }
+  bool doMe(int row) const { return row < ui->list->rowCount() && chBox(row)->isChecked(); }
   void done(int row=-1);
   void todo(int row=-1);
   bool doAny() const;

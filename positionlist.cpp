@@ -217,8 +217,11 @@ void PositionList::updateNoF() {
   const int steps = ui->nof->value();
 
   while ( steps < ui->list->rowCount() ) {
-    delete ui->list->cellWidget( ui->list->rowCount()-1, 1 );
-    delete ui->list->cellWidget( ui->list->rowCount()-1, 2 );
+    const int lrow = ui->list->rowCount()-1;
+    delete ui->list->cellWidget(lrow, 1);
+    delete ui->list->cellWidget(lrow, 2);
+    delete chBox(lrow);
+    delete ui->list->cellWidget(lrow, doMeCol);
     ui->list->removeRow( ui->list->rowCount()-1 );
   }
 
@@ -243,11 +246,17 @@ void PositionList::updateNoF() {
     ui->list->setCellWidget(crc, 2, btn );
     ui->list->resizeColumnToContents(2);
 
-    QSCheckBox * dome = new QSCheckBox(this);
+    QWidget * wdg = new QWidget;
+    QSCheckBox * dome = new QSCheckBox(wdg);
+    dome->setSizePolicy(QSizePolicy(QSizePolicy::Fixed, QSizePolicy::Fixed));
     dome->setToolTip("If not ticked, will skip this scan in the experiment.");
-    dome->setStyleSheet( "text-align: center; margin-left:50%; margin-right:50%;" );
+    //dome->setStyleSheet( "text-align: center; margin-left:50%; margin-right:50%;" );
     dome->setChecked(true);
-    ui->list->setCellWidget(crc, doMeCol, dome );
+    QHBoxLayout * layout = new QHBoxLayout(wdg);
+    layout->addWidget(dome);
+    wdg->setLayout(layout);
+    ui->list->setCellWidget(crc, doMeCol, wdg);
+    //ui->list->setCellWidget(crc, doMeCol, dome);
     ui->list->resizeColumnToContents(doMeCol);
 
     const double mpos = motui ? motui->motor()->getUserPosition() :  0 ;
@@ -364,7 +373,7 @@ void PositionList::done(int row) {
     for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
       done(crow);
   else if (row < ui->list->rowCount())
-    ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->setChecked(false);
+    chBox(row)->setChecked(false);
 }
 
 
@@ -373,7 +382,7 @@ void PositionList::todo(int row) {
     for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
       todo(crow);
   else if (row < ui->list->rowCount())
-    ((QSCheckBox*)ui->list->cellWidget(row, doMeCol))->setChecked(true);
+    chBox(row)->setChecked(true);
 }
 
 
@@ -393,7 +402,7 @@ bool PositionList::doAll() const {
 
 int PositionList::nextToDo() const {
   for ( int crow=0 ; crow<ui->list->rowCount() ; crow++ )
-    if (((QSCheckBox*)ui->list->cellWidget(crow, doMeCol))->isChecked() )
+    if (chBox(crow)->isChecked() )
       return crow;
   return -1;
 }
@@ -404,5 +413,5 @@ void PositionList::updateToDo(int index) {
     return;
   const bool setState = ! doAll();
   for (int crow=0 ; crow < ui->list->rowCount() ; crow++)
-    ((QSCheckBox*)ui->list->cellWidget(crow, doMeCol))->setChecked(setState);
+    chBox(crow)->setChecked(setState);
 }

@@ -11,35 +11,38 @@ class TriggCT : public QObject
 
 private:
 
+  QEpicsPv * zebraConnectedPv;
+  QEpicsPv * gateStartPv;
+  QEpicsPv * gateStartPvRBV;
+  QEpicsPv * gateWidthPv;
+  QEpicsPv * gateWidthPvRBV;
+  QEpicsPv * gateStepPv;
+  QEpicsPv * gateNofPv;
+  //QEpicsPv * pulseStartPv;
+  //QEpicsPv * pulseStartPvRBV;
+  QEpicsPv * pulseWidthPv;
+  QEpicsPv * pulseStepPv;
+  QEpicsPv * pulseStepPvRBV;
+  QEpicsPv * pulseNofPv;
+  QEpicsPv * pulseNofPvRBV;
+  QEpicsPv * armPv;
+  QEpicsPv * armPvRBV;
+  QEpicsPv * disarmPv;
 
-
-  QEpicsPv * outModePv;
-  QEpicsPv * outModePvRBV;
-  QEpicsPv * startModePv;
-  QEpicsPv * startPosPv;
-  QEpicsPv * startPosPvRBV;
-  QEpicsPv * stepPv;
-  QEpicsPv * rangePv;
-  QEpicsPv * nofTrigsPv;
-  QString motorPv;
   QString _prefix;
-
   bool iAmConnected;
 
 public:
   explicit TriggCT(QObject *parent = 0);
 
   bool isConnected() const {return iAmConnected;}
+  bool isRunning() const {return isConnected() && armPvRBV->get().toInt();}
 
-  bool isRunning() const {return isConnected() &&
-        outModePvRBV->get().toString() == "Auto";}
-
-  const QString & motor() const {return motorPv;}
   const QString & prefix() const {return _prefix;}
-  double startPosition() const {return startPosPvRBV->get().toDouble();}
-  double step() const {return stepPv->get().toDouble();}
-  double range() const {return rangePv->get().toDouble();}
-  double trigs() const {return nofTrigsPv->get().toDouble();}
+  double startPosition() const {return gateStartPvRBV->get().toDouble();}
+  double step() const {return pulseStepPvRBV->get().toDouble();}
+  double range() const {return gateWidthPvRBV->get().toDouble();}
+  double trigs() const {return pulseNofPvRBV->get().toDouble();}
 
 signals:
   void connectionChanged(bool);
@@ -57,8 +60,11 @@ public slots:
 
 private slots:
   void updateConnection();
-  void updateMode();
+  void updateRunning();
 
 };
+
+
+
 
 #endif // TRIGGCT_H

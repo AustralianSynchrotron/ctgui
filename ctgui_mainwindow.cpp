@@ -255,6 +255,7 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[thetaMotor->motor()] = "scan/motor";
   configNames[ui->scanRange] = "scan/range";
   configNames[ui->scanProjections] = "scan/steps";
+  configNames[ui->scanStep] = "scan/step";
   configNames[ui->aqsPP] = "scan/aquisitionsperprojection";
   configNames[ui->scanAdd] = "scan/add";
   configNames[ui->preScanScript] = "scan/prescan";
@@ -657,13 +658,10 @@ void MainWindow::updateUi_aqMode() {
 
   if ( sender() == ui->aqMode ) {
     if ( aqmd == FLYHARD2B ) {
-      tct->setPrefix("SR08ID01SST24:ROTATION:EQU");
+      tct->setPrefix("SR08ID01ZEB02");
       ui->checkExtTrig->setVisible(false);
-    } else if ( aqmd == FLYHARD3BTABL ) {
-      tct->setPrefix("SR08ID01SST01:ROTATION:EQU");
-      ui->checkExtTrig->setVisible(false);
-    } else if ( aqmd == FLYHARD3BLAPS ) {
-      tct->setPrefix("SR08ID01ROB01:ROTATION:EQU");
+    } else if ( aqmd == FLYHARD3B ) {
+      tct->setPrefix("SR08ID01ZEB01");
       ui->checkExtTrig->setVisible(false);
     } else {
       tct->setPrefix("");
@@ -674,16 +672,6 @@ void MainWindow::updateUi_aqMode() {
   bool isOK = tct->prefix().isEmpty() ||
       ( tct->isConnected() && ! tct->isRunning() );
   check(ui->aqMode, isOK);
-
-  if ( ! tct->prefix().isEmpty() &&
-       tct->isConnected() &&
-       ! tct->motor().isEmpty() ) {
-    if ( tct->motor() != thetaMotor->motor()->getPv() )
-      thetaMotor->motor()->setPv(tct->motor());
-    thetaMotor->lock(true);
-  } else {
-    thetaMotor->lock(false);
-  }
 
   const bool sasmd = aqmd == STEPNSHOT;
 
@@ -801,6 +789,19 @@ void MainWindow::updateUi_ffOnEachScan() {
 
 
 
+void MainWindow::updateUi_aqsPP() {
+  if ( ! sender() ) {
+    const char* thisSlot = SLOT(updateUi_aqsPP());
+    connect( ui->aqMode, SIGNAL(currentIndexChanged(int)), thisSlot);
+    connect( ui->checkDyno, SIGNAL(toggled(bool)), thisSlot);
+  }
+
+  bool vis = ui->aqMode->currentIndex() == STEPNSHOT &&  ! ui->checkDyno->isChecked();
+  ui->aqsPP->setVisible(vis);
+  ui->aqsPPLabel->setVisible(vis);
+
+}
+
 
 
 
@@ -845,19 +846,6 @@ void MainWindow::updateUi_scanRange() {
 }
 
 
-void MainWindow::updateUi_aqsPP() {
-  if ( ! sender() ) {
-    const char* thisSlot = SLOT(updateUi_aqsPP());
-    connect( ui->aqMode, SIGNAL(currentIndexChanged(int)), thisSlot);
-    connect( ui->checkDyno, SIGNAL(toggled(bool)), thisSlot);
-  }
-
-  bool vis = ui->aqMode->currentIndex() == STEPNSHOT &&  ! ui->checkDyno->isChecked();
-  ui->aqsPP->setVisible(vis);
-  ui->aqsPPLabel->setVisible(vis);
-
-}
-
 
 void MainWindow::updateUi_scanStep() {
   QCaMotor * mot = thetaMotor->motor();
@@ -865,6 +853,7 @@ void MainWindow::updateUi_scanStep() {
     const char* thisSlot = SLOT(updateUi_scanStep());
     connect( ui->scanRange, SIGNAL(valueChanged(double)), thisSlot);
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
+    connect( ui->scanStep, SIGNAL(valueEdited(double)), thisSlot);
     connect( mot, SIGNAL(changedConnected(bool)), thisSlot);
     connect( mot, SIGNAL(changedPrecision(int)), thisSlot);
     connect( mot, SIGNAL(changedUnits(QString)), thisSlot);
@@ -874,7 +863,14 @@ void MainWindow::updateUi_scanStep() {
     ui->scanStep->setSuffix(mot->getUnits());
     ui->scanStep->setDecimals(mot->getPrecision());
   }
-  ui->scanStep->setValue( ui->scanRange->value() / ui->scanProjections->value() );
+  float absRange = abs(ui->scanRange->value());
+  if (sender() == ui->scanStep) {
+    int projections = round( absRange / ui->scanStep->value());
+    ui->scanProjections->setValue( round( absRange / ui->scanStep->value()) );
+    ui->scanStep->QDoubleSpinBox::setValue(absRange/projections);
+  }
+  else
+    ui->scanStep->setValue( absRange / ui->scanProjections->value() );
 
 }
 

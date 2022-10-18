@@ -2,40 +2,45 @@
 #include <QElapsedTimer>
 #include <QDebug>
 
-TriggCT::TriggCT(QObject *parent) :
-  QObject(parent),
-  outModePv(new QEpicsPv(this)),
-  outModePvRBV(new QEpicsPv(this)),
-  startModePv(new QEpicsPv(this)),
-  startPosPv(new QEpicsPv(this)),
-  startPosPvRBV(new QEpicsPv(this)),
-  stepPv(new QEpicsPv(this)),
-  rangePv(new QEpicsPv(this)),
-  nofTrigsPv(new QEpicsPv(this)),
-  motorPv(),
-  _prefix(),
-  iAmConnected(false)
+TriggCT::TriggCT(QObject *parent)
+  : QObject(parent)
+  , zebraConnectedPv(new QEpicsPv(this))
+  , gateStartPv(new QEpicsPv(this))
+  , gateStartPvRBV(new QEpicsPv(this))
+  , gateWidthPv(new QEpicsPv(this))
+  , gateWidthPvRBV(new QEpicsPv(this))
+  , gateStepPv(new QEpicsPv(this))
+  , gateNofPv(new QEpicsPv(this))
+  //, pulseStartPv(new QEpicsPv(this))
+  //, pulseStartPvRBV(new QEpicsPv(this))
+  , pulseWidthPv(new QEpicsPv(this))
+  , pulseStepPv(new QEpicsPv(this))
+  , pulseStepPvRBV(new QEpicsPv(this))
+  , pulseNofPv(new QEpicsPv(this))
+  , pulseNofPvRBV(new QEpicsPv(this))
+  , armPv(new QEpicsPv(this))
+  , armPvRBV(new QEpicsPv(this))
+  , disarmPv(new QEpicsPv(this))
+  , _prefix()
+  , iAmConnected(false)
 {
-
   foreach(QEpicsPv * pv, findChildren<QEpicsPv*>())
     connect(pv, SIGNAL(connectionChanged(bool)), SLOT(updateConnection()));
-  connect(outModePvRBV, SIGNAL(valueChanged(QVariant)), SLOT(updateMode()));
-
+  connect(armPvRBV, SIGNAL(valueChanged(QVariant)), SLOT(updateRunning()));
 }
 
 void TriggCT::updateConnection() {
   bool con = true;
   foreach(QEpicsPv * pv, findChildren<QEpicsPv*>())
     con &= pv->isConnected();
-  motorPv  =  con  ?  QEpicsPv::get(_prefix+":MOTOR").toString()  :  "" ;
+  if (con)
+    con  &=  zebraConnectedPv->get().toByteArray() == "Connected";
   if (con != iAmConnected)
     emit connectionChanged(iAmConnected=con);
 }
 
 
-void TriggCT::updateMode() {
-  if ( ! outModePvRBV->isConnected() )
-    return;
+void TriggCT::updateRunning() {
   emit runningChanged( isRunning() );
 }
 
@@ -43,14 +48,24 @@ void TriggCT::updateMode() {
 bool TriggCT::setPrefix(const QString & newprefix, bool wait) {
 
   _prefix = newprefix;
-  outModePv->setPV(newprefix+":CTRL");
-  outModePvRBV->setPV(newprefix+":CTRL:RBV");
-  startModePv->setPV(newprefix+":STARTMODE");
-  startPosPv->setPV(newprefix+":START");
-  startPosPvRBV->setPV(newprefix+":START:RBV");
-  stepPv->setPV(newprefix+":STEP");
-  rangePv->setPV(newprefix+":RANGE");
-  nofTrigsPv->setPV(newprefix+":NTRIGS");
+
+  zebraConnectedPv ->setPV(newprefix+":CONNECTED");
+  gateStartPv      ->setPV(newprefix+":PC_GATE_START");
+  gateStartPv      ->setPV(newprefix+":PC_GATE_START:RBV");
+  gateWidthPv      ->setPV(newprefix+":PC_GATE_WID");
+  gateWidthPvRBV   ->setPV(newprefix+":PC_GATE_WID:RBV");
+  gateStepPv       ->setPV(newprefix+":PC_GATE_STEP");
+  gateNofPv        ->setPV(newprefix+":PC_GATE_NGATE");
+  //pulseStartPv     ->setPV(newprefix+":PC_PULSE_START");
+  //pulseStartPvRBV  ->setPV(newprefix+"");
+  pulseWidthPv     ->setPV(newprefix+":PC_PULSE_WID");
+  pulseStepPv      ->setPV(newprefix+":PC_PULSE_STEP");
+  pulseStepPvRBV   ->setPV(newprefix+":PC_PULSE_STEP:RBV");
+  pulseNofPv       ->setPV(newprefix+":PC_PULSE_MAX");
+  pulseNofPvRBV    ->setPV(newprefix+":PC_PULSE_MAX:RBV");
+  armPv            ->setPV(newprefix+":PC_ARM");
+  armPvRBV         ->setPV(newprefix+":PC_ARM_OUT");
+  disarmPv         ->setPV(newprefix+":PC_DISARM");
   updateConnection();
 
   if ( wait && ! isConnected() ) {
@@ -66,98 +81,85 @@ bool TriggCT::setPrefix(const QString & newprefix, bool wait) {
 
 
 bool TriggCT::setStartPosition(double pos, bool wait) {
-
-  if ( ! startPosPv->isConnected() )
+  if ( ! isConnected() )
     return false;
-
-  startPosPv->set(pos);
-
-
-  if ( wait ) {
+  gateStartPv->set(pos);
+  if (wait) {
     QElapsedTimer accTime;
     accTime.start();
-    while ( startPosPvRBV->isConnected() &&
+    while ( isConnected() &&
             startPosition() != pos &&
             accTime.elapsed() < 500 )
-      qtWait(startPosPvRBV, SIGNAL(valueUpdated(QVariant)), 500);
+      qtWait(gateStartPvRBV, SIGNAL(valueUpdated(QVariant)), 500);
   }
-
   return startPosition() == pos;
-
 }
 
+
 bool TriggCT::setStep(double stp, bool wait) {
-
-  if ( ! stepPv->isConnected() )
+  if ( ! isConnected() )
     return false;
-
-  stepPv->set(stp);
-
+  pulseStepPv->set(stp);
+  pulseWidthPv->set(stp*0.75);
   if ( wait ) {
     QElapsedTimer accTime;
     accTime.start();
-    while ( stepPv->isConnected() &&
+    while ( isConnected() &&
             step() != stp &&
             accTime.elapsed() < 500 )
-      qtWait(stepPv, SIGNAL(valueUpdated(QVariant)), 500);
+      qtWait(pulseStepPvRBV, SIGNAL(valueUpdated(QVariant)), 500);
   }
-
   return step() == stp;
-
 }
 
 
 bool TriggCT::setRange(double rng, bool wait) {
-
-  if ( ! rangePv->isConnected() )
+  if ( ! isConnected() )
     return false;
-
-  rangePv->set(rng);
-
+  gateWidthPv->set(rng);
+  gateStepPv->set(rng+0.1);
   if ( wait ) {
     QElapsedTimer accTime;
     accTime.start();
-    while ( rangePv->isConnected() &&
+    while ( isConnected() &&
             range() != rng &&
             accTime.elapsed() < 500 )
-      qtWait(rangePv, SIGNAL(valueUpdated(QVariant)), 500);
+      qtWait(gateWidthPvRBV, SIGNAL(valueUpdated(QVariant)), 500);
   }
-
   return range() == rng;
-
 }
 
 
 bool TriggCT::setNofTrigs(int trgs, bool wait) {
-  if ( ! nofTrigsPv->isConnected() ||
-       trgs < 2 )
+  if ( isConnected() || trgs < 2 )
     return false;
-
-  nofTrigsPv->set(trgs);
-
+  pulseNofPv->set(trgs);
   if ( wait ) {
     QElapsedTimer accTime;
     accTime.start();
-    while ( nofTrigsPv->isConnected() &&
+    while ( isConnected() &&
             trigs() != trgs &&
             accTime.elapsed() < 500 )
-      qtWait(nofTrigsPv, SIGNAL(valueUpdated(QVariant)), 500);
+      qtWait(pulseNofPvRBV, SIGNAL(valueUpdated(QVariant)), 500);
   }
-
   return trigs() == trgs;
-
 }
 
 
 bool TriggCT::start(bool wait) {
-  if ( ! outModePv->isConnected() )
+  if ( ! isConnected() )
     return false;
-  outModePv->set("Auto");
+  if (isRunning())
+    stop(true);
+  if (isRunning()) // did not stop
+    return false;
+  gateNofPv->set(1);
+  armPv->set(1);
   if (wait) {
     QElapsedTimer accTime;
     accTime.start();
-    while ( outModePvRBV->isConnected() &&
-            outModePvRBV->get().toString() != "Auto" &&
+    while ( isConnected() &&
+            ! isRunning() &&
             accTime.elapsed() < 500 )
       qtWait(this, SIGNAL(runningChanged(bool)), 500);
   }
@@ -166,17 +168,28 @@ bool TriggCT::start(bool wait) {
 
 
 bool TriggCT::stop(bool wait) {
-  if ( ! outModePv->isConnected() )
+  if ( ! isConnected() )
     return false;
-  outModePv->set("Off");
+  disarmPv->set(1);
   if (wait) {
     QElapsedTimer accTime;
     accTime.start();
-    while ( outModePvRBV->isConnected() &&
-            outModePvRBV->get().toString() != "Off" &&
+    while ( isConnected() &&
+            isRunning() &&
             accTime.elapsed() < 500 )
       qtWait(this, SIGNAL(runningChanged(bool)), 500);
   }
   return ! isRunning();
 }
+
+
+
+
+
+
+
+
+
+
+
 
