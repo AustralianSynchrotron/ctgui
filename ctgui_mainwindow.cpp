@@ -1806,6 +1806,14 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
       fileT += "%0" + QString::number(QString::number(count).length()) + "d";
     fileT+= ".tif";
   } else if (fmt == Detector::HDF) {
+    if (    inRun(ui->testDetector)
+         || inRun(ui->testDyno)
+         || inRun(ui->testFF)
+         || inRun(ui->testMulti)
+         || inRun(ui->testSerial)
+         || inRun(ui->testScan)
+        )
+      fileT+="_%4.4d";
     fileT+= ".hdf";
   }
 
