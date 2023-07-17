@@ -2387,9 +2387,10 @@ void MainWindow::engineRun () {
   if (stopMe) goto onEngineExit;
 
   if (doTriggCT) {
+    const double stepSize = thetaRange / ui->scanProjections->value();
     tct->setStartPosition(thetaStart, true);
-    //tct->setStep( thetaRange / ui->scanProjections->value(), true);
-    tct->setRange( thetaRange , true);
+    tct->setStep(stepSize, true);
+    tct->setRange( thetaRange + doAdd*stepSize , true);
     qtWait(500); // otherwise NofTrigs are set, but step is not recalculated ...((    int digs=0;
     tct->setNofTrigs(totalProjections + doAdd, true);
     if (stopMe) goto onEngineExit;

@@ -11,8 +11,8 @@ TriggCT::TriggCT(QObject *parent)
   , gateWidthPvRBV(new QEpicsPv(this))
   , gateStepPv(new QEpicsPv(this))
   , gateNofPv(new QEpicsPv(this))
-  //, pulseStartPv(new QEpicsPv(this))
-  //, pulseStartPvRBV(new QEpicsPv(this))
+  , pulseStartPv(new QEpicsPv(this))
+  , pulseStartPvRBV(new QEpicsPv(this))
   , pulseWidthPv(new QEpicsPv(this))
   , pulseStepPv(new QEpicsPv(this))
   , pulseStepPvRBV(new QEpicsPv(this))
@@ -31,10 +31,13 @@ TriggCT::TriggCT(QObject *parent)
 
 void TriggCT::updateConnection() {
   bool con = true;
-  foreach(QEpicsPv * pv, findChildren<QEpicsPv*>())
+  foreach(QEpicsPv * pv, findChildren<QEpicsPv*>()) {
     con &= pv->isConnected();
-  if (con)
-    con  &=  zebraConnectedPv->get().toByteArray() == "Connected";
+  }
+  if (con) {
+    QVariant conres = zebraConnectedPv->get();
+    con  &=  conres.canConvert<int>()  && conres.toInt(0) == 1;
+  }
   if (con != iAmConnected)
     emit connectionChanged(iAmConnected=con);
 }
@@ -51,13 +54,13 @@ bool TriggCT::setPrefix(const QString & newprefix, bool wait) {
 
   zebraConnectedPv ->setPV(newprefix+":CONNECTED");
   gateStartPv      ->setPV(newprefix+":PC_GATE_START");
-  gateStartPv      ->setPV(newprefix+":PC_GATE_START:RBV");
+  gateStartPvRBV   ->setPV(newprefix+":PC_GATE_START:RBV");
   gateWidthPv      ->setPV(newprefix+":PC_GATE_WID");
   gateWidthPvRBV   ->setPV(newprefix+":PC_GATE_WID:RBV");
   gateStepPv       ->setPV(newprefix+":PC_GATE_STEP");
   gateNofPv        ->setPV(newprefix+":PC_GATE_NGATE");
-  //pulseStartPv     ->setPV(newprefix+":PC_PULSE_START");
-  //pulseStartPvRBV  ->setPV(newprefix+"");
+  pulseStartPv     ->setPV(newprefix+":PC_PULSE_START");
+  pulseStartPvRBV  ->setPV(newprefix+":PC_PULSE_START:RBV");
   pulseWidthPv     ->setPV(newprefix+":PC_PULSE_WID");
   pulseStepPv      ->setPV(newprefix+":PC_PULSE_STEP");
   pulseStepPvRBV   ->setPV(newprefix+":PC_PULSE_STEP:RBV");
@@ -96,7 +99,7 @@ bool TriggCT::setStartPosition(double pos, bool wait) {
 }
 
 
-bool TriggCT::setStep(double stp, bool wait) {
+bool TriggCT::setStep(double stp, bool wait) {  
   if ( ! isConnected() )
     return false;
   pulseStepPv->set(stp);
@@ -131,7 +134,7 @@ bool TriggCT::setRange(double rng, bool wait) {
 
 
 bool TriggCT::setNofTrigs(int trgs, bool wait) {
-  if ( isConnected() || trgs < 2 )
+  if ( ! isConnected() || trgs < 2 )
     return false;
   pulseNofPv->set(trgs);
   if ( wait ) {

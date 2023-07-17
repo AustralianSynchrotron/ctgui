@@ -18,8 +18,8 @@ private:
   QEpicsPv * gateWidthPvRBV;
   QEpicsPv * gateStepPv;
   QEpicsPv * gateNofPv;
-  //QEpicsPv * pulseStartPv;
-  //QEpicsPv * pulseStartPvRBV;
+  QEpicsPv * pulseStartPv;
+  QEpicsPv * pulseStartPvRBV;
   QEpicsPv * pulseWidthPv;
   QEpicsPv * pulseStepPv;
   QEpicsPv * pulseStepPvRBV;
