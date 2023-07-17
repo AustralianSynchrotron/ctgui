@@ -2672,6 +2672,9 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
         shutterSec->close();
         if (stopMe) goto onEngineExit;
+        if (doTriggCT)
+          tct->stop(false);
+        if (stopMe) goto onEngineExit;
 
         if ( ! ongoingSeries ) {
           bgdfN = combineNames(sn2, "AFTER");
@@ -2829,6 +2832,8 @@ onEngineExit:
   det->stop();
   det->waitWritten();
   det->setAutoSave(false);
+  if (doTriggCT)
+    tct->stop(false);
   hw.restore();
 
   if ( inRun(ui->startStop) ) {
@@ -2838,7 +2843,7 @@ onEngineExit:
     //                    + " | grep -v '{' | grep camonitor | sed 's .*camonitor,\\([0-9]*\\).* \\1 g')");
     logProc.terminate();
     logExec.close();
-  }
+  }  
 
   QTimer::singleShot(0, this, SLOT(updateUi_thetaMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
