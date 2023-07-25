@@ -28,6 +28,11 @@ private:
   QEpicsPv * armPv;
   QEpicsPv * armPvRBV;
   QEpicsPv * disarmPv;
+  QEpicsPv * p1DelayPv;
+  QEpicsPv * p1WidthPv;
+  QEpicsPv * p1UnitsPv;
+  QEpicsPv * p1InputPv;
+  QEpicsPv * out1ttlPv;
 
   QString _prefix;
   bool iAmConnected;
@@ -57,6 +62,7 @@ public slots:
   bool setNofTrigs(int trgs, bool wait=false);
   bool start(bool wait=false);
   bool stop(bool wait=false);
+  bool setExposure(float exp_seconds = 0.0f);
 
 private slots:
   void updateConnection();

@@ -105,6 +105,7 @@ public:
   void setCamera(const QString & pvName);
   void setCamera(Camera _cam);
 
+  inline Camera camera() const {return _camera;}
   inline const QString & pv() const {return cameraPv;}
   inline double exposure() const {return _camera ? exposurePv->get().toDouble() : 0 ;}
   inline double period() const { return _camera ? periodPv->get().toDouble() : 0 ; }

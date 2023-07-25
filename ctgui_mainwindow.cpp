@@ -2393,6 +2393,10 @@ void MainWindow::engineRun () {
     tct->setRange( thetaRange + doAdd*stepSize , true);
     qtWait(500); // otherwise NofTrigs are set, but step is not recalculated ...((    int digs=0;
     tct->setNofTrigs(totalProjections + doAdd, true);
+    if (det->camera() == Detector::Camera::Eiger)
+      tct->setExposure(det->exposure());
+    else
+      tct->setExposure();
     if (stopMe) goto onEngineExit;
   }
 

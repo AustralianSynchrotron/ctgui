@@ -21,6 +21,11 @@ TriggCT::TriggCT(QObject *parent)
   , armPv(new QEpicsPv(this))
   , armPvRBV(new QEpicsPv(this))
   , disarmPv(new QEpicsPv(this))
+  , p1DelayPv(new QEpicsPv(this))
+  , p1WidthPv(new QEpicsPv(this))
+  , p1UnitsPv(new QEpicsPv(this))
+  , p1InputPv(new QEpicsPv(this))
+  , out1ttlPv(new QEpicsPv(this))
   , _prefix()
   , iAmConnected(false)
 {
@@ -68,7 +73,12 @@ bool TriggCT::setPrefix(const QString & newprefix, bool wait) {
   pulseNofPvRBV    ->setPV(newprefix+":PC_PULSE_MAX:RBV");
   armPv            ->setPV(newprefix+":PC_ARM");
   armPvRBV         ->setPV(newprefix+":PC_ARM_OUT");
-  disarmPv         ->setPV(newprefix+":PC_DISARM");
+  disarmPv         ->setPV(newprefix+":PC_DISARM");  
+  p1DelayPv        ->setPV(newprefix+":PULSE1_DLY");
+  p1WidthPv        ->setPV(newprefix+":PULSE1_WID");
+  p1UnitsPv        ->setPV(newprefix+":PULSE1_PRE"); // seconds: 1
+  p1InputPv        ->setPV(newprefix+":PULSE1_INP"); // 31 for Eiger
+  out1ttlPv        ->setPV(newprefix+":OUT1_TTL"); // 52 for Eiger, 31 for others
   updateConnection();
 
   if ( wait && ! isConnected() ) {
@@ -87,6 +97,7 @@ bool TriggCT::setStartPosition(double pos, bool wait) {
   if ( ! isConnected() )
     return false;
   gateStartPv->set(pos);
+  pulseStartPv->set(0);
   if (wait) {
     QElapsedTimer accTime;
     accTime.start();
@@ -186,8 +197,19 @@ bool TriggCT::stop(bool wait) {
 }
 
 
-
-
+bool TriggCT::setExposure(float exp_seconds) {
+  if ( ! isConnected() )
+    return false;
+  if (exp_seconds == 0.0f) {
+    out1ttlPv->set(31); // PC_PULSE
+  } else {
+    p1UnitsPv->set(1); // seconds
+    p1DelayPv->set(0);
+    p1WidthPv->set(exp_seconds);
+    p1InputPv->set(31); // PC_PULSE
+    out1ttlPv->set(52); // PULSE1
+  }
+}
 
 
 

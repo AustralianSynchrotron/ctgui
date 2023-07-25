@@ -707,7 +707,10 @@ bool Detector::setHardwareTriggering(bool set) {
       mode = 2;
       break;
     case (Eiger) :
-      mode = 0;
+      mode = 3; // External Enable
+      QEpicsPv::set(cameraPv + ":CAM:NumTriggers", number(), 500);
+      numberPv->set(1);
+      qtWait(numberPv, SIGNAL(valueUpdated(QVariant)), 500);
       break;
     default :
       mode = 1;
