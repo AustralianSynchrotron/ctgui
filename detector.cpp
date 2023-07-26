@@ -680,6 +680,8 @@ bool Detector::setTriggerMode(int tmode) {
   if ( triggerMode() == tmode )
     return true;
 
+  if (tmode !=3 && _camera == Eiger )
+    QEpicsPv::set(cameraPv + ":CAM:NumTriggers", 1, 500);
 
   triggerModePv->set(tmode);
   qtWait(triggerModePv, SIGNAL(valueUpdated(QVariant)), 500);
