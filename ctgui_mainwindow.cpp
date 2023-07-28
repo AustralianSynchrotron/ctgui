@@ -2262,7 +2262,7 @@ void MainWindow::engineRun () {
       doDF = doFF && ui->nofDFs->value(),
       sasMode = inRun(ui->startStop)  &&  ui->aqMode->currentIndex() == STEPNSHOT,
       ongoingSeries = doSerial1D && ui->ongoingSeries->isChecked(),
-      doTriggCT = inRun(ui->startStop) && ! tct->prefix().isEmpty(),
+      doTriggCT = ( inRun(ui->testScan) || inRun(ui->startStop) ) && ! tct->prefix().isEmpty(),
       splitData = uiImageFormat() != Detector::HDF;
 
   const int
