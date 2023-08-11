@@ -2400,8 +2400,11 @@ void MainWindow::engineRun () {
     if (stopMe) goto onEngineExit;
   }
 
-  if ( inRun(ui->startStop) )
+
+  if ( inRun(ui->startStop) ) {
+    setenv("INEXPERIMENT", "YES", 1);
     ui->preRunScript->script->execute();
+  }
   if (stopMe) goto onEngineExit;
 
 
@@ -2809,7 +2812,7 @@ void MainWindow::engineRun () {
 
 onEngineExit:
 
-
+  setenv("INEXPERIMENT", "NO", 1);
   ui->scanProgress->setVisible(false);
   ui->serialProgress->setVisible(false);
 
