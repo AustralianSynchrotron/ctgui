@@ -43,6 +43,7 @@ private:
   QString lastOpen;
   QString lastClosed;
   void waitForState(State st);
+  bool amFake=true;
   static const QStringList fakeShutter;
   static const QHash<QString, QStringList> listOfKnownShutters;
 

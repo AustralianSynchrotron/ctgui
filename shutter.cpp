@@ -87,6 +87,7 @@ Shutter::~Shutter()
 
 
 void Shutter::requestUpdate() {
+  if (amFake) return;
   isOpen.first->get();
   if ( ! isClosed.second.isEmpty()  &&  isClosed.first == isOpen.first )
     isClosed.first->get();
@@ -123,6 +124,7 @@ void Shutter::onStatusUpdate() {
 
 
 void Shutter::waitForState(State st) {
+  if (amFake) return;
   requestUpdate();
   if (state() != st)
     qtWait(this, SIGNAL(stateUpdated(State)), 2000);
@@ -134,6 +136,7 @@ void Shutter::waitForState(State st) {
 
 void Shutter::open(bool wait) {
   doOpen.first->put(doOpen.second);
+  if (amFake) return;
   usleep(100000); 
   if (wait && state() != OPEN)
     waitForState(OPEN);
@@ -141,6 +144,7 @@ void Shutter::open(bool wait) {
 
 void Shutter::close(bool wait) {
   doClose.first->put(doClose.second);
+  if (amFake) return;
   usleep(100000);
   if (wait && state() != CLOSED)    
     waitForState(CLOSED);
@@ -207,6 +211,7 @@ void Shutter::setShutter(const QStringList & desc) {
     qDebug() << "Wrong shutter description" << desc;
     return;
   }
+  amFake = std::addressof(desc) == std::addressof(fakeShutter);
 
   ui->status->setText("status");
 

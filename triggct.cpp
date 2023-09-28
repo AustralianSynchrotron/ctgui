@@ -36,12 +36,8 @@ TriggCT::TriggCT(QObject *parent)
 
 void TriggCT::updateConnection() {
   bool con = true;
-  qDebug() << "\n";
-  foreach(QEpicsPv * pv, findChildren<QEpicsPv*>()) {
+  foreach(QEpicsPv * pv, findChildren<QEpicsPv*>())
     con &= pv->isConnected();
-    if (!pv->isConnected())
-      qDebug() << "No connection with " << pv->pv() ;
-  }
   if (con) {
     QVariant conres = zebraConnectedPv->get();
     con  &=  conres.canConvert<int>()  && conres.toInt(0) == 1;

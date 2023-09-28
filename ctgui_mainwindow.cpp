@@ -31,6 +31,9 @@ static const QString ssText = "Start experiment";
 const QString MainWindow::storedState =
               QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/.ctgui";
 
+
+
+
 class HWstate {
 
 private:
@@ -81,10 +84,10 @@ static HWstate * preVideoState = 0;
 MainWindow::MainWindow(QWidget *parent) :
   QMainWindow(parent),
   isLoadingState(false),
+  ui(new Ui::MainWindow),
   bgOrigin(0),
   bgAcquire(0),
   bgEnter(0),
-  ui(new Ui::MainWindow),
   shutterPri(new Shutter(this)),
   shutterSec(new Shutter(this)),
   det(new Detector(this)),
@@ -1104,7 +1107,7 @@ void MainWindow::updateUi_bgTravel() {
 
   const int nofbgs = ui->nofBGs->value();
   ui->bgTravel->setEnabled(nofbgs);
-  const double endpos = mot->getUserPosition() + ui->bgTravel->value();
+  //const double endpos = mot->getUserPosition() + ui->bgTravel->value();
   const bool itemOK =
       ! nofbgs ||
       ( ui->bgTravel->value() != 0.0  &&
@@ -1352,7 +1355,8 @@ void MainWindow::updateUi_detector() {
     ui->detPathTiff->setText(det->path(Detector::TIF));
     ui->detPathHdf->setText(det->path(Detector::HDF));
 
-    ui->vidStartStop->setText( det->isAcquiring() ? "Stop" : "Start" );
+    if (!preVideoState)
+      ui->vidStartStop->setText("Start");
     ui->vidReady->setEnabled( ! det->isAcquiring() );
     const float realPeriod = 1000 * std::max(det->exposure(), det->period()); // s -> ms
     if (realPeriod>0) {
@@ -1778,7 +1782,6 @@ static void restorePreVid() {
 }
 
 bool MainWindow::onVideoGetReady() {
-
   if (preVideoState) { // was prepared before
     if ( sender() == ui->vidReady ) // release
       restorePreVid();
@@ -1821,19 +1824,18 @@ void MainWindow::onVideoRecord() {
     ui->vidReady->setChecked(false);
     return;
   }
-  if (!onVideoGetReady())
-    return;
-
   const QString butText = mkRun(ui->vidStartStop, true, "Stop");
   ui->detectorWidget->setEnabled(false);
-
-  det->startCapture();
-  det->waitDone();
-
-  shutterSec->close();
-  shutterPri->close();
-  det->waitWritten();
+  if (onVideoGetReady()) {
+    det->startCapture();
+    det->waitCaptured();
+    det->stop();
+    shutterSec->close();
+    shutterPri->close();
+    det->waitWritten();
+  }
   ui->detectorWidget->setEnabled(true);
+  restorePreVid();
   mkRun(ui->vidStartStop, false, butText);
   updateUi_detector();
 

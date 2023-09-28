@@ -11,9 +11,14 @@
 #include <QWidgetList>
 #include <QProgressBar>
 #include <QCheckBox>
-#include "ui_upvorcom.h"
+#include <string>
 
+#include "ui_upvorcom.h"
 #include <qtpv.h>
+
+
+void prdn( const std::string & str );
+
 
 #ifndef CTGUIADDITIONALCLASSES
 #define CTGUIADDITIONALCLASSES

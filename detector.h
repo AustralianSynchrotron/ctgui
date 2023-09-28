@@ -133,9 +133,11 @@ public:
   const QString & lastName(ImageFormat fmt = UNDEFINED) const;
   bool pathExists(ImageFormat fmt = UNDEFINED) const ;
   bool isWriting(ImageFormat fmt = UNDEFINED) const ;
+  bool isCapturing(ImageFormat fmt = UNDEFINED) const ;
 
   void waitDone();
   void waitWritten();
+  void waitCaptured();
 
 public slots:
 
@@ -170,6 +172,7 @@ signals:
 
   void writingStarted();
   void writingFinished();
+  void capturingFinished();
   void done();
 
 
