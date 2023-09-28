@@ -31,7 +31,7 @@ public:
 
   enum ImageFormat {
     UNDEFINED=0,
-    TIFF,
+    TIF,
     HDF
   };
 
@@ -50,19 +50,24 @@ private:
   QEpicsPv * imageModePv;//ImageMode
   QEpicsPv * aqPv; //Acquire
 
-  QEpicsPv * enableTiffPv; // TIFF:EnableCallbacks
-  QEpicsPv * pathTiffPv;
-  QEpicsPv * pathSetTiffPv;
-  QEpicsPv * pathExistsTiffPv;
-  QEpicsPv * nameTiffPv;
-  QEpicsPv * nameTemplateTiffPv;
-  QEpicsPv * fileNumberTiffPv;
-  QEpicsPv * lastNameTiffPv;
-  QEpicsPv * autoSaveTiffPv;
-  QEpicsPv * autoIncrementTiffPv;
-  QEpicsPv * writeStatusTiffPv;
-  QEpicsPv * writeProggressTiffPv;
-  QEpicsPv * queUseTiffPv;
+  QEpicsPv * enableTifPv; // Tif:EnableCallbacks
+  QEpicsPv * pathTifPv;
+  QEpicsPv * pathSetTifPv;
+  QEpicsPv * pathExistsTifPv;
+  QEpicsPv * nameTifPv;
+  QEpicsPv * nameTemplateTifPv;
+  QEpicsPv * fileNumberTifPv;
+  QEpicsPv * lastNameTifPv;
+  QEpicsPv * autoSaveTifPv;
+  QEpicsPv * autoIncrementTifPv;
+  QEpicsPv * writeStatusTifPv;
+  QEpicsPv * writeProggressTifPv;
+  QEpicsPv * writeModeTifPv;
+  QEpicsPv * captureTargetTifPv;
+  QEpicsPv * captureProgressTifPv;
+  QEpicsPv * captureTifPv;
+  QEpicsPv * captureStatusTifPv;
+  QEpicsPv * queUseTifPv;
 
   QEpicsPv * enableHdfPv; // HDF:EnableCallbacks
   QEpicsPv * pathHdfPv;
@@ -70,12 +75,13 @@ private:
   QEpicsPv * pathExistsHdfPv;
   QEpicsPv * nameHdfPv;
   QEpicsPv * nameTemplateHdfPv;
+  QEpicsPv * fileNumberHdfPv;
   QEpicsPv * lastNameHdfPv;
   QEpicsPv * autoSaveHdfPv;
   QEpicsPv * autoIncrementHdfPv;
   QEpicsPv * writeStatusHdfPv;
-  QEpicsPv * writeModeHdfPv;
   QEpicsPv * writeProggressHdfPv;
+  QEpicsPv * writeModeHdfPv;
   QEpicsPv * captureTargetHdfPv;
   QEpicsPv * captureProgressHdfPv;
   QEpicsPv * captureHdfPv;
@@ -86,10 +92,10 @@ private:
   bool _hdf;
   Camera _camera;
   QString cameraPv;
-  QString _nameTiff;
-  QString _nameTemplateTiff;
-  QString _lastNameTiff;
-  QString _pathTiff;
+  QString _nameTif;
+  QString _nameTemplateTif;
+  QString _lastNameTif;
+  QString _pathTif;
   QString _nameHdf;
   QString _nameTemplateHdf;
   QString _lastNameHdf;
@@ -143,10 +149,12 @@ public slots:
   bool setName(ImageFormat fmt, const QString & fname);
   bool setNameTemplate(ImageFormat fmt, const QString & ntemp);
   bool setPath(const QString & _path);
+  bool startCapture();
   bool start();
   void stop();
   bool acquire();
   bool prepareForAcq(ImageFormat fmt, int nofFrames);
+  bool prepareForVid(ImageFormat fmt, int nofFrames=0);
   bool setAutoSave(bool autoSave);
 
 signals:
@@ -157,7 +165,7 @@ signals:
   void fileNumberChanged(int);
   void lastNameChanged(const QString & name);
   void writingError(const QString & filename);
-  void queTiffChanged(int);
+  void queTifChanged(int);
   void queHdfChanged(int);
 
   void writingStarted();
@@ -172,9 +180,9 @@ private slots:
   void updateCounter();
   void updateWriting();
 
-  void updateFileNumberTiff();
-  void updatelastNameTiff();
-  void updateQueUseTiff();
+  void updateFileNumberTif();
+  void updatelastNameTif();
+  void updateQueUseTif();
 
   void updatelastNameHdf();
   void updateQueUseHdf();

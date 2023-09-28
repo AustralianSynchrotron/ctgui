@@ -24,6 +24,8 @@ if(NOT QCAMOTOR_INC)
 endif()
 include_directories(${QEPICSPV_INC})
 
+set(CMAKE_EXECUTABLE_SUFFIX "_exp") # exerimental version
+
 add_executable(ctgui
     main.cpp
     ctgui_mainwindow.h

@@ -76,7 +76,7 @@ bool TriggCT::setPrefix(const QString & newprefix, bool wait) {
   pulseNofPvRBV    ->setPV(newprefix+":PC_PULSE_MAX:RBV");
   armPv            ->setPV(newprefix+":PC_ARM");
   armPvRBV         ->setPV(newprefix+":PC_ARM_OUT");
-  disarmPv         ->setPV(newprefix+":PC_DISARM");  
+  disarmPv         ->setPV(newprefix+":PC_DISARM");
   p1DelayPv        ->setPV(newprefix+":PULSE1_DLY");
   p1WidthPv        ->setPV(newprefix+":PULSE1_WID");
   p1UnitsPv        ->setPV(newprefix+":PULSE1_PRE"); // seconds: 1
@@ -113,7 +113,7 @@ bool TriggCT::setStartPosition(double pos, bool wait) {
 }
 
 
-bool TriggCT::setStep(double stp, bool wait) {  
+bool TriggCT::setStep(double stp, bool wait) {
   if ( ! isConnected() )
     return false;
   pulseStepPv->set(stp);
@@ -212,6 +212,7 @@ bool TriggCT::setExposure(float exp_seconds) {
     p1InputPv->set(31); // PC_PULSE
     out1ttlPv->set(52); // PULSE1
   }
+  return true;
 }
 
 

@@ -87,7 +87,7 @@ private:
   }
 
 
-  bool prepareDetector(const QString & filetemplate, int count=1);
+  bool prepareDetector(const QString & filetemplate, int count);
   int acquireDetector();
   int acquireDetector(const QString & filetemplate, int count=1);
   int acquireDyno(const QString & filetemplate, int count=1);
@@ -157,6 +157,9 @@ private slots:
   void updateUi_detector();
   void onDetectorSelection();
   void onDetectorTest();
+
+  bool onVideoGetReady();
+  void onVideoRecord();
 
   void onStartStop();
 

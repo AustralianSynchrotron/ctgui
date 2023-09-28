@@ -56,7 +56,7 @@ public:
   void store() {
     shutSecSate = shutSec->state();
     shutPriSate = shutPri->state();
-    dettifname = det->name(Detector::TIFF);
+    dettifname = det->name(Detector::TIF);
     dethdfname = det->name(Detector::HDF);
     detimode = det->imageMode();
     dettmode = det->triggerMode();
@@ -66,7 +66,7 @@ public:
   void restore() {
     // shutSec->setState(shutSecState);
     // shutPri->setState(shutPriState);
-    det->setName(Detector::TIFF, dettifname) ;
+    det->setName(Detector::TIF, dettifname) ;
     det->setName(Detector::HDF, dethdfname) ;
     det->setImageMode(detimode);
     det->setTriggerMode(dettmode);
@@ -75,6 +75,7 @@ public:
 
 };
 
+static HWstate * preVideoState = 0;
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -96,6 +97,9 @@ MainWindow::MainWindow(QWidget *parent) :
 {
 
   ui->setupUi(this);
+  foreach ( QWidget * sprl , findChildren<QWidget*>(
+              QRegularExpression("spiral", QRegularExpression::CaseInsensitiveOption)) )
+    sprl->hide(); // until spiral CT is implemented
   ui->control->finilize();
   ui->control->setCurrentIndex(0);
   foreach ( QMDoubleSpinBox * spb , findChildren<QMDoubleSpinBox*>() )
@@ -183,6 +187,8 @@ MainWindow::MainWindow(QWidget *parent) :
   connect(ui->dynoSpeedLock, SIGNAL(toggled(bool)), SLOT(onDynoSpeedLock()));
   connect(ui->dyno2, SIGNAL(toggled(bool)), SLOT(onDyno2()));
   connect(ui->testDetector, SIGNAL(clicked()), SLOT(onDetectorTest()));
+  connect(ui->vidStartStop, SIGNAL(clicked()), SLOT(onVideoRecord()));
+  connect(ui->vidReady, SIGNAL(clicked()), SLOT(onVideoGetReady()));
   connect(ui->startStop, SIGNAL(clicked()), SLOT(onStartStop()));
   connect(ui->swapSerialLists, SIGNAL(clicked(bool)), SLOT(onSwapSerial()));
   connect(ui->swapLoopLists, SIGNAL(clicked(bool)), SLOT(onSwapLoops()));
@@ -300,6 +306,10 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[ui->preAqScript] = "hardware/preacquire";
   configNames[ui->postAqScript] = "hardware/postacquire";
 
+  configNames[ui->vidFixed] = "video/fixedLength";
+  configNames[ui->vidFrames] = "video/frames";
+  configNames[ui->vidTime] = "video/time";
+
   }
 
   loadConfiguration(storedState);
@@ -410,7 +420,6 @@ static void save_cfg(const QObject * obj, const QString & key, QSettings & confi
 }
 
 
-
 void MainWindow::saveConfiguration(QString fileName) {
 
   if ( fileName.isEmpty() )
@@ -443,6 +452,7 @@ void MainWindow::saveConfiguration(QString fileName) {
 
 
 }
+
 
 static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
 
@@ -568,13 +578,12 @@ void MainWindow::storeCurrentState() {
 
 Detector::ImageFormat MainWindow::uiImageFormat() const {
   if (ui->tiffFormat->isChecked())
-    return Detector::TIFF;
+    return Detector::TIF;
   else if (ui->hdfFormat->isChecked())
     return Detector::HDF;
   else
     return Detector::UNDEFINED; // should never happen
 }
-
 
 
 void MainWindow::addMessage(const QString & str) {
@@ -583,6 +592,7 @@ void MainWindow::addMessage(const QString & str) {
 //        QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz") +
 //        " " + str);
 }
+
 
 static QString lastPathComponent(const QString & pth) {
   QString lastComponent = pth;
@@ -760,6 +770,7 @@ void MainWindow::updateUi_serials() {
 
 }
 
+
 void MainWindow::onSwapSerial() {
   PositionList * ol = outerList;
   PositionList * il = innearList;
@@ -781,14 +792,6 @@ void MainWindow::updateUi_ffOnEachScan() {
 }
 
 
-
-
-
-
-
-
-
-
 void MainWindow::updateUi_aqsPP() {
   if ( ! sender() ) {
     const char* thisSlot = SLOT(updateUi_aqsPP());
@@ -801,8 +804,6 @@ void MainWindow::updateUi_aqsPP() {
   ui->aqsPPLabel->setVisible(vis);
 
 }
-
-
 
 
 void MainWindow::updateUi_scanRange() {
@@ -846,7 +847,6 @@ void MainWindow::updateUi_scanRange() {
 }
 
 
-
 void MainWindow::updateUi_scanStep() {
   QCaMotor * mot = thetaMotor->motor();
   if ( ! sender() ) { // called from the constructor;
@@ -873,7 +873,6 @@ void MainWindow::updateUi_scanStep() {
     ui->scanStep->setValue( absRange / ui->scanProjections->value() );
 
 }
-
 
 
 QMDoubleSpinBox * MainWindow::selectPRS(QObject *prso) {
@@ -908,7 +907,6 @@ QMDoubleSpinBox * MainWindow::selectedPRS() const {
     }
   return  (aprs == 1)  ?  prs  :  0 ;
 }
-
 
 
 void MainWindow::updateUi_expOverStep() {
@@ -962,6 +960,7 @@ void MainWindow::updateUi_expOverStep() {
 
 }
 
+
 void MainWindow::updateUi_thetaMotor() {
   QCaMotor * mot = thetaMotor->motor();
   if ( ! sender() ) { // called from the constructor;
@@ -1000,6 +999,7 @@ void MainWindow::updateUi_thetaMotor() {
 
 }
 
+
 void MainWindow::updateUi_bgInterval() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_bgInterval());
@@ -1035,6 +1035,7 @@ void MainWindow::updateUi_bgInterval() {
   check(ui->bgIntervalBefore, itemOK );
 
 }
+
 
 void MainWindow::updateUi_dfInterval() {
   if ( ! sender() ) { // called from the constructor;
@@ -1112,6 +1113,7 @@ void MainWindow::updateUi_bgTravel() {
 
 }
 
+
 void MainWindow::updateUi_bgMotor() {
   QCaMotor * mot = bgMotor->motor();
   if ( ! sender() ) { // called from the constructor;
@@ -1130,7 +1132,6 @@ void MainWindow::updateUi_bgMotor() {
         ( mot->isConnected()  &&  ! mot->isMoving()  &&  ! mot->getLimitStatus() ) );
 
 }
-
 
 
 void MainWindow::updateUi_loops() {
@@ -1175,8 +1176,6 @@ void MainWindow::onSwapLoops() {
 }
 
 
-
-
 void MainWindow::updateUi_dynoSpeed() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_dynoSpeed());
@@ -1209,6 +1208,7 @@ void MainWindow::updateUi_dynoSpeed() {
 
 }
 
+
 void MainWindow::updateUi_dynoMotor() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_dynoMotor());
@@ -1237,6 +1237,7 @@ void MainWindow::updateUi_dynoMotor() {
 
 }
 
+
 void MainWindow::updateUi_dyno2Speed() {
   if ( ! sender() ) { // called from the constructor;
     const char* thisSlot = SLOT(updateUi_dyno2Speed());
@@ -1262,6 +1263,7 @@ void MainWindow::updateUi_dyno2Speed() {
         ui->dyno2Speed->value() <= dyno2Motor->motor()->getMaximumSpeed() );
 
 }
+
 
 void MainWindow::updateUi_dyno2Motor() {
   if ( ! sender() ) { // called from the constructor;
@@ -1292,11 +1294,14 @@ void MainWindow::updateUi_dyno2Motor() {
 
 }
 
+
 void MainWindow::updateUi_detector() {
   if ( ! sender() ) {
     const char* thisSlot = SLOT(updateUi_detector());
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), thisSlot);
+    connect(ui->vidFrames, SIGNAL(valueChanged(int)), thisSlot);
+    connect(ui->vidTime, SIGNAL(timeChanged(QTime)), thisSlot);
     connect(det, SIGNAL(connectionChanged(bool)), thisSlot);
     connect(det, SIGNAL(parameterChanged()), thisSlot);
     connect(det, SIGNAL(counterChanged(int)), ui->detProgress, SLOT(setValue(int)));
@@ -1315,9 +1320,9 @@ void MainWindow::updateUi_detector() {
   else
     ui->detStatus->setText("idle");
 
-  if (  det->isConnected() ) {
+  if ( det->camera() != Detector::NONE && det->isConnected() ) {
 
-    bool enabme = det->imageFormat(Detector::TIFF);
+    bool enabme = det->imageFormat(Detector::TIF);
     ui->tiffEnabled->setText( enabme ? "enabled" : "disabled" );
     ui->detFileNameTiff->setEnabled(enabme);
     ui->detFileTemplateTiff->setEnabled(enabme);
@@ -1340,26 +1345,43 @@ void MainWindow::updateUi_detector() {
     ui->detImageMode->setText(det->imageModeString());
     ui->detTotalImages->setValue(det->number());
 
-    ui->detFileNameTiff->setText(det->name(Detector::TIFF));
+    ui->detFileNameTiff->setText(det->name(Detector::TIF));
     ui->detFileNameHdf->setText(det->name(Detector::HDF));
-    ui->detFileTemplateTiff->setText(det->nameTemplate(Detector::TIFF));
+    ui->detFileTemplateTiff->setText(det->nameTemplate(Detector::TIF));
     ui->detFileTemplateHdf->setText(det->nameTemplate(Detector::HDF));
-    ui->detPathTiff->setText(det->path(Detector::TIFF));
+    ui->detPathTiff->setText(det->path(Detector::TIF));
     ui->detPathHdf->setText(det->path(Detector::HDF));
 
+    ui->vidStartStop->setText( det->isAcquiring() ? "Stop" : "Start" );
+    ui->vidReady->setEnabled( ! det->isAcquiring() );
+    const float realPeriod = 1000 * std::max(det->exposure(), det->period()); // s -> ms
+    if (realPeriod>0) {
+      const QTime zeroTime(0,0);
+      ui->vidTime->setMinimumTime(QTime(zeroTime).addMSecs(realPeriod));
+      if (sender() == ui->vidFrames) {
+        ui->vidTime->blockSignals(true);
+        ui->vidTime->setTime( QTime(zeroTime).addMSecs(realPeriod * ui->vidFrames->value()) );
+        ui->vidTime->blockSignals(false);
+      } else {
+        ui->vidFrames->blockSignals(true);
+        ui->vidFrames->setValue(zeroTime.msecsTo(ui->vidTime->time())/realPeriod);
+        ui->vidFrames->blockSignals(false);
+      }
+    }
+
+  } else {
+    ui->vidStartStop->setText("no link");
+    ui->videoWidget ->setDisabled(true);
+    ui->testDetector->setDisabled(true);
   }
 
   check (ui->detStatus, ! ui->detSelection->currentIndex() || ( det->isConnected() &&
          ( inRun(ui->startStop) || ( ! det->isAcquiring() && ! det->isWriting() ) ) ) );
-  check (ui->detPathTiff, uiImageFormat() != Detector::TIFF  ||  det->pathExists(Detector::TIFF) || ! ui->detSelection->currentIndex() );
+  check (ui->detPathTiff, uiImageFormat() != Detector::TIF  ||  det->pathExists(Detector::TIF) || ! ui->detSelection->currentIndex() );
   check (ui->detPathHdf, uiImageFormat() != Detector::HDF  ||  det->pathExists(Detector::HDF) || ! ui->detSelection->currentIndex());
 
 
 }
-
-
-
-
 
 
 void MainWindow::onWorkingDirBrowse() {
@@ -1370,10 +1392,12 @@ void MainWindow::onWorkingDirBrowse() {
     ui->expPath->setText(newdir);
 }
 
+
 void MainWindow::onSerialCheck() {
   ui->control->setTabVisible(ui->tabSerial, ui->checkSerial->isChecked());
   check( ui->tabSerial, true );
 }
+
 
 void MainWindow::onFFcheck() {
   ui->control->setTabVisible(ui->tabFF, ui->checkFF->isChecked());
@@ -1381,10 +1405,12 @@ void MainWindow::onFFcheck() {
   check( ui->tabFF, true );
 }
 
+
 void MainWindow::onDynoCheck() {
   ui->control->setTabVisible(ui->tabDyno, ui->checkDyno->isChecked());
   check( ui->tabDyno, true );
 }
+
 
 void MainWindow::onMultiCheck() {
   ui->control->setTabVisible(ui->tabMulti, ui->checkMulti->isChecked());
@@ -1407,6 +1433,7 @@ void MainWindow::onDyno2() {
   ui->dyno2DirectionLabel->setVisible(dod2);
 }
 
+
 void MainWindow::onDynoSpeedLock() {
   ui->dyno2Speed->setDisabled(ui->dynoSpeedLock->isChecked());
   if (ui->dynoSpeedLock->isChecked()) {
@@ -1417,6 +1444,7 @@ void MainWindow::onDynoSpeedLock() {
     disconnect(ui->dynoSpeed, SIGNAL(valueChanged(double)),
                ui->dyno2Speed, SLOT(setValue(double)));
 }
+
 
 void MainWindow::onDynoDirectionLock() {
   const bool lockDir = ui->dynoDirectionLock->isChecked();
@@ -1440,25 +1468,14 @@ void MainWindow::onDynoDirectionLock() {
 
 void MainWindow::onDetectorSelection() {
   const QString currentText = ui->detSelection->currentText();
-  if (currentText.isEmpty()) {
-    det->setCamera(Detector::NONE);
-    setenv("DETECTORPV", det->pv().toLatin1(), 1);
-    return;
-  } else {
-    foreach (Detector::Camera cam , Detector::knownCameras)
-      if (currentText==Detector::cameraName(cam)) {
-        det->setCamera(cam);
-        setenv("DETECTORPV", det->pv().toLatin1(), 1);
-        return;
-      }
-  }
-  det->setCamera(currentText);
+  Detector::Camera cam = Detector::NONE;
+  foreach (Detector::Camera ccam , Detector::knownCameras)
+    if (currentText==Detector::cameraName(ccam))
+      cam=ccam;
+  det->setCamera(cam);
   setenv("DETECTORPV", det->pv().toLatin1(), 1);
+  updateUi_detector();
 }
-
-
-
-
 
 
 void MainWindow::check(QWidget * obj, bool status) {
@@ -1503,6 +1520,7 @@ void MainWindow::check(QWidget * obj, bool status) {
 
   const bool anyInRun = inRun(ui->startStop)
       || inRun(ui->testDetector)
+      || inRun(ui->vidStartStop)
       || inRun(ui->testDyno)
       || inRun(ui->testFF)
       || inRun(ui->testMulti)
@@ -1514,9 +1532,10 @@ void MainWindow::check(QWidget * obj, bool status) {
     tabOK |= ui->control->indexOf(tab) == -1;
     preReq[tab] = qMakePair( tabOK, (const QWidget*) 0 );
     ui->control->setTabTextColor(tab, tabOK ? QColor() : QColor(Qt::red));
+    const bool enDetector = ! anyInRun && det->camera() && preReq[ui->tabDetector].first;
 
-    ui->testDetector->setEnabled ( inRun(ui->testDetector) ||
-                                   ( ! anyInRun  &&  preReq[ui->tabDetector].first ) );
+    ui->testDetector->setEnabled ( inRun(ui->testDetector) || enDetector );
+    ui->videoWidget->setEnabled ( inRun(ui->vidStartStop) || enDetector );
     ui->testDyno->setEnabled ( inRun(ui->testDyno) || ( ! anyInRun &&
                                                preReq[ui->tabDetector].first &&
                                                preReq[ui->tabDyno].first ) );
@@ -1551,7 +1570,6 @@ void MainWindow::check(QWidget * obj, bool status) {
 }
 
 
-
 // Marks the btn to indicate the process running or not.
 // Used *Test functions
 QString MainWindow::mkRun(QAbstractButton * btn, bool inr, const QString & txt) {
@@ -1564,14 +1582,12 @@ QString MainWindow::mkRun(QAbstractButton * btn, bool inr, const QString & txt) 
   return ret;
 }
 
+
 // Returns true if the marked btn indicates the process is running.
 // Used *Test functions
 bool MainWindow::inRun(const QAbstractButton * btn) {
   return btn && preReq.contains(btn) && ! preReq[btn].first;
 }
-
-
-
 
 
 void MainWindow::onSerialTest() {
@@ -1621,8 +1637,6 @@ void MainWindow::onScanTest() {
 
 
 }
-
-
 
 
 void MainWindow::onFFtest() {
@@ -1683,6 +1697,7 @@ void MainWindow::onLoopTest() {
 
 }
 
+
 void MainWindow::onDynoTest() {
 
   if (inRun(ui->testDyno)) {
@@ -1723,16 +1738,18 @@ void MainWindow::onDetectorTest() {
   stopMe=false;
   const QString butText = mkRun(ui->testDetector, true, "Stop");
   ui->detectorWidget->setEnabled(false);
+  ui->videoWidget->setEnabled(false);
   det->waitWritten();
   HWstate hw(det, shutterSec, shutterPri);
 
-  int nofFrames = 0;
-  if ( ui->aqMode->currentIndex() != STEPNSHOT )
-    nofFrames = ui->nofBGs->value();
-  else if ( ui->checkDyno->isChecked() )
-    nofFrames = 1;
-  else
-    nofFrames = ui->aqsPP->value();
+  const int nofFrames = [&](){
+    if ( ui->aqMode->currentIndex() != STEPNSHOT )
+      return ui->nofBGs->value();
+    else if ( ui->checkDyno->isChecked() )
+      return 1;
+    else
+      return ui->aqsPP->value();
+  } () ;
 
   shutterPri->open();
   shutterSec->open();
@@ -1744,11 +1761,83 @@ void MainWindow::onDetectorTest() {
   det->setAutoSave(false);
   hw.restore();
   ui->detectorWidget->setEnabled(true);
+  ui->videoWidget->setEnabled(true);
   mkRun(ui->testDetector, false, butText);
   updateUi_detector();
 
 }
 
+
+static void restorePreVid() {
+  if (!preVideoState)
+    return;
+  preVideoState->restore();
+  HWstate * tmpVST = preVideoState;
+  preVideoState = 0;
+  delete tmpVST;
+}
+
+bool MainWindow::onVideoGetReady() {
+
+  if (preVideoState) { // was prepared before
+    if ( sender() == ui->vidReady ) // release
+      restorePreVid();
+    return true;
+  }
+
+  if ( ! det->isConnected() )
+    return false;
+  preVideoState = new HWstate(det, shutterSec, shutterPri);
+  const Detector::ImageFormat fmt = uiImageFormat();
+  det->waitWritten();
+  if (  ! det->setName(fmt, det->name(fmt) + "_VIDEO")
+     || ! det->prepareForVid(fmt, ui->vidFixed->isChecked() ? ui->vidFrames->value() : 0 )
+     || ! ( ui->checkExtTrig->isChecked() ? det->setHardwareTriggering(true) : true ) )
+  {
+    restorePreVid();
+    return false;
+  }
+  ui->preAqScript->script->execute();
+  shutterPri->open();
+  shutterSec->open();
+  const bool toRet = det->start();
+  ui->vidReady->setChecked(toRet);
+  if (!toRet) {
+    det->stop();
+    shutterPri->close();
+    shutterSec->close();
+    restorePreVid();
+  }
+  return toRet;
+
+}
+
+
+void MainWindow::onVideoRecord() {
+
+  if ( ! det->isConnected()  ||  inRun(ui->vidStartStop) ) {
+    stopAll();
+    restorePreVid();
+    ui->vidReady->setChecked(false);
+    return;
+  }
+  if (!onVideoGetReady())
+    return;
+
+  const QString butText = mkRun(ui->vidStartStop, true, "Stop");
+  ui->detectorWidget->setEnabled(false);
+
+  det->startCapture();
+  det->waitDone();
+
+  shutterSec->close();
+  shutterPri->close();
+  det->waitWritten();
+  ui->detectorWidget->setEnabled(true);
+  mkRun(ui->vidStartStop, false, butText);
+  updateUi_detector();
+
+}
 
 
 void MainWindow::onStartStop() {
@@ -1761,7 +1850,6 @@ void MainWindow::onStartStop() {
   engineRun();
   mkRun(ui->startStop, false, butText);
 }
-
 
 
 void MainWindow::stopAll() {
@@ -1781,32 +1869,22 @@ void MainWindow::stopAll() {
 }
 
 
-
-
-
-
-
-
-
-
-
-
 static QString combineNames(const QString & str1, const QString & str2) {
   return ( ! str1.isEmpty()  &&  ! str2.isEmpty() )
       ?  str1 + "_" + str2  :  str1 + str2 ;
 }
 
 
-
 bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
   const Detector::ImageFormat fmt = uiImageFormat();
   QString fileT = "%s%s";
-  if (fmt == Detector::TIFF) {
+  if (fmt == Detector::TIF) {
     if (count>1)
       fileT += "%0" + QString::number(QString::number(count).length()) + "d";
     fileT+= ".tif";
   } else if (fmt == Detector::HDF) {
     if (    inRun(ui->testDetector)
+         || inRun(ui->vidStartStop)
          || inRun(ui->testDyno)
          || inRun(ui->testFF)
          || inRun(ui->testMulti)
@@ -1824,10 +1902,11 @@ bool MainWindow::prepareDetector(const QString & filetemplate, int count) {
       det->setName(fmt, filetemplate) &&
       det->prepareForAcq(fmt, count) &&
       ui->checkExtTrig->isVisible() &&
-      ui->checkExtTrig->isChecked() ?
-        det->setHardwareTriggering(true) : true ;
+      ( ui->checkExtTrig->isChecked()
+        ? det->setHardwareTriggering(true) : true ) ;
 
 }
+
 
 int MainWindow::acquireDetector() {
 
@@ -1842,6 +1921,7 @@ int MainWindow::acquireDetector() {
 acquireDetectorExit:
   return execStatus;
 }
+
 
 int MainWindow::acquireDetector(const QString & filetemplate, int count) {
   if ( ! prepareDetector(filetemplate, count) || stopMe )
@@ -1860,11 +1940,10 @@ static void setMotorSpeed(QCaMotor* mot, double speed) {
   }
 }
 
+
 static void setMotorSpeed(QCaMotorGUI* mot, double speed) {
   setMotorSpeed(mot->motor(), speed);
 }
-
-
 
 
 int MainWindow::acquireDyno(const QString & filetemplate, int count) {
@@ -1924,7 +2003,7 @@ int MainWindow::acquireDyno(const QString & filetemplate, int count) {
     if (count>1)
       ftemplate += QString("%1").arg(curr, QString::number(count).length(), 10, QChar('0'));
     // two stopMes below are reqiuired for the case it changes while the detector is being prepared
-    if ( stopMe || ! prepareDetector(ftemplate) || stopMe )
+    if ( stopMe || ! prepareDetector(ftemplate, 1) || stopMe )
       goto acquireDynoExit;
 
     setMotorSpeed(dynoMotor, daSpeed);
@@ -1971,11 +2050,6 @@ acquireDynoExit:
   return ret;
 
 }
-
-
-
-
-
 
 
 int MainWindow::acquireMulti(const QString & filetemplate, int count) {
@@ -2103,8 +2177,6 @@ acquireMultiExit:
 }
 
 
-
-
 int MainWindow::moveToBG() {
   if ( ! bgMotor->motor()->isConnected() || bgMotor->motor()->isMoving() ||  ui->nofBGs->value() <1 ||  bgOrigin == bgAcquire )
     return -1;
@@ -2173,7 +2245,6 @@ onBgExit:
   return ret;
 
 }
-
 
 
 int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo) {
@@ -2850,7 +2921,7 @@ onEngineExit:
     //                    + " | grep -v '{' | grep camonitor | sed 's .*camonitor,\\([0-9]*\\).* \\1 g')");
     logProc.terminate();
     logExec.close();
-  }  
+  }
 
   QTimer::singleShot(0, this, SLOT(updateUi_thetaMotor()));
   QTimer::singleShot(0, this, SLOT(updateUi_bgMotor()));
