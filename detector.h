@@ -48,6 +48,7 @@ private:
   QEpicsPv * counterPv; // NumCapture
   QEpicsPv * triggerModePv;//TriggerMode
   QEpicsPv * imageModePv;//ImageMode
+  QEpicsPv * imageModeRbvPv;//ImageMode
   QEpicsPv * aqPv; //Acquire
 
   QEpicsPv * enableTifPv; // Tif:EnableCallbacks
@@ -64,6 +65,7 @@ private:
   QEpicsPv * writeProggressTifPv;
   QEpicsPv * writeModeTifPv;
   QEpicsPv * captureTargetTifPv;
+  QEpicsPv * captureTargetTifRbvPv;
   QEpicsPv * captureProgressTifPv;
   QEpicsPv * captureTifPv;
   QEpicsPv * captureStatusTifPv;
@@ -83,6 +85,7 @@ private:
   QEpicsPv * writeProggressHdfPv;
   QEpicsPv * writeModeHdfPv;
   QEpicsPv * captureTargetHdfPv;
+  QEpicsPv * captureTargetHdfRbvPv;
   QEpicsPv * captureProgressHdfPv;
   QEpicsPv * captureHdfPv;
   QEpicsPv * captureStatusHdfPv;
@@ -119,7 +122,7 @@ public:
   inline int counter() const {return _camera ? counterPv->get().toInt() : 0 ;}
   inline int triggerMode() const {return _camera ? triggerModePv->get().toInt() : 0 ;}
   inline const QString triggerModeString() const {return _camera ? triggerModePv->getEnumString() : QString() ;}
-  inline int imageMode() const {return _camera ? imageModePv->get().toInt() : 0 ;}
+  inline int imageMode() const {return _camera ? imageModeRbvPv->get().toInt() : 0 ;}
   inline const QString imageModeString() const {return _camera ? imageModePv->getEnumString() : QString() ;}
   inline bool isAcquiring() const {return _camera  ? aqPv->get().toInt() : false ;}
   inline bool isConnected() const {return _camera && _con;}
@@ -131,6 +134,8 @@ public:
   const QString & nameTemplate(ImageFormat fmt) const ;
   const QString & name(ImageFormat fmt) const;
   const QString & lastName(ImageFormat fmt = UNDEFINED) const;
+  int toCapture(ImageFormat fmt = UNDEFINED) const;
+  int captured(ImageFormat fmt = UNDEFINED) const;
   bool pathExists(ImageFormat fmt = UNDEFINED) const ;
   bool isWriting(ImageFormat fmt = UNDEFINED) const ;
   bool isCapturing(ImageFormat fmt = UNDEFINED) const ;
@@ -152,6 +157,7 @@ public slots:
   bool setNameTemplate(ImageFormat fmt, const QString & ntemp);
   bool setPath(const QString & _path);
   bool startCapture();
+  void stopCapture();
   bool start();
   void stop();
   bool acquire();

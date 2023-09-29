@@ -31,6 +31,7 @@ Detector::Detector(QObject * parent) :
   counterPv( new QEpicsPv(this) ),
   triggerModePv( new QEpicsPv(this) ),
   imageModePv( new QEpicsPv(this) ),
+  imageModeRbvPv( new QEpicsPv(this) ),
   aqPv( new QEpicsPv(this) ),
   enableTifPv( new QEpicsPv(this) ),
   pathTifPv( new QEpicsPv(this) ),
@@ -46,6 +47,7 @@ Detector::Detector(QObject * parent) :
   writeProggressTifPv( new QEpicsPv(this) ),
   writeModeTifPv( new QEpicsPv(this) ),
   captureTargetTifPv( new QEpicsPv(this) ),
+  captureTargetTifRbvPv( new QEpicsPv(this) ),
   captureProgressTifPv( new QEpicsPv(this) ),
   captureTifPv( new QEpicsPv(this) ),
   captureStatusTifPv( new QEpicsPv(this) ),
@@ -64,6 +66,7 @@ Detector::Detector(QObject * parent) :
   writeProggressHdfPv( new QEpicsPv(this) ),
   writeModeHdfPv( new QEpicsPv(this) ),
   captureTargetHdfPv( new QEpicsPv(this) ),
+  captureTargetHdfRbvPv( new QEpicsPv(this) ),
   captureProgressHdfPv( new QEpicsPv(this) ),
   captureHdfPv( new QEpicsPv(this) ),
   captureStatusHdfPv( new QEpicsPv(this) ),
@@ -89,6 +92,7 @@ Detector::Detector(QObject * parent) :
   connect(numberPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(triggerModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(imageModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(imageModeRbvPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
 
   // file plugin params
   connect(enableHdfPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
@@ -206,16 +210,16 @@ void Detector::setCamera(Camera _cam) {
 void Detector::setCamera(const QString & pvName) {
 
   cameraPv = pvName;
-
   if ( ! pvName.isEmpty() ) {
 
     setExposurePv->setPV(pvName+":CAM:AcquireTime");
     exposurePv->setPV(pvName+":CAM:AcquireTime_RBV");
-    periodPv->setPV(pvName+":CAM:AcquirePeriod");
+    periodPv->setPV(pvName+":CAM:AcquirePeriod_RBV");
     numberPv->setPV(pvName+":CAM:NumImages");
     counterPv->setPV(pvName+":CAM:NumImagesCounter_RBV");
     triggerModePv->setPV(pvName+":CAM:TriggerMode");
     imageModePv->setPV(pvName+":CAM:ImageMode");
+    imageModeRbvPv->setPV(pvName+":CAM:ImageMode_RBV");
     aqPv->setPV(pvName+":CAM:Acquire");
 
     enableTifPv->setPV(pvName + ":TIFF:EnableCallbacks");
@@ -232,6 +236,7 @@ void Detector::setCamera(const QString & pvName) {
     writeProggressTifPv->setPV(pvName+":TIFF:WriteFile_RBV");
     writeModeTifPv->setPV(pvName + ":TIFF:FileWriteMode");
     captureTargetTifPv->setPV(pvName + ":TIFF:NumCapture");
+    captureTargetTifRbvPv->setPV(pvName + ":TIFF:NumCapture_RBV");
     captureProgressTifPv->setPV(pvName + ":TIFF:NumCaptured_RBV");
     captureTifPv->setPV(pvName + ":TIFF:Capture");
     captureStatusTifPv->setPV(pvName + ":TIFF:Capture_RBV");
@@ -251,6 +256,7 @@ void Detector::setCamera(const QString & pvName) {
     writeProggressHdfPv->setPV(pvName + ":HDF:WriteFile_RBV");
     writeModeHdfPv->setPV(pvName + ":HDF:FileWriteMode");
     captureTargetHdfPv->setPV(pvName + ":HDF:NumCapture");
+    captureTargetHdfRbvPv->setPV(pvName + ":HDF:NumCapture_RBV");
     captureProgressHdfPv->setPV(pvName + ":HDF:NumCaptured_RBV");
     captureHdfPv->setPV(pvName + ":HDF:Capture");
     captureStatusHdfPv->setPV(pvName + ":HDF:Capture_RBV");
@@ -436,6 +442,32 @@ const QString & Detector::lastName(Detector::ImageFormat fmt) const {
     return _lastName;
 }
 
+
+int Detector::toCapture(Detector::ImageFormat fmt) const {
+  if (fmt==UNDEFINED)
+    fmt=imageFormat();
+  if (fmt==TIF)
+    return captureTargetTifRbvPv->get().toInt();
+  else if (fmt==HDF)
+    return captureTargetHdfRbvPv->get().toInt();
+  else
+    return 0;
+}
+
+
+int Detector::captured(Detector::ImageFormat fmt) const {
+  if (fmt==UNDEFINED)
+    fmt=imageFormat();
+  if (fmt==TIF)
+    return captureProgressTifPv->get().toInt();
+  else if (fmt==HDF)
+    return captureProgressHdfPv->get().toInt();
+  else
+    return 0;
+}
+
+
+
 bool Detector::pathExists(Detector::ImageFormat fmt) const {
   if ( ! _camera )
     return true;
@@ -457,11 +489,6 @@ bool Detector::isWriting(Detector::ImageFormat fmt) const {
       return false;
     return writeProggressHdfPv->get().toInt() || ( queUseHdfPv->isConnected() ? queUseHdfPv->get().toInt() : false );
   } else {
-    auto qwrTf = writeProggressTifPv->get();
-    auto qwrHd = writeProggressHdfPv->get();
-    bool wrTf = writeProggressTifPv->get().toInt();
-    bool wrHd = writeProggressHdfPv->get().toInt();
-    bool wr = wrTf || wrHd;
     return isWriting(TIF) || isWriting(HDF);
   }
 }
@@ -476,7 +503,7 @@ bool Detector::isCapturing(Detector::ImageFormat fmt) const {
   else if (fmt==HDF) {
     if ( ! hdfReady() )
       return false;
-    return captureStatusHdfPv->get().toInt() ;
+    return captureStatusHdfPv->get().toInt();
   } else
     return isCapturing(TIF) || isCapturing(HDF);
 }
@@ -576,7 +603,7 @@ bool Detector::setName(ImageFormat fmt, const QString & fname) {
   setenv("DETFILENAME", fname.toLatin1(), 1);
   if ( ! _camera )
     return true;
-  if ( isAcquiring() )
+  if ( isWriting() )
     return false;
   if (name(fmt) == fname)
     return true;
@@ -592,6 +619,8 @@ bool Detector::setName(ImageFormat fmt, const QString & fname) {
   } else {
     return setName(TIF, fname) && setName(HDF, fname);
   }
+  if (name(fmt) != fname)
+    qtWait(250);
   return name(fmt) == fname ;
 
 }
@@ -717,7 +746,7 @@ bool Detector::prepareForVid(Detector::ImageFormat fmt, int nofFrames) {
 
   if ( ! _camera )
     return true;
-  if ( isAcquiring() || fmt == UNDEFINED  )
+  if ( fmt == UNDEFINED  )
     return false;
 
   if ( nofFrames <= 0 ) // 0 frames for unlimited
@@ -741,12 +770,6 @@ bool Detector::prepareForVid(Detector::ImageFormat fmt, int nofFrames) {
       if ( writeModeTifPv->get() != 2 )
         return false;
     }
-    captureTifPv->set(1);
-    if ( captureStatusTifPv->get() != 1 ) {
-      qtWait(captureStatusTifPv, SIGNAL(valueUpdated(QVariant)), 500);
-      if ( captureStatusTifPv->get() != 1 )
-        return false;
-    }
 
   } else if (fmt == HDF) {
 
@@ -765,13 +788,6 @@ bool Detector::prepareForVid(Detector::ImageFormat fmt, int nofFrames) {
     if ( writeModeHdfPv->get() != 2 ) {
       qtWait(writeModeHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
       if ( writeModeHdfPv->get() != 2 )
-        return false;
-    }
-
-    captureHdfPv->set(1);
-    if ( captureStatusHdfPv->get() != 1 ) {
-      qtWait(captureStatusHdfPv, SIGNAL(valueUpdated(QVariant)), 500);
-      if ( captureStatusHdfPv->get() != 1 )
         return false;
     }
 
@@ -804,8 +820,8 @@ bool Detector::setImageMode(int imode) {
     return true;
 
   imageModePv->set(imode);
-  qtWait(imageModePv, SIGNAL(valueUpdated(QVariant)), 500);
-  return imageModePv->get().toInt() == imode;
+  qtWait(imageModeRbvPv, SIGNAL(valueUpdated(QVariant)), 500);
+  return imageModeRbvPv->get().toInt() == imode;
 
 }
 
@@ -876,13 +892,21 @@ bool Detector::startCapture() {
 }
 
 
+void Detector::stopCapture() {
+  captureHdfPv->set(0);
+  captureTifPv->set(0);
+}
+
+
+
 bool Detector::start() {
   if ( ! _camera )
     return true;
-  if ( ! aqPv->isConnected() || ! writeProggressTifPv->isConnected() || isAcquiring() )
+  if ( ! aqPv->isConnected() )
     return false;
   aqPv->set(1);
-  qtWait(aqPv, SIGNAL(valueUpdated(QVariant)), 2000);
+  if (!aqPv->get().toInt())
+    qtWait(aqPv, SIGNAL(valueUpdated(QVariant)), 2000);
   return aqPv->get().toInt();
 }
 

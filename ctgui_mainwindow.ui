@@ -5,14 +5,6 @@
   <property name="enabled">
    <bool>true</bool>
   </property>
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>2193</width>
-    <height>1119</height>
-   </rect>
-  </property>
   <property name="windowTitle">
    <string>CTgui</string>
   </property>
@@ -28,7 +20,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>6</number>
+       <number>0</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -2702,9 +2694,6 @@ p
              <property name="text">
               <string>Get ready</string>
              </property>
-             <property name="checkable">
-              <bool>true</bool>
-             </property>
             </widget>
            </item>
            <item>
@@ -2826,9 +2815,9 @@ p
   </connection>
  </connections>
  <buttongroups>
+  <buttongroup name="dyno2DirButtonGroup"/>
   <buttongroup name="endConditionButtonGroup"/>
   <buttongroup name="dynoDirButtonGroup"/>
   <buttongroup name="imageFormatGroup"/>
-  <buttongroup name="dyno2DirButtonGroup"/>
  </buttongroups>
 </ui>

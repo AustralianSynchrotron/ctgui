@@ -44,6 +44,7 @@ private:
   Shutter::State shutPriSate;
   QString dettifname;
   QString dethdfname;
+  bool detinrun;
   int detimode;
   int dettmode;
   float detperiod;
@@ -61,6 +62,7 @@ public:
     shutPriSate = shutPri->state();
     dettifname = det->name(Detector::TIF);
     dethdfname = det->name(Detector::HDF);
+    detinrun = det->isAcquiring();
     detimode = det->imageMode();
     dettmode = det->triggerMode();
     detperiod = det->period();
@@ -71,6 +73,7 @@ public:
     // shutPri->setState(shutPriState);
     det->setName(Detector::TIF, dettifname) ;
     det->setName(Detector::HDF, dethdfname) ;
+    if (detinrun) det->start(); else det->stop();
     det->setImageMode(detimode);
     det->setTriggerMode(dettmode);
     det->setPeriod(detperiod);
@@ -1337,9 +1340,10 @@ void MainWindow::updateUi_detector() {
     ui->detFileTemplateHdf->setEnabled(enabme);
     ui->detPathHdf->setEnabled(enabme);
 
-    ui->detProgress->setMaximum(det->number());
-    ui->detProgress->setValue(det->counter());
-    ui->detProgress->setVisible( det->isAcquiring()  &&  det->imageMode() == 1 );
+
+    ui->detProgress->setMaximum( det->imageMode() == 2 ? det->toCapture() : det->number() );
+    ui->detProgress->setValue( det->imageMode() == 2 ? det->captured() : det->counter() );
+    ui->detProgress->setVisible( det->imageMode() == 2 ? det->isCapturing() : det->isAcquiring() );
     ui->detTotalImages->setValue(det->number());
     ui->exposureInfo->setValue(det->exposure());
     ui->detExposure->setValue(det->exposure());
@@ -1357,7 +1361,7 @@ void MainWindow::updateUi_detector() {
 
     if (!preVideoState)
       ui->vidStartStop->setText("Start");
-    ui->vidReady->setEnabled( ! det->isAcquiring() );
+    ui->vidReady->setEnabled( preVideoState || ! det->isWriting() );
     const float realPeriod = 1000 * std::max(det->exposure(), det->period()); // s -> ms
     if (realPeriod>0) {
       const QTime zeroTime(0,0);
@@ -1536,10 +1540,10 @@ void MainWindow::check(QWidget * obj, bool status) {
     tabOK |= ui->control->indexOf(tab) == -1;
     preReq[tab] = qMakePair( tabOK, (const QWidget*) 0 );
     ui->control->setTabTextColor(tab, tabOK ? QColor() : QColor(Qt::red));
-    const bool enDetector = ! anyInRun && det->camera() && preReq[ui->tabDetector].first;
 
-    ui->testDetector->setEnabled ( inRun(ui->testDetector) || enDetector );
-    ui->videoWidget->setEnabled ( inRun(ui->vidStartStop) || enDetector );
+    ui->testDetector->setEnabled (  inRun(ui->testDetector)
+                                 || ( ! anyInRun && det->camera() && preReq[ui->tabDetector].first ) );
+    ui->videoWidget->setEnabled ( inRun(ui->vidStartStop) || ! det->isWriting() || preVideoState );
     ui->testDyno->setEnabled ( inRun(ui->testDyno) || ( ! anyInRun &&
                                                preReq[ui->tabDetector].first &&
                                                preReq[ui->tabDyno].first ) );
@@ -1783,8 +1787,11 @@ static void restorePreVid() {
 
 bool MainWindow::onVideoGetReady() {
   if (preVideoState) { // was prepared before
-    if ( sender() == ui->vidReady ) // release
+    if ( sender() == ui->vidReady ) { // release
+      ui->vidReady->setChecked(false);
+      ui->vidReady->setCheckable(false);
       restorePreVid();
+    }
     return true;
   }
 
@@ -1804,9 +1811,9 @@ bool MainWindow::onVideoGetReady() {
   shutterPri->open();
   shutterSec->open();
   const bool toRet = det->start();
+  ui->vidReady->setCheckable(toRet);
   ui->vidReady->setChecked(toRet);
   if (!toRet) {
-    det->stop();
     shutterPri->close();
     shutterSec->close();
     restorePreVid();
@@ -1819,22 +1826,25 @@ bool MainWindow::onVideoGetReady() {
 void MainWindow::onVideoRecord() {
 
   if ( ! det->isConnected()  ||  inRun(ui->vidStartStop) ) {
-    stopAll();
-    restorePreVid();
-    ui->vidReady->setChecked(false);
+    det->stopCapture();
+    //restorePreVid();
+    //ui->vidReady->setChecked(false);
+    //ui->vidReady->setCheckable(false);
     return;
   }
   const QString butText = mkRun(ui->vidStartStop, true, "Stop");
   ui->detectorWidget->setEnabled(false);
   if (onVideoGetReady()) {
     det->startCapture();
+    qtWait(250);
     det->waitCaptured();
-    det->stop();
     shutterSec->close();
     shutterPri->close();
     det->waitWritten();
   }
   ui->detectorWidget->setEnabled(true);
+  ui->vidReady->setChecked(false);
+  ui->vidReady->setChecked(false);
   restorePreVid();
   mkRun(ui->vidStartStop, false, butText);
   updateUi_detector();
