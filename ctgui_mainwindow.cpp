@@ -134,6 +134,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
   ui->startStop->setText(ssText);
 
+  ui->statusBar->setObjectName("StatusBar");
+  ui->statusBar->setStyleSheet("#StatusBar {color: rgba(255, 0, 0, 128);}");
+
   QPushButton * save = new QPushButton("Save");
   save->setFlat(true);
   connect(save, SIGNAL(clicked()), SLOT(saveConfiguration()));
@@ -143,6 +146,7 @@ MainWindow::MainWindow(QWidget *parent) :
   load->setFlat(true);
   connect(load, SIGNAL(clicked()), SLOT(loadConfiguration()));
   ui->statusBar->addPermanentWidget(load);
+
 
   for (int caqmod=0 ; caqmod < AQMODEEND ; caqmod++)
     ui->aqMode->insertItem(caqmod, AqModeString( AqMode(caqmod) ));
@@ -593,7 +597,7 @@ Detector::ImageFormat MainWindow::uiImageFormat() const {
 
 
 void MainWindow::addMessage(const QString & str) {
-  str.size();
+//  str.size();
 //  ui->messages->append(
 //        QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz") +
 //        " " + str);
@@ -1581,6 +1585,8 @@ void MainWindow::check(QWidget * obj, bool status) {
 // Marks the btn to indicate the process running or not.
 // Used *Test functions
 QString MainWindow::mkRun(QAbstractButton * btn, bool inr, const QString & txt) {
+  if (inr)
+    ui->statusBar->clearMessage();
   if ( ! btn )
     return "";
   check(btn, ! inr);
@@ -2741,17 +2747,27 @@ void MainWindow::engineRun () {
             if (stopMe) goto onEngineExit;
         }
 
-        det->start();
 
+        QList<ObjSig> stopSignals;
+        stopSignals << ObjSig(det, SIGNAL(done()));
+        stopSignals << ObjSig(thetaMotor->motor(), SIGNAL(stopped()));
         if (doTriggCT) {
           tct->start(true);
+          stopSignals << ObjSig(tct, SIGNAL(stopped()));
           thetaMotor->motor()->goLimit( thetaRange > 0 ? QCaMotor::POSITIVE : QCaMotor::NEGATIVE );
         }
-
         if (stopMe) goto onEngineExit;
-        qtWait( QList<ObjSig> ()
-                << ObjSig(det, SIGNAL(done()))
-                << ObjSig(thetaMotor->motor(), SIGNAL(stopped())) );
+
+        det->start();
+
+        qtWait( stopSignals );
+        if (   det->number() != totalProjections + doAdd
+            || (doTriggCT && tct->isRunning())
+            || ! thetaMotor->motor()->isMoving()  ) {
+          ui->statusBar->showMessage("Unexpected condition during last experiment was observed. Check data.");
+          //goto onEngineExit;
+        }
+
         if (stopMe) goto onEngineExit;
         if (det->isAcquiring()) {
           qtWait( det, SIGNAL(done()), 1000 );
@@ -2765,6 +2781,8 @@ void MainWindow::engineRun () {
         if (doTriggCT)
           tct->stop(false);
         if (stopMe) goto onEngineExit;
+
+
 
         if ( ! ongoingSeries ) {
           bgdfN = combineNames(sn2, "AFTER");

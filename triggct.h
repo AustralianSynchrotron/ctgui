@@ -52,6 +52,7 @@ public:
 signals:
   void connectionChanged(bool);
   void runningChanged(bool);
+  void stopped();
 
 public slots:
 

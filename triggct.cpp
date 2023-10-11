@@ -48,7 +48,10 @@ void TriggCT::updateConnection() {
 
 
 void TriggCT::updateRunning() {
-  emit runningChanged( isRunning() );
+  bool running = isRunning() ;
+  emit runningChanged( running );
+  if (!running)
+    emit stopped();
 }
 
 
