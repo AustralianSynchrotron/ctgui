@@ -5,6 +5,14 @@
   <property name="enabled">
    <bool>true</bool>
   </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>892</width>
+    <height>947</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>CTgui</string>
   </property>
@@ -20,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -904,7 +912,7 @@ p
               <number>5</number>
              </property>
              <property name="minimum">
-              <double>0.000010000000000</double>
+              <double>-18000.000000000000000</double>
              </property>
              <property name="maximum">
               <double>18000.000000000000000</double>
@@ -2816,8 +2824,8 @@ p
  </connections>
  <buttongroups>
   <buttongroup name="dyno2DirButtonGroup"/>
-  <buttongroup name="endConditionButtonGroup"/>
   <buttongroup name="dynoDirButtonGroup"/>
   <buttongroup name="imageFormatGroup"/>
+  <buttongroup name="endConditionButtonGroup"/>
  </buttongroups>
 </ui>
