@@ -15,7 +15,7 @@
 #include "ctgui_mainwindow.h"
 #include "ui_ctgui_mainwindow.h"
 
-
+using namespace  std;
 
 
 #define innearList dynamic_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
@@ -268,7 +268,7 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[ui->pre2DScript] = "serial/prescript";
   configNames[ui->post2DScript] = "serial/postscript";
 
-  configNames[thetaMotor->motor()] = "scan/motor";
+  configNames[thetaMotor] = "scan/motor";
   configNames[ui->scanRange] = "scan/range";
   configNames[ui->scanProjections] = "scan/steps";
   configNames[ui->scanStep] = "scan/step";
@@ -284,7 +284,7 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[ui->bgInterval] = "flatfield/bginterval";
   configNames[ui->bgIntervalBefore] = "flatfield/bgBefore";
   configNames[ui->bgIntervalAfter] = "flatfield/bgAfter";
-  configNames[bgMotor->motor()] = "flatfield/motor";
+  configNames[bgMotor] = "flatfield/motor";
   configNames[ui->bgTravel] = "flatfield/bgtravel";
   configNames[ui->bgExposure] = "flatfield/bgexposure";
   configNames[ui->nofDFs] = "flatfield/dfs";
@@ -299,12 +299,12 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[ui->preSubLoopScript] = "loop/presubscript";
   configNames[ui->postSubLoopScript] = "loop/postsubscript";
 
-  configNames[dynoMotor->motor()] = "dyno/motor";
+  configNames[dynoMotor] = "dyno/motor";
   configNames[ui->dynoSpeed] = "dyno/speed";
   configNames[ui->dynoDirButtonGroup] = "dyno/direction";
 
   configNames[ui->dyno2] = "dyno/dyno2";
-  configNames[dyno2Motor->motor()] = "dyno/dyno2/motor";
+  configNames[dyno2Motor] = "dyno/dyno2/motor";
   configNames[ui->dynoSpeedLock] = "dyno/dyno2/speedLock";
   configNames[ui->dyno2Speed] = "dyno/dyno2/speed";
   configNames[ui->dyno2DirButtonGroup] = "dyno/dyno2/direction";
@@ -322,7 +322,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
   }
 
-  loadConfiguration(storedState);
+  //loadConfiguration(configFile);
 
   foreach (QObject * obj, configNames.keys()) {
     const char * sig = 0;
@@ -338,9 +338,10 @@ MainWindow::MainWindow(QWidget *parent) :
       sig = SIGNAL(toggled(bool));
     else if ( dynamic_cast<QButtonGroup*>(obj))
       sig = SIGNAL(buttonClicked(int));
-    else if (dynamic_cast<QCaMotor*>(obj))
+    else if (dynamic_cast<QCaMotorGUI*>(obj)) {
+      obj = dynamic_cast<QCaMotorGUI*>(obj)->motor();
       sig = SIGNAL(changedPv());
-    else if (dynamic_cast<QTableWidget*>(obj))
+    } else if (dynamic_cast<QTableWidget*>(obj))
       sig = SIGNAL(itemChanged(QTableWidgetItem*));
     else if (dynamic_cast<PositionList*>(obj))
       sig = SIGNAL(parameterChanged());
@@ -383,9 +384,9 @@ static void save_cfg(const QObject * obj, const QString & key, QSettings & confi
     config.setValue(key, dynamic_cast<const QDoubleSpinBox*>(obj)->value());
   else if (dynamic_cast<const QTimeEdit*>(obj))
     config.setValue(key, dynamic_cast<const QTimeEdit*>(obj)->time());
-  else if (dynamic_cast<const QCaMotor*>(obj)) {
-    config.setValue(key, dynamic_cast<const QCaMotor*>(obj)->getPv());
-    config.setValue(key+"Pos", dynamic_cast<const QCaMotor*>(obj)->getUserPosition());
+  else if (dynamic_cast<const QCaMotorGUI*>(obj)) {
+    config.setValue(key, dynamic_cast<const QCaMotorGUI*>(obj)->motor()->getPv());
+    config.setValue(key+"Pos", dynamic_cast<const QCaMotorGUI*>(obj)->motor()->getUserPosition());
   } else if ( dynamic_cast<const QLabel*>(obj))
     config.setValue(key, dynamic_cast<const QLabel*>(obj)->text());
   else if ( dynamic_cast<const QButtonGroup*>(obj))
@@ -407,7 +408,7 @@ static void save_cfg(const QObject * obj, const QString & key, QSettings & confi
   else if (dynamic_cast<const PositionList*>(obj)) {
     const PositionList *pl = dynamic_cast<const PositionList*>(obj);
     save_cfg(pl->ui->label, key, config);
-    save_cfg(pl->motui->motor(), key + "/motor", config);
+    save_cfg(pl->motui, key + "/motor", config);
     save_cfg(pl->ui->nof, key + "/nofsteps", config);
     save_cfg(pl->ui->step, key + "/step", config);
     save_cfg(pl->ui->irregular, key + "/irregular", config);
@@ -501,8 +502,8 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
     dynamic_cast<QDoubleSpinBox*>(obj)->setValue(value.toDouble());
   else if ( dynamic_cast<QTimeEdit*>(obj) && value.canConvert(QVariant::Time) )
     dynamic_cast<QTimeEdit*>(obj)->setTime(value.toTime());
-  else if ( dynamic_cast<QCaMotor*>(obj) && value.canConvert(QVariant::String) )
-    dynamic_cast<QCaMotor*>(obj)->setPv(value.toString());
+  else if ( dynamic_cast<QCaMotorGUI*>(obj) && value.canConvert(QVariant::String) )
+    dynamic_cast<QCaMotorGUI*>(obj)->motor()->setPv(value.toString());
   else if ( dynamic_cast<QButtonGroup*>(obj) && value.canConvert(QVariant::String) ) {
     foreach (QAbstractButton * but, dynamic_cast<QButtonGroup*>(obj)->buttons())
       if (but->text() == value.toString())
@@ -518,7 +519,7 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
     config.endArray();
   } */ else if (dynamic_cast<PositionList*>(obj)) {
     PositionList *pl = dynamic_cast<PositionList*>(obj);
-    load_cfg(pl->motui->motor(), key + "/motor", config);
+    load_cfg(pl->motui, key + "/motor", config);
     load_cfg(pl->ui->irregular, key + "/irregular", config);
     load_cfg(pl->ui->nof, key + "/nofsteps", config);
     load_cfg(pl->ui->step, key + "/step", config);

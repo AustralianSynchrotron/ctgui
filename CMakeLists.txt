@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.5)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
@@ -11,6 +11,13 @@ set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 find_package(Qt5 COMPONENTS Widgets REQUIRED)
 include_directories(${Qt5Widgets_INCLUDE_DIRS})
+
+find_path(POPTMX_INC poptmx.h)
+if(NOT POPTMX_INC)
+  message(FATAL_ERROR ": Can't find folder containing poptmx.h.")
+endif()
+include_directories(${POPTMX_INC})
+
 
 find_path(QEPICSPV_INC qtpv.h)
 if(NOT QEPICSPV_INC)
@@ -58,6 +65,7 @@ target_link_libraries(ctgui
   qtpvwidgets
   qcamotor
   qcamotorgui
+  poptmx
   Qt5::Widgets
 )
 

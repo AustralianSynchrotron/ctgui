@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>892</width>
-    <height>947</height>
+    <width>2206</width>
+    <height>1119</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>1</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -67,7 +67,10 @@
           <item row="2" column="1">
            <widget class="QSCheckBox" name="checkMulti">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Visible only in the SaS mode. Always unchecked in the continious mode. Hides/shows &amp;quot;Multishot&amp;quot; tab. If unchecked, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalLoops&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalSubLoops&lt;/span&gt;=0. Otherwise the parametrs are defined in the &amp;quot;Multishot&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>Each frame in the CT scan is acquired as a series of tiles as configured in the &quot;Tiles&quot; tab</string>
+            </property>
+            <property name="whatsThis">
+             <string>Acquire tiled frame</string>
             </property>
             <property name="text">
              <string>Tiles</string>
@@ -103,7 +106,10 @@
           <item row="1" column="1">
            <widget class="QSCheckBox" name="checkSerial">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;If unchecked, &amp;quot;Serial&amp;quot; tab is hidden, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalScans&lt;/span&gt;=1 and &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;=&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;NUMBER&lt;/span&gt;. Otherwise the parameters are defined in the &amp;quot;Serial&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>Repeats CT scans as configured in the &quot;Serial&quot; tab</string>
+            </property>
+            <property name="whatsThis">
+             <string>Performs series of scans</string>
             </property>
             <property name="text">
              <string>Serial scans</string>
@@ -112,6 +118,12 @@
           </item>
           <item row="3" column="1">
            <widget class="QCheckBox" name="checkExtTrig">
+            <property name="toolTip">
+             <string>Frames are triggered externally. The detector is set into the hardware triggering mode and relies on the externally generated TTL signal.</string>
+            </property>
+            <property name="whatsThis">
+             <string>Trigger frames externally</string>
+            </property>
             <property name="text">
              <string>External triggering</string>
             </property>
@@ -120,7 +132,10 @@
           <item row="1" column="2">
            <widget class="QSCheckBox" name="checkFF">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Hides/shows &amp;quot;Flat field&amp;quot; tab. If unchecked, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;BGstep&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DFstep&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalBGs&lt;/span&gt;=0, &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalDFs&lt;/span&gt;=0. Otherwise the parametrs are defined in the &amp;quot;Flat field&amp;quot; tab&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>Acquires background and/or dark field callibration images as configured in the &quot;Flat field&quot; tab.</string>
+            </property>
+            <property name="whatsThis">
+             <string>Acquire flat field images</string>
             </property>
             <property name="text">
              <string>Flat field</string>
@@ -130,7 +145,10 @@
           <item row="2" column="2">
            <widget class="QSCheckBox" name="checkDyno">
             <property name="toolTip">
-             <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynamicShot&lt;/span&gt;. Visible only in the SaS mode. Always unchecked in the continious mode. Hides/shows &amp;quot;Dynamic shot&amp;quot; tab.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+             <string>Each frame in the CT scan is acquired as the sample and detector are moving through the beam, thus 'brushing' the image large than the beam size. Configured in the &quot;Dynamic&quot; tab.</string>
+            </property>
+            <property name="whatsThis">
+             <string>Perform dynamic acquisition</string>
             </property>
             <property name="text">
              <string>Dynamic shot</string>
@@ -138,10 +156,23 @@
            </widget>
           </item>
           <item row="0" column="1" colspan="2">
-           <widget class="QComboBox" name="aqMode"/>
+           <widget class="QComboBox" name="aqMode">
+            <property name="toolTip">
+             <string>Defines how frame acquisition is triggerred: by software (time), hardware (encoder) or step (individual)</string>
+            </property>
+            <property name="whatsThis">
+             <string>Acquisition mode</string>
+            </property>
+           </widget>
           </item>
           <item row="3" column="2">
            <widget class="QCheckBox" name="checkSpiral">
+            <property name="toolTip">
+             <string>Acquires series of images in the spiral CT mode configured in &quot;Scan&quot; tab.</string>
+            </property>
+            <property name="whatsThis">
+             <string>Perform spiral CT acquisition</string>
+            </property>
             <property name="text">
              <string>Spiral CT</string>
             </property>
@@ -152,7 +183,10 @@
         <item row="12" column="0">
          <widget class="QPTEext" name="expDesc">
           <property name="toolTip">
-           <string>For info only. To be saved in log and config files</string>
+           <string>Free form description of the experiment. It will be saved in the human readable configuration file together with the rest of experiment parameters.</string>
+          </property>
+          <property name="whatsThis">
+           <string>Description of the experiment</string>
           </property>
           <property name="documentTitle">
            <string/>
@@ -175,10 +209,24 @@
            </widget>
           </item>
           <item row="0" column="1">
-           <widget class="UScript" name="preRunScript" native="true"/>
+           <widget class="UScript" name="preRunScript" native="true">
+            <property name="toolTip">
+             <string>This script is executed right after hitting Start button, before anything else.</string>
+            </property>
+            <property name="whatsThis">
+             <string>Script executed before the experiment</string>
+            </property>
+           </widget>
           </item>
           <item row="1" column="1">
-           <widget class="UScript" name="postRunScript" native="true"/>
+           <widget class="UScript" name="postRunScript" native="true">
+            <property name="toolTip">
+             <string>This script is executed as the very last step of the experiment, when all procedures are complete and just before releasing the UI.</string>
+            </property>
+            <property name="whatsThis">
+             <string>Script executed after the experiment</string>
+            </property>
+           </widget>
           </item>
           <item row="1" column="0">
            <widget class="QLabel" name="label_15">
@@ -216,6 +264,12 @@
           </item>
           <item row="0" column="1">
            <widget class="QLineEdit" name="expPath">
+            <property name="toolTip">
+             <string>Path where frames configuration and logs are saved</string>
+            </property>
+            <property name="whatsThis">
+             <string>Current working directory</string>
+            </property>
             <property name="readOnly">
              <bool>true</bool>
             </property>
@@ -233,6 +287,12 @@
           </item>
           <item row="1" column="1" colspan="2">
            <widget class="QSCheckBox" name="detPathSync">
+            <property name="toolTip">
+             <string>If ticked, tries to synchronize current working directory with the save path of the detectors' IOCs. Note that works well as long as new working directory is on the same level of the file system tree</string>
+            </property>
+            <property name="whatsThis">
+             <string>Synchronize CWD with the detector IOC</string>
+            </property>
             <property name="text">
              <string>Synchronize detector save directory with the working directory</string>
             </property>
@@ -242,6 +302,12 @@
            <layout class="QHBoxLayout" name="horizontalLayout_19">
             <item>
              <widget class="QRadioButton" name="tiffFormat">
+              <property name="toolTip">
+               <string>Frames are saved as individual TIFF images. Undesirable option because filesystem does not perform well with many small files</string>
+              </property>
+              <property name="whatsThis">
+               <string>Saves frames into TIFF files</string>
+              </property>
               <property name="text">
                <string>TIFF</string>
               </property>
@@ -255,6 +321,12 @@
             </item>
             <item>
              <widget class="QRadioButton" name="hdfFormat">
+              <property name="toolTip">
+               <string>Saves series of image frames into HDF5 container. Each series in the serial scans and flat field stacks are saved into individual container</string>
+              </property>
+              <property name="whatsThis">
+               <string>Saves frames into HDF5 container(s)</string>
+              </property>
               <property name="text">
                <string>HDF&amp;5</string>
               </property>
@@ -421,7 +493,14 @@ p
             </widget>
            </item>
            <item row="3" column="1" colspan="3">
-            <widget class="UScript" name="conditionScript" native="true"/>
+            <widget class="UScript" name="conditionScript" native="true">
+             <property name="toolTip">
+              <string>Experiment finishes when execution of this script returns a non-zero value. Condition is checked between series.</string>
+             </property>
+             <property name="whatsThis">
+              <string>End condition script</string>
+             </property>
+            </widget>
            </item>
            <item row="6" column="0">
             <widget class="QLabel" name="post2DSlabel">
@@ -496,7 +575,10 @@ p
               <item>
                <widget class="QTimeEdit" name="acquisitionTime">
                 <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalTime&lt;/span&gt;. Shown if &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;=&lt;/span&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;TIME&lt;/span&gt;. Otherwise hidden.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 <string>Experiment finishes after this time has elapsed.</string>
+                </property>
+                <property name="whatsThis">
+                 <string>End condition time</string>
                 </property>
                 <property name="minimumTime">
                  <time>
@@ -535,7 +617,10 @@ p
              <item>
               <widget class="QRadioButton" name="endNumber">
                <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;=&lt;/span&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;NUMBER&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>Experiment finishes after all configured series are acquired</string>
+               </property>
+               <property name="whatsThis">
+                <string>Finish on all series done</string>
                </property>
                <property name="text">
                 <string>number of scans</string>
@@ -551,7 +636,10 @@ p
              <item>
               <widget class="QRadioButton" name="endTime">
                <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;=&lt;/span&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;TIME&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>Experiment finishes after time frame has elapsed. Note that time is checked between series, scan will not be interrupted if it elapses in the middle of acquisition.</string>
+               </property>
+               <property name="whatsThis">
+                <string>Finish on time elapsed</string>
                </property>
                <property name="text">
                 <string>elapsed time</string>
@@ -564,10 +652,13 @@ p
              <item>
               <widget class="QRadioButton" name="endCondition">
                <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;EndCondition&lt;/span&gt;&lt;span style=&quot; font-style:italic;&quot;&gt;=&lt;/span&gt;&lt;span style=&quot; font-style:italic; text-decoration: underline;&quot;&gt;MANUAL&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>Finish on non-zero return from conditional script.</string>
+               </property>
+               <property name="whatsThis">
+                <string>Finish on script non-zero return</string>
                </property>
                <property name="text">
-                <string>conditional</string>
+                <string>script</string>
                </property>
                <attribute name="buttonGroup">
                 <string notr="true">endConditionButtonGroup</string>
@@ -579,7 +670,7 @@ p
            <item row="3" column="0">
             <widget class="QLabel" name="conditionScriptLabel">
              <property name="text">
-              <string>Condition script:</string>
+              <string>End on script:</string>
              </property>
             </widget>
            </item>
@@ -589,7 +680,7 @@ p
            <item row="2" column="0">
             <widget class="QLabel" name="acquisitionTimeLabel">
              <property name="text">
-              <string>Time:</string>
+              <string>End on time:</string>
              </property>
             </widget>
            </item>
@@ -2825,7 +2916,15 @@ p
  <buttongroups>
   <buttongroup name="dyno2DirButtonGroup"/>
   <buttongroup name="dynoDirButtonGroup"/>
-  <buttongroup name="imageFormatGroup"/>
-  <buttongroup name="endConditionButtonGroup"/>
+  <buttongroup name="imageFormatGroup">
+   <property name="whatsThis" stdset="0">
+    <string>Format for image frames storage</string>
+   </property>
+  </buttongroup>
+  <buttongroup name="endConditionButtonGroup">
+   <property name="whatsThis" stdset="0">
+    <string>Sets the condition for experiment complition</string>
+   </property>
+  </buttongroup>
  </buttongroups>
 </ui>

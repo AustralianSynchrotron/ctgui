@@ -30,18 +30,23 @@ class MainWindow : public QMainWindow
 
 public:
 
+  static const QString storedState;
   explicit MainWindow(QWidget *parent = 0);
   ~MainWindow();
+
+  QHash<QObject*, QString> configNames;
+
+public slots:
+  void saveConfiguration(QString fileName = QString());
+  void loadConfiguration(QString fileName = QString());
 
 private:
 
   Detector::ImageFormat uiImageFormat() const;
 
-  static const QString storedState;
   bool isLoadingState;
 
   Ui::MainWindow *ui;
-  QHash<QObject*, QString> configNames;
   float bgOrigin;
   float bgAcquire;
   float bgEnter;
@@ -105,8 +110,6 @@ private:
 
 private slots:
 
-  void saveConfiguration(QString fileName = QString());
-  void loadConfiguration(QString fileName = QString());
 
   void storeCurrentState();
 
