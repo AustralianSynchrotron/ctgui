@@ -6,7 +6,8 @@
 #include <QStyledItemDelegate>
 #include <qcamotorgui.h>
 #include <QTableWidget>
-
+#include <QLabel>
+#include <QHeaderView>
 
 // to be used for the double numbers in the list of positions
 // in the irregular step serial scans.
@@ -20,6 +21,9 @@ public:
   void setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const;
   void updateEditorGeometry(QWidget *editor, const QStyleOptionViewItem &option, const QModelIndex &index) const;
 };
+
+
+
 
 // QTableWidget with support for copy and paste added
 // Here copy and paste can copy/paste the entire grid of cells
@@ -44,8 +48,16 @@ protected:
 
 
 
-#include "ui_positionlist.h"
+class QTableWidgetOtem : public QObject, public QTableWidgetItem {
+  Q_OBJECT;
+public:
+  QTableWidgetOtem(const QTableWidgetItem * other)
+    : QObject()
+    , QTableWidgetItem(*other)
+  {}
+};
 
+#include "ui_positionlist.h"
 
 class PositionList : public QWidget
 {

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>321</width>
-    <height>62</height>
+    <width>454</width>
+    <height>72</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -22,6 +22,9 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="toolTip">
+      <string>Current status of the shutter</string>
+     </property>
      <property name="text">
       <string>status</string>
      </property>
@@ -32,8 +35,8 @@
    </item>
    <item row="0" column="0">
     <widget class="QComboBox" name="selection">
-     <property name="editable">
-      <bool>true</bool>
+     <property name="toolTip">
+      <string>Shutter selection</string>
      </property>
      <property name="insertPolicy">
       <enum>QComboBox::InsertAtTop</enum>
@@ -47,6 +50,9 @@
    </item>
    <item row="0" column="2">
     <widget class="QPushButton" name="toggle">
+     <property name="toolTip">
+      <string>Toggles the shutter</string>
+     </property>
      <property name="text">
       <string>toggle</string>
      </property>

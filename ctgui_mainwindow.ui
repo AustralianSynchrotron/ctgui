@@ -10,7 +10,7 @@
     <x>0</x>
     <y>0</y>
     <width>2206</width>
-    <height>1119</height>
+    <height>1110</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,7 +28,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>1</number>
+       <number>6</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -328,7 +328,7 @@
                <string>Saves frames into HDF5 container(s)</string>
               </property>
               <property name="text">
-               <string>HDF&amp;5</string>
+               <string>HDF5</string>
               </property>
               <attribute name="buttonGroup">
                <string notr="true">imageFormatGroup</string>
@@ -356,14 +356,21 @@
         <item>
          <widget class="QWidget" name="ssWidget" native="true">
           <layout class="QGridLayout" name="gridLayout_8">
-           <item row="7" column="0" colspan="4">
-            <widget class="Line" name="line_13">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+           <item row="1" column="0">
+            <widget class="QLabel" name="acquisitionTimeLabel">
+             <property name="text">
+              <string>End on time:</string>
              </property>
             </widget>
            </item>
-           <item row="4" column="0" colspan="4">
+           <item row="8" column="0">
+            <widget class="QLabel" name="label_33">
+             <property name="text">
+              <string>Delay between scans:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0" colspan="4">
             <layout class="QHBoxLayout" name="serialListsLayout">
              <item>
               <widget class="QFrame" name="outerListPlace">
@@ -396,6 +403,12 @@
                     <width>20</width>
                     <height>20</height>
                    </size>
+                  </property>
+                  <property name="toolTip">
+                   <string>List of CT scans in the serial acquisition experiment</string>
+                  </property>
+                  <property name="whatsThis">
+                   <string>List of serial scans</string>
                   </property>
                  </widget>
                 </item>
@@ -458,6 +471,12 @@ p
                     <height>20</height>
                    </size>
                   </property>
+                  <property name="toolTip">
+                   <string>List of CT scans in the serial acquisition experiment</string>
+                  </property>
+                  <property name="whatsThis">
+                   <string>List of serial scans</string>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -465,34 +484,7 @@ p
              </item>
             </layout>
            </item>
-           <item row="8" column="2" colspan="2">
-            <widget class="QSCheckBox" name="ffOnEachScan">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;OngoingSeries. &lt;/span&gt;Visible if continious mode is selected and &amp;quot;flat field&amp;quot; feature is checked in the &amp;quot;Configuration&amp;quot; tab. Hidden otherwise. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Acquire flat field on each scan</string>
-             </property>
-            </widget>
-           </item>
-           <item row="8" column="0" colspan="2">
-            <widget class="QSCheckBox" name="ongoingSeries">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;OngoingSeries. &lt;/span&gt;Visible in continious mode. Hidden otherwise. &lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Non-stop series</string>
-             </property>
-            </widget>
-           </item>
-           <item row="5" column="0">
-            <widget class="QLabel" name="pre2DSlabel">
-             <property name="text">
-              <string>Pre innear loop script</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1" colspan="3">
+           <item row="2" column="1" colspan="3">
             <widget class="UScript" name="conditionScript" native="true">
              <property name="toolTip">
               <string>Experiment finishes when execution of this script returns a non-zero value. Condition is checked between series.</string>
@@ -502,21 +494,28 @@ p
              </property>
             </widget>
            </item>
-           <item row="6" column="0">
+           <item row="5" column="0">
             <widget class="QLabel" name="post2DSlabel">
              <property name="text">
               <string>Post innear loop script</string>
              </property>
             </widget>
            </item>
-           <item row="9" column="0">
-            <widget class="QLabel" name="label_33">
-             <property name="text">
-              <string>Delay between scans:</string>
+           <item row="6" column="0" colspan="4">
+            <widget class="Line" name="line_13">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
              </property>
             </widget>
            </item>
-           <item row="9" column="1" colspan="3">
+           <item row="2" column="0">
+            <widget class="QLabel" name="conditionScriptLabel">
+             <property name="text">
+              <string>End on script:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1" colspan="3">
             <widget class="QWidget" name="scanDelayWdg" native="true">
              <layout class="QHBoxLayout" name="horizontalLayout_3">
               <property name="spacing">
@@ -537,7 +536,10 @@ p
               <item>
                <widget class="QTimeEdit" name="scanDelay">
                 <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ScanDelay&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 <string>Delay between each individual CT scan in the series.</string>
+                </property>
+                <property name="whatsThis">
+                 <string>Delay between scans in series</string>
                 </property>
                 <property name="displayFormat">
                  <string>HH:mm:ss.z</string>
@@ -554,62 +556,43 @@ p
              </layout>
             </widget>
            </item>
-           <item row="2" column="1" colspan="3">
-            <widget class="QWidget" name="acquisitionTimeWdg" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout_2">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-              <item>
-               <widget class="QTimeEdit" name="acquisitionTime">
-                <property name="toolTip">
-                 <string>Experiment finishes after this time has elapsed.</string>
-                </property>
-                <property name="whatsThis">
-                 <string>End condition time</string>
-                </property>
-                <property name="minimumTime">
-                 <time>
-                  <hour>0</hour>
-                  <minute>0</minute>
-                  <second>0</second>
-                 </time>
-                </property>
-                <property name="displayFormat">
-                 <string>HH:mm:ss.z</string>
-                </property>
-                <property name="timeSpec">
-                 <enum>Qt::OffsetFromUTC</enum>
-                </property>
-                <property name="time">
-                 <time>
-                  <hour>15</hour>
-                  <minute>0</minute>
-                  <second>1</second>
-                 </time>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLabel" name="label_9">
-                <property name="text">
-                 <string>hours:minutes:seconds.miliseconds</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
+           <item row="7" column="0" colspan="2">
+            <widget class="QSCheckBox" name="ongoingSeries">
+             <property name="toolTip">
+              <string>Starts CT scan from current rotation position of the motor, instead of returning initial position</string>
+             </property>
+             <property name="whatsThis">
+              <string>Non-stop series</string>
+             </property>
+             <property name="text">
+              <string>Non-stop series</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="2" colspan="2">
+            <widget class="QSCheckBox" name="ffOnEachScan">
+             <property name="toolTip">
+              <string>Flat field collection is executed on each individual scan, rather than for the whole series.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Flat field on each CT scan</string>
+             </property>
+             <property name="text">
+              <string>Acquire flat field on each scan</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QLabel" name="label">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>End the experiment on:</string>
+             </property>
             </widget>
            </item>
            <item row="0" column="1" colspan="2">
@@ -667,47 +650,72 @@ p
              </item>
             </layout>
            </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="conditionScriptLabel">
+           <item row="1" column="1" colspan="3">
+            <widget class="QWidget" name="acquisitionTimeWdg" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+              <item>
+               <widget class="QTimeEdit" name="acquisitionTime">
+                <property name="toolTip">
+                 <string>Experiment finishes after this time has elapsed.</string>
+                </property>
+                <property name="whatsThis">
+                 <string>End condition time</string>
+                </property>
+                <property name="minimumTime">
+                 <time>
+                  <hour>0</hour>
+                  <minute>0</minute>
+                  <second>0</second>
+                 </time>
+                </property>
+                <property name="displayFormat">
+                 <string>HH:mm:ss.z</string>
+                </property>
+                <property name="timeSpec">
+                 <enum>Qt::OffsetFromUTC</enum>
+                </property>
+                <property name="time">
+                 <time>
+                  <hour>15</hour>
+                  <minute>0</minute>
+                  <second>1</second>
+                 </time>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLabel" name="label_9">
+                <property name="text">
+                 <string>hours:minutes:seconds.miliseconds</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="pre2DSlabel">
              <property name="text">
-              <string>End on script:</string>
+              <string>Pre innear loop script</string>
              </property>
             </widget>
            </item>
-           <item row="5" column="1" colspan="3">
-            <widget class="UScript" name="pre2DScript" native="true"/>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="acquisitionTimeLabel">
-             <property name="text">
-              <string>End on time:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0" colspan="4">
-            <widget class="Line" name="line_6">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="text">
-              <string>End the experiment on:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="1" colspan="3">
-            <widget class="UScript" name="post2DScript" native="true"/>
-           </item>
-           <item row="10" column="0">
+           <item row="9" column="0">
             <widget class="QWidget" name="serialTabSpacer" native="true">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="MinimumExpanding">
@@ -749,11 +757,37 @@ p
            </item>
            <item row="0" column="3">
             <widget class="QCheckBox" name="serial2D">
+             <property name="toolTip">
+              <string>Perform two dimensional series</string>
+             </property>
+             <property name="whatsThis">
+              <string>2D series</string>
+             </property>
              <property name="text">
               <string>Second dimension</string>
              </property>
              <property name="checked">
               <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="1" colspan="3">
+            <widget class="UScript" name="post2DScript" native="true">
+             <property name="toolTip">
+              <string>This script is executed after finishing each innear series of scans in 2D series.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Script executed after each internal series</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1" colspan="3">
+            <widget class="UScript" name="pre2DScript" native="true">
+             <property name="toolTip">
+              <string>This script is executed before starting each innear series of scans in 2D series.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Script executed before each internal series</string>
              </property>
             </widget>
            </item>
@@ -787,27 +821,6 @@ p
         <item>
          <widget class="QWidget" name="scanWidget" native="true">
           <layout class="QGridLayout" name="gridLayout_2">
-           <item row="12" column="2">
-            <widget class="QVariantLabel" name="normalSpeed">
-             <property name="text">
-              <string>normalSpeed</string>
-             </property>
-            </widget>
-           </item>
-           <item row="15" column="3">
-            <widget class="QLabel" name="spiralMaxSpeedLabel">
-             <property name="text">
-              <string>Maximum</string>
-             </property>
-            </widget>
-           </item>
-           <item row="18" column="0">
-            <widget class="QLabel" name="label_36">
-             <property name="text">
-              <string>Pre-scan script</string>
-             </property>
-            </widget>
-           </item>
            <item row="14" column="0" colspan="7">
             <widget class="Line" name="line_2">
              <property name="orientation">
@@ -815,176 +828,17 @@ p
              </property>
             </widget>
            </item>
-           <item row="5" column="0" colspan="7">
-            <widget class="QSCheckBox" name="scanAdd">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DoEndProj&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="text">
-              <string>Acquire projection in the end point</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="12" column="4">
-            <widget class="QVariantLabel" name="maximumSpeed">
+           <item row="15" column="4">
+            <widget class="QVariantLabel" name="spiralMaxSpeed">
              <property name="text">
               <string>maxSpeed</string>
              </property>
             </widget>
            </item>
-           <item row="20" column="0">
-            <spacer name="verticalSpacer">
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>246</width>
-               <height>391</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item row="0" column="1" colspan="6">
-            <widget class="QWidget" name="placeScanCurrent" native="true">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>20</height>
-              </size>
-             </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_27">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-             </layout>
-            </widget>
-           </item>
-           <item row="13" column="3">
-            <widget class="QLabel" name="stepTimeLabel">
-             <property name="text">
-              <string>Step</string>
-             </property>
-            </widget>
-           </item>
-           <item row="19" column="1" colspan="6">
-            <widget class="UScript" name="postScanScript" native="true"/>
-           </item>
-           <item row="13" column="1">
-            <widget class="QLabel" name="exposureInfoLabel">
-             <property name="text">
-              <string>Exposure</string>
-             </property>
-            </widget>
-           </item>
-           <item row="13" column="5">
-            <widget class="QLabel" name="expOverStepLabel">
-             <property name="text">
-              <string>Exposure/step</string>
-             </property>
-            </widget>
-           </item>
-           <item row="13" column="0">
-            <widget class="QLabel" name="timesLabel">
-             <property name="text">
-              <string>Times:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_13">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="text">
-              <string>Scan range</string>
-             </property>
-            </widget>
-           </item>
-           <item row="12" column="3">
-            <widget class="QLabel" name="maximumSpeedLabel">
-             <property name="text">
-              <string>Maximum</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0">
-            <widget class="QWidget" name="placeThetaMotor" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout_21">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-             </layout>
-            </widget>
-           </item>
-           <item row="13" column="2">
-            <widget class="QVariantLabel" name="exposureInfo">
-             <property name="text">
-              <string>exposure</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="1" colspan="6">
-            <widget class="QMSpinBox" name="scanProjections">
+           <item row="16" column="4">
+            <widget class="QMDoubleSpinBox" name="spiralTravel">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalProjs&lt;/span&gt;. Defines &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ThetaStep.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="minimum">
-              <number>2</number>
-             </property>
-             <property name="maximum">
-              <number>2147483647</number>
-             </property>
-            </widget>
-           </item>
-           <item row="12" column="5">
-            <widget class="QLabel" name="rotSpeedLabel">
-             <property name="text">
-              <string>In acquisition</string>
-             </property>
-            </widget>
-           </item>
-           <item row="4" column="0">
-            <widget class="QLabel" name="aqsPPLabel">
-             <property name="text">
-              <string>Acquisitions per projection</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="1" colspan="6">
-            <widget class="QMDoubleSpinBox" name="scanRange">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ScanRange&lt;/span&gt;. Defines &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ThetaStep.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;OutBeam&lt;/span&gt;.  Must not be equal to current position of the &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;BGmotor&lt;/span&gt; on start if &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalBGs&lt;/span&gt;&amp;gt;0.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
              </property>
              <property name="minimum">
               <double>-2147483647.000000000000000</double>
@@ -992,147 +846,22 @@ p
              <property name="maximum">
               <double>2147483647.000000000000000</double>
              </property>
-             <property name="value">
-              <double>180.000000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="12" column="6">
-            <widget class="QMDoubleSpinBox" name="aqsSpeed">
-             <property name="decimals">
-              <number>5</number>
-             </property>
-             <property name="minimum">
-              <double>-18000.000000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>18000.000000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="12" column="1">
-            <widget class="QLabel" name="normalSpeedLabel">
-             <property name="text">
-              <string>Normal</string>
-             </property>
             </widget>
            </item>
            <item row="4" column="1" colspan="6">
             <widget class="QSpinBox" name="aqsPP">
+             <property name="toolTip">
+              <string>Number of frames acquired in each projection. Only makes sense in step-and-shot imaging modality.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Number of frames per projection</string>
+             </property>
              <property name="minimum">
               <number>1</number>
              </property>
              <property name="maximum">
               <number>2147483647</number>
              </property>
-            </widget>
-           </item>
-           <item row="9" column="0" colspan="7">
-            <widget class="Line" name="speedsLine">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="19" column="0">
-            <widget class="QLabel" name="label_35">
-             <property name="text">
-              <string>Post-scan script</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_43">
-             <property name="text">
-              <string>Step</string>
-             </property>
-            </widget>
-           </item>
-           <item row="16" column="3">
-            <widget class="QLabel" name="label_31">
-             <property name="text">
-              <string>Travel per scan</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QLabel" name="label_14">
-             <property name="text">
-              <string>Projections</string>
-             </property>
-            </widget>
-           </item>
-           <item row="13" column="6">
-            <widget class="QMDoubleSpinBox" name="flyRatio">
-             <property name="decimals">
-              <number>3</number>
-             </property>
-             <property name="minimum">
-              <double>0.001000000000000</double>
-             </property>
-             <property name="maximum">
-              <double>1.000000000000000</double>
-             </property>
-             <property name="singleStep">
-              <double>0.100000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="12" column="0">
-            <widget class="QLabel" name="speedsLabel">
-             <property name="text">
-              <string>Speeds:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1" colspan="6">
-            <widget class="QMDoubleSpinBox" name="scanStep">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ScanRange&lt;/span&gt;. Defines &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ThetaStep.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="decimals">
-              <number>6</number>
-             </property>
-             <property name="minimum">
-              <double>0.000001000000000</double>
-             </property>
-             <property name="maximum">
-              <double>2147483647.000000000000000</double>
-             </property>
-             <property name="value">
-              <double>90.000000000000000</double>
-             </property>
-            </widget>
-           </item>
-           <item row="18" column="1" colspan="6">
-            <widget class="UScript" name="preScanScript" native="true"/>
-           </item>
-           <item row="15" column="0">
-            <widget class="QLabel" name="spiralLabel">
-             <property name="text">
-              <string>Spiral CT</string>
-             </property>
-            </widget>
-           </item>
-           <item row="16" column="0">
-            <widget class="QWidget" name="placeSpiralMotor" native="true">
-             <layout class="QHBoxLayout" name="horizontalLayout_25">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-             </layout>
             </widget>
            </item>
            <item row="16" column="1" colspan="2">
@@ -1162,30 +891,80 @@ p
              </layout>
             </widget>
            </item>
-           <item row="15" column="1">
-            <widget class="QLabel" name="spiralSpeedsLabel">
-             <property name="text">
-              <string>Speeds:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="15" column="4">
-            <widget class="QVariantLabel" name="spiralMaxSpeed">
-             <property name="text">
-              <string>maxSpeed</string>
-             </property>
-            </widget>
-           </item>
-           <item row="16" column="4">
-            <widget class="QMDoubleSpinBox" name="spiralTravel">
+           <item row="13" column="4">
+            <widget class="QMDoubleSpinBox" name="stepTime">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;OutBeam&lt;/span&gt;.  Must not be equal to current position of the &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;BGmotor&lt;/span&gt; on start if &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalBGs&lt;/span&gt;&amp;gt;0.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>Time to travel single step between two projections.</string>
              </property>
-             <property name="minimum">
-              <double>-2147483647.000000000000000</double>
+             <property name="whatsThis">
+              <string>Time between projections</string>
+             </property>
+             <property name="decimals">
+              <number>3</number>
              </property>
              <property name="maximum">
               <double>2147483647.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_14">
+             <property name="text">
+              <string>Projections</string>
+             </property>
+            </widget>
+           </item>
+           <item row="9" column="0" colspan="7">
+            <widget class="Line" name="speedsLine">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="16" column="5">
+            <widget class="QLabel" name="label_34">
+             <property name="text">
+              <string>Scans</string>
+             </property>
+            </widget>
+           </item>
+           <item row="12" column="1">
+            <widget class="QLabel" name="normalSpeedLabel">
+             <property name="text">
+              <string>Normal</string>
+             </property>
+            </widget>
+           </item>
+           <item row="13" column="3">
+            <widget class="QLabel" name="stepTimeLabel">
+             <property name="text">
+              <string>Step</string>
+             </property>
+            </widget>
+           </item>
+           <item row="19" column="1" colspan="6">
+            <widget class="UScript" name="postScanScript" native="true">
+             <property name="toolTip">
+              <string>This script is executed before each individual CT scan.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Script executed after CT scan</string>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0" colspan="7">
+            <widget class="QSCheckBox" name="scanAdd">
+             <property name="toolTip">
+              <string>Add additional projection in the end of the scan to cover whole ark, rather than ark minus step </string>
+             </property>
+             <property name="whatsThis">
+              <string>Additional projection in the end of the scan range</string>
+             </property>
+             <property name="text">
+              <string>Acquire projection in the end point</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -1196,10 +975,204 @@ p
              </property>
             </widget>
            </item>
-           <item row="16" column="5">
-            <widget class="QLabel" name="label_34">
+           <item row="20" column="0">
+            <spacer name="verticalSpacer">
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>246</width>
+               <height>391</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="16" column="0">
+            <widget class="QWidget" name="placeSpiralMotor" native="true">
+             <layout class="QHBoxLayout" name="horizontalLayout_25">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+             </layout>
+            </widget>
+           </item>
+           <item row="13" column="0">
+            <widget class="QLabel" name="timesLabel">
              <property name="text">
-              <string>Scans</string>
+              <string>Times:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="13" column="2">
+            <widget class="QVariantLabel" name="exposureInfo">
+             <property name="text">
+              <string>exposure</string>
+             </property>
+            </widget>
+           </item>
+           <item row="12" column="6">
+            <widget class="QMDoubleSpinBox" name="aqsSpeed">
+             <property name="toolTip">
+              <string>Motor speed during the acquisition. Makes sense only in on-the-fly imaging modality.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Motion speed in acquisition</string>
+             </property>
+             <property name="decimals">
+              <number>5</number>
+             </property>
+             <property name="minimum">
+              <double>-18000.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>18000.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="0">
+            <widget class="QLabel" name="aqsPPLabel">
+             <property name="text">
+              <string>Acquisitions per projection</string>
+             </property>
+            </widget>
+           </item>
+           <item row="19" column="0">
+            <widget class="QLabel" name="label_35">
+             <property name="text">
+              <string>Post-scan script</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
+            <widget class="QLabel" name="label_43">
+             <property name="text">
+              <string>Step</string>
+             </property>
+            </widget>
+           </item>
+           <item row="15" column="3">
+            <widget class="QLabel" name="spiralMaxSpeedLabel">
+             <property name="text">
+              <string>Maximum</string>
+             </property>
+            </widget>
+           </item>
+           <item row="12" column="4">
+            <widget class="QVariantLabel" name="maximumSpeed">
+             <property name="text">
+              <string>maxSpeed</string>
+             </property>
+            </widget>
+           </item>
+           <item row="17" column="0" colspan="7">
+            <widget class="Line" name="spiralLine">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="12" column="5">
+            <widget class="QLabel" name="rotSpeedLabel">
+             <property name="text">
+              <string>In acquisition</string>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="1" colspan="6">
+            <widget class="QMDoubleSpinBox" name="scanStep">
+             <property name="toolTip">
+              <string>Motion step between projections.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Scan step</string>
+             </property>
+             <property name="decimals">
+              <number>6</number>
+             </property>
+             <property name="minimum">
+              <double>0.000001000000000</double>
+             </property>
+             <property name="maximum">
+              <double>2147483647.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>90.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="13" column="5">
+            <widget class="QLabel" name="expOverStepLabel">
+             <property name="text">
+              <string>Exposure/step</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="1" colspan="6">
+            <widget class="QMDoubleSpinBox" name="scanRange">
+             <property name="toolTip">
+              <string>Acquisition ark in the scan.</string>
+             </property>
+             <property name="whatsThis">
+              <string>CT scan range</string>
+             </property>
+             <property name="minimum">
+              <double>-2147483647.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>2147483647.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>180.000000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1" colspan="6">
+            <widget class="QWidget" name="placeScanCurrent" native="true">
+             <property name="toolTip">
+              <string>Current position of CT motor.</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_27">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+             </layout>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_13">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Scan range</string>
              </property>
             </widget>
            </item>
@@ -1216,10 +1189,95 @@ p
              </property>
             </widget>
            </item>
-           <item row="17" column="0" colspan="7">
-            <widget class="Line" name="spiralLine">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+           <item row="13" column="1">
+            <widget class="QLabel" name="exposureInfoLabel">
+             <property name="text">
+              <string>Exposure</string>
+             </property>
+            </widget>
+           </item>
+           <item row="12" column="2">
+            <widget class="QVariantLabel" name="normalSpeed">
+             <property name="text">
+              <string>normalSpeed</string>
+             </property>
+            </widget>
+           </item>
+           <item row="15" column="1">
+            <widget class="QLabel" name="spiralSpeedsLabel">
+             <property name="text">
+              <string>Speeds:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1" colspan="6">
+            <widget class="QMSpinBox" name="scanProjections">
+             <property name="toolTip">
+              <string>Number of projections in scan.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Number of projections</string>
+             </property>
+             <property name="minimum">
+              <number>2</number>
+             </property>
+             <property name="maximum">
+              <number>2147483647</number>
+             </property>
+            </widget>
+           </item>
+           <item row="16" column="3">
+            <widget class="QLabel" name="label_31">
+             <property name="text">
+              <string>Travel per scan</string>
+             </property>
+            </widget>
+           </item>
+           <item row="12" column="0">
+            <widget class="QLabel" name="speedsLabel">
+             <property name="text">
+              <string>Speeds:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0">
+            <widget class="QWidget" name="placeThetaMotor" native="true">
+             <property name="toolTip">
+              <string>Motor used for the CT scan motion.</string>
+             </property>
+             <property name="whatsThis">
+              <string>CT scan motor</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_21">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+             </layout>
+            </widget>
+           </item>
+           <item row="15" column="0">
+            <widget class="QLabel" name="spiralLabel">
+             <property name="text">
+              <string>Spiral CT</string>
+             </property>
+            </widget>
+           </item>
+           <item row="12" column="3">
+            <widget class="QLabel" name="maximumSpeedLabel">
+             <property name="text">
+              <string>Maximum</string>
              </property>
             </widget>
            </item>
@@ -1236,13 +1294,42 @@ p
              </property>
             </widget>
            </item>
-           <item row="13" column="4">
-            <widget class="QMDoubleSpinBox" name="stepTime">
+           <item row="13" column="6">
+            <widget class="QMDoubleSpinBox" name="flyRatio">
+             <property name="toolTip">
+              <string>Ratio of detector exposure to time between frames.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Ration between exposure and step time</string>
+             </property>
              <property name="decimals">
               <number>3</number>
              </property>
+             <property name="minimum">
+              <double>0.001000000000000</double>
+             </property>
              <property name="maximum">
-              <double>2147483647.000000000000000</double>
+              <double>1.000000000000000</double>
+             </property>
+             <property name="singleStep">
+              <double>0.100000000000000</double>
+             </property>
+            </widget>
+           </item>
+           <item row="18" column="1" colspan="6">
+            <widget class="UScript" name="preScanScript" native="true">
+             <property name="toolTip">
+              <string>This script is executed before each individual CT scan.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Script executed before CT scan</string>
+             </property>
+            </widget>
+           </item>
+           <item row="18" column="0">
+            <widget class="QLabel" name="label_36">
+             <property name="text">
+              <string>Pre-scan script</string>
              </property>
             </widget>
            </item>
@@ -1276,7 +1363,14 @@ p
         <item>
          <widget class="QWidget" name="ffWidget" native="true">
           <layout class="QGridLayout" name="ffLayout">
-           <item row="9" column="0" colspan="2">
+           <item row="4" column="0">
+            <widget class="QLabel" name="label_47">
+             <property name="text">
+              <string>Distance</string>
+             </property>
+            </widget>
+           </item>
+           <item row="7" column="0" colspan="2">
             <widget class="QLabel" name="label_52">
              <property name="text">
               <string>Dark fields</string>
@@ -1286,255 +1380,27 @@ p
              </property>
             </widget>
            </item>
-           <item row="0" column="0" colspan="2">
-            <widget class="QLabel" name="label_51">
-             <property name="text">
-              <string>Backgrounds</string>
-             </property>
-             <property name="alignment">
-              <set>Qt::AlignCenter</set>
-             </property>
-            </widget>
-           </item>
-           <item row="6" column="0">
-            <widget class="QWidget" name="widget_17" native="true">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_10">
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-             </layout>
-            </widget>
-           </item>
-           <item row="8" column="0" colspan="2">
-            <widget class="Line" name="line_4">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-            </widget>
-           </item>
            <item row="1" column="1">
             <widget class="QSpinBox" name="nofBGs">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalBGs&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>Number of frames for background acquisition.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Number of backgrounds</string>
              </property>
              <property name="maximum">
               <number>999999</number>
              </property>
             </widget>
            </item>
-           <item row="5" column="0">
-            <widget class="QLabel" name="label_47">
-             <property name="text">
-              <string>Distance</string>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QLabel" name="label_37">
-             <property name="text">
-              <string>Number</string>
-             </property>
-            </widget>
-           </item>
-           <item row="10" column="0">
-            <widget class="QLabel" name="label_42">
-             <property name="text">
-              <string>Number</string>
-             </property>
-            </widget>
-           </item>
-           <item row="10" column="1">
-            <widget class="QSpinBox" name="nofDFs">
-             <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalDFs&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-             </property>
-             <property name="maximum">
-              <number>999999</number>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QLabel" name="label_53">
-             <property name="text">
-              <string>Interval</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QStackedWidget" name="bgIntervalWdg">
-             <property name="currentIndex">
-              <number>0</number>
-             </property>
-             <widget class="QWidget" name="bgIntervalContinious">
-              <layout class="QHBoxLayout" name="horizontalLayout_7">
-               <property name="spacing">
-                <number>0</number>
-               </property>
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
-                <number>0</number>
-               </property>
-               <item>
-                <widget class="QSCheckBox" name="bgIntervalBefore">
-                 <property name="text">
-                  <string>Before</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QSCheckBox" name="bgIntervalAfter">
-                 <property name="text">
-                  <string>After</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="bgIntervalSAS">
-              <layout class="QHBoxLayout" name="horizontalLayout_5">
-               <property name="spacing">
-                <number>0</number>
-               </property>
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
-                <number>0</number>
-               </property>
-               <item>
-                <widget class="QMSpinBox" name="bgInterval">
-                 <property name="toolTip">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;BGstep&lt;/span&gt;. Visible only in SaS mode.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                 </property>
-                 <property name="specialValueText">
-                  <string>on start only</string>
-                 </property>
-                 <property name="maximum">
-                  <number>2147483647</number>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </widget>
-           </item>
-           <item row="12" column="1">
-            <widget class="QStackedWidget" name="dfIntervalWdg">
-             <property name="currentIndex">
-              <number>0</number>
-             </property>
-             <widget class="QWidget" name="dfIntervalContinious">
-              <layout class="QHBoxLayout" name="horizontalLayout_9">
-               <property name="spacing">
-                <number>0</number>
-               </property>
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
-                <number>0</number>
-               </property>
-               <item>
-                <widget class="QSCheckBox" name="dfIntervalBefore">
-                 <property name="text">
-                  <string>Before</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QSCheckBox" name="dfIntervalAfter">
-                 <property name="text">
-                  <string>After</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="dfIntervalSAS">
-              <layout class="QHBoxLayout" name="horizontalLayout_11">
-               <property name="spacing">
-                <number>0</number>
-               </property>
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
-                <number>0</number>
-               </property>
-               <item>
-                <widget class="QMSpinBox" name="dfInterval">
-                 <property name="toolTip">
-                  <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;BGstep&lt;/span&gt;. Visible only in SaS mode.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-                 </property>
-                 <property name="specialValueText">
-                  <string>on start only</string>
-                 </property>
-                 <property name="maximum">
-                  <number>2147483647</number>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </widget>
-           </item>
-           <item row="12" column="0">
-            <widget class="QLabel" name="label_38">
-             <property name="text">
-              <string>Interval</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="0">
-            <widget class="QLabel" name="label_32">
-             <property name="text">
-              <string>Exposure</string>
-             </property>
-            </widget>
-           </item>
-           <item row="7" column="1">
+           <item row="5" column="1">
             <widget class="QDoubleSpinBox" name="bgExposure">
+             <property name="toolTip">
+              <string>Detector exposure for background frames (0 for same as sample images)</string>
+             </property>
+             <property name="whatsThis">
+              <string>Exposure for backgrounds</string>
+             </property>
              <property name="specialValueText">
               <string>as sample</string>
              </property>
@@ -1552,8 +1418,95 @@ p
              </property>
             </widget>
            </item>
-           <item row="4" column="0">
+           <item row="3" column="1">
+            <widget class="QWidget" name="placeBGcurrent" native="true">
+             <property name="toolTip">
+              <string>Current position of the background motor.</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_40">
+              <property name="spacing">
+               <number>0</number>
+              </property>
+              <property name="leftMargin">
+               <number>0</number>
+              </property>
+              <property name="topMargin">
+               <number>0</number>
+              </property>
+              <property name="rightMargin">
+               <number>0</number>
+              </property>
+              <property name="bottomMargin">
+               <number>0</number>
+              </property>
+             </layout>
+            </widget>
+           </item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_37">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Number</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="0">
+            <widget class="QLabel" name="label_42">
+             <property name="text">
+              <string>Number</string>
+             </property>
+            </widget>
+           </item>
+           <item row="8" column="1">
+            <widget class="QSpinBox" name="nofDFs">
+             <property name="toolTip">
+              <string>Number of frames for dark field acquisition.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Number of dark fields</string>
+             </property>
+             <property name="maximum">
+              <number>999999</number>
+             </property>
+            </widget>
+           </item>
+           <item row="5" column="0">
+            <widget class="QLabel" name="label_32">
+             <property name="text">
+              <string>Exposure</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="0" colspan="2">
+            <widget class="QLabel" name="label_51">
+             <property name="text">
+              <string>Backgrounds</string>
+             </property>
+             <property name="alignment">
+              <set>Qt::AlignCenter</set>
+             </property>
+            </widget>
+           </item>
+           <item row="6" column="0" colspan="2">
+            <widget class="Line" name="line_4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+            </widget>
+           </item>
+           <item row="3" column="0">
             <widget class="QWidget" name="placeBGmotor" native="true">
+             <property name="toolTip">
+              <string>Motor used to remove sample from the beam for background acquisitions. CT scan motion.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Background motor</string>
+             </property>
              <layout class="QHBoxLayout" name="horizontalLayout_17">
               <property name="spacing">
                <number>0</number>
@@ -1573,37 +1526,27 @@ p
              </layout>
             </widget>
            </item>
-           <item row="4" column="1">
-            <widget class="QWidget" name="placeBGcurrent" native="true">
-             <property name="minimumSize">
-              <size>
-               <width>0</width>
-               <height>20</height>
-              </size>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_53">
+             <property name="text">
+              <string>Interval</string>
              </property>
-             <layout class="QHBoxLayout" name="horizontalLayout_26">
-              <property name="spacing">
-               <number>0</number>
-              </property>
-              <property name="leftMargin">
-               <number>0</number>
-              </property>
-              <property name="topMargin">
-               <number>0</number>
-              </property>
-              <property name="rightMargin">
-               <number>0</number>
-              </property>
-              <property name="bottomMargin">
-               <number>0</number>
-              </property>
-             </layout>
             </widget>
            </item>
-           <item row="5" column="1">
+           <item row="9" column="0">
+            <widget class="QLabel" name="label_38">
+             <property name="text">
+              <string>Interval</string>
+             </property>
+            </widget>
+           </item>
+           <item row="4" column="1">
             <widget class="QMDoubleSpinBox" name="bgTravel">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;OutBeam&lt;/span&gt;.  Must not be equal to current position of the &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;BGmotor&lt;/span&gt; on start if &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalBGs&lt;/span&gt;&amp;gt;0.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>Travel distance for the background motor to move sample out of the beam.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Background travel distance</string>
              </property>
              <property name="minimum">
               <double>-2147483647.000000000000000</double>
@@ -1611,6 +1554,114 @@ p
              <property name="maximum">
               <double>2147483647.000000000000000</double>
              </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QWidget" name="bgInterval" native="true">
+             <layout class="QHBoxLayout" name="_2">
+              <item>
+               <widget class="QWidget" name="bgIntervalContinious" native="true">
+                <layout class="QHBoxLayout" name="horizontalLayout_39">
+                 <item>
+                  <widget class="QSCheckBox" name="bgIntervalBefore">
+                   <property name="toolTip">
+                    <string>Acquire backgrounds before start of the scan.</string>
+                   </property>
+                   <property name="whatsThis">
+                    <string>Backgrounds before scan</string>
+                   </property>
+                   <property name="text">
+                    <string>Before</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSCheckBox" name="bgIntervalAfter">
+                   <property name="toolTip">
+                    <string>Acquire backgrounds after the scan is complete.</string>
+                   </property>
+                   <property name="whatsThis">
+                    <string>Backgrounds after scan</string>
+                   </property>
+                   <property name="text">
+                    <string>After</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QMSpinBox" name="bgIntervalSAS">
+                <property name="toolTip">
+                 <string>Number of projections between background acquisitions.</string>
+                </property>
+                <property name="whatsThis">
+                 <string>Interval between backgrounds</string>
+                </property>
+                <property name="specialValueText">
+                 <string>on start only</string>
+                </property>
+                <property name="maximum">
+                 <number>2147483647</number>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item row="9" column="1">
+            <widget class="QWidget" name="dfInterval" native="true">
+             <layout class="QHBoxLayout" name="_3">
+              <item>
+               <widget class="QWidget" name="dfIntervalContinious" native="true">
+                <layout class="QHBoxLayout" name="horizontalLayout_26">
+                 <item>
+                  <widget class="QSCheckBox" name="dfIntervalBefore">
+                   <property name="toolTip">
+                    <string>Acquire flat fields before start of the scan.</string>
+                   </property>
+                   <property name="whatsThis">
+                    <string>Dark fields before scan</string>
+                   </property>
+                   <property name="text">
+                    <string>Before</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QSCheckBox" name="dfIntervalAfter">
+                   <property name="toolTip">
+                    <string>Acquire flat fields after the scan is complete.</string>
+                   </property>
+                   <property name="whatsThis">
+                    <string>Dark fields after scan</string>
+                   </property>
+                   <property name="text">
+                    <string>After</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </widget>
+              </item>
+              <item>
+               <widget class="QMSpinBox" name="dfIntervalSAS">
+                <property name="toolTip">
+                 <string>Number of projections between dark field acquisitions.</string>
+                </property>
+                <property name="whatsThis">
+                 <string>Interval between dark fields</string>
+                </property>
+                <property name="specialValueText">
+                 <string>on start only</string>
+                </property>
+                <property name="maximum">
+                 <number>2147483647</number>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </widget>
            </item>
           </layout>
@@ -1663,7 +1714,14 @@ p
             </widget>
            </item>
            <item row="3" column="1">
-            <widget class="UScript" name="preSubLoopScript" native="true"/>
+            <widget class="UScript" name="preSubLoopScript" native="true">
+             <property name="toolTip">
+              <string>This script is executed before starting each series of sub-loop tiles in 2D tiling.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Script executed before each sub-loop series.</string>
+             </property>
+            </widget>
            </item>
            <item row="3" column="0">
             <widget class="QLabel" name="preSubLoopScriptLabel">
@@ -1679,7 +1737,14 @@ p
             </widget>
            </item>
            <item row="4" column="1">
-            <widget class="UScript" name="postSubLoopScript" native="true"/>
+            <widget class="UScript" name="postSubLoopScript" native="true">
+             <property name="toolTip">
+              <string>This script is executed after finishing each series of sub-loop tiles in 2D tiling.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Script executed after finishing each sub-loop series.</string>
+             </property>
+            </widget>
            </item>
            <item row="2" column="0" colspan="2">
             <layout class="QHBoxLayout" name="loopListsLayout">
@@ -1714,6 +1779,12 @@ p
                     <width>20</width>
                     <height>20</height>
                    </size>
+                  </property>
+                  <property name="toolTip">
+                   <string>List of tiles</string>
+                  </property>
+                  <property name="whatsThis">
+                   <string>List of tiles</string>
                   </property>
                  </widget>
                 </item>
@@ -1776,6 +1847,12 @@ p
                     <height>20</height>
                    </size>
                   </property>
+                  <property name="toolTip">
+                   <string>List of tiles</string>
+                  </property>
+                  <property name="whatsThis">
+                   <string>List of tiles</string>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -1808,12 +1885,15 @@ p
                <number>0</number>
               </property>
               <item>
-               <widget class="QSCheckBox" name="subLoop">
+               <widget class="QSCheckBox" name="singleBg">
                 <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600;&quot;&gt;TotalSubLoops&lt;/span&gt;=0 if uncheked. Enables/disables the widgets below related to the sub-loop execution.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 <string>Use single set of background images for all tiles.</string>
+                </property>
+                <property name="whatsThis">
+                 <string>Same background for all tiles</string>
                 </property>
                 <property name="text">
-                 <string>Sub-loop</string>
+                 <string>Same background for all images in loop(s).</string>
                 </property>
                 <property name="checked">
                  <bool>true</bool>
@@ -1821,12 +1901,15 @@ p
                </widget>
               </item>
               <item>
-               <widget class="QSCheckBox" name="singleBg">
+               <widget class="QSCheckBox" name="subLoop">
                 <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;SameBG&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 <string>Perform two dimensional tiling</string>
+                </property>
+                <property name="whatsThis">
+                 <string>2D tiling</string>
                 </property>
                 <property name="text">
-                 <string>Same background for all images in loop(s).</string>
+                 <string>Second dimension</string>
                 </property>
                 <property name="checked">
                  <bool>true</bool>
@@ -1867,10 +1950,10 @@ p
              <item>
               <widget class="QRadioButton" name="dynoPos">
                <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;First &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoMotor&lt;/span&gt;'s &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoDirection&lt;/span&gt;=positive&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>Positive travel</string>
                </property>
                <property name="text">
-                <string>Positi&amp;ve</string>
+                <string>Positive</string>
                </property>
                <property name="checked">
                 <bool>true</bool>
@@ -1883,7 +1966,7 @@ p
              <item>
               <widget class="QRadioButton" name="dynoNeg">
                <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;First &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoMotor&lt;/span&gt;'s &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoDirection&lt;/span&gt;=negative&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>Negative travel</string>
                </property>
                <property name="text">
                 <string>Negative</string>
@@ -1900,7 +1983,7 @@ p
              <item>
               <widget class="QRadioButton" name="dyno2Pos">
                <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Second &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoMotor&lt;/span&gt;'s &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoDirection&lt;/span&gt;=positive. Disabled if &amp;quot;as first&amp;quot; is checked and synchronized with the &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoDirection&lt;/span&gt; of the first &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoMotor&lt;/span&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>Positive travel</string>
                </property>
                <property name="text">
                 <string>Positive</string>
@@ -1916,7 +1999,7 @@ p
              <item>
               <widget class="QRadioButton" name="dyno2Neg">
                <property name="toolTip">
-                <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Second &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoMotor&lt;/span&gt;'s &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoDirection&lt;/span&gt;=negative. Disabled if &amp;quot;as first&amp;quot; is checked and synchronized with the &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoDirection&lt;/span&gt; of the first &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoMotor&lt;/span&gt;.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                <string>Negative travel</string>
                </property>
                <property name="text">
                 <string>Negative</string>
@@ -1930,6 +2013,12 @@ p
            </item>
            <item row="6" column="0">
             <widget class="QWidget" name="placeDyno2Motor" native="true">
+             <property name="toolTip">
+              <string>Second motor used for the motion in dynamic imaging.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Second motor for dynamic shot</string>
+             </property>
              <layout class="QHBoxLayout" name="horizontalLayout_23">
               <property name="spacing">
                <number>0</number>
@@ -1951,6 +2040,9 @@ p
            </item>
            <item row="5" column="0">
             <widget class="QSCheckBox" name="dyno2">
+             <property name="toolTip">
+              <string>Use second motor for the dynamic shot imaging.</string>
+             </property>
              <property name="text">
               <string>Use Second motor</string>
              </property>
@@ -1966,7 +2058,10 @@ p
            <item row="8" column="2">
             <widget class="QDoubleSpinBox" name="dyno2Speed">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoSpeed&lt;/span&gt; of the second &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoMotor&lt;/span&gt;. Disabled if &amp;quot;as first&amp;quot; is checked and synchronized with the &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoSpeed&lt;/span&gt; of the first &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoMotor.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>Speed of the second motor in dynamic shot imaging modality</string>
+             </property>
+             <property name="whatsThis">
+              <string>Travel speed of the second dynamic motor</string>
              </property>
              <property name="maximum">
               <double>2147483647.000000000000000</double>
@@ -2010,6 +2105,9 @@ p
            </item>
            <item row="9" column="1">
             <widget class="QSCheckBox" name="dynoDirectionLock">
+             <property name="toolTip">
+              <string>Use same direction for the second motor as in the first one.</string>
+             </property>
              <property name="text">
               <string>as first</string>
              </property>
@@ -2031,7 +2129,10 @@ p
            <item row="2" column="1" colspan="2">
             <widget class="QDoubleSpinBox" name="dynoSpeed">
              <property name="toolTip">
-              <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoSpeed&lt;/span&gt; of the first &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynoMotor.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+              <string>Speed of the motor in dynamic shot imaging modality</string>
+             </property>
+             <property name="whatsThis">
+              <string>Travel speed of the dynamic motor</string>
              </property>
              <property name="maximum">
               <double>2147483647.000000000000000</double>
@@ -2047,6 +2148,12 @@ p
            </item>
            <item row="0" column="0">
             <widget class="QWidget" name="placeDynoMotor" native="true">
+             <property name="toolTip">
+              <string>Motor used for the motion in dynamic imaging.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Motor for dynamic shot</string>
+             </property>
              <layout class="QHBoxLayout" name="horizontalLayout_22">
               <property name="spacing">
                <number>0</number>
@@ -2081,6 +2188,9 @@ p
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="toolTip">
+              <string>Use same speed for the second motor as in the first one.</string>
+             </property>
              <property name="text">
               <string>as first</string>
              </property>
@@ -2093,6 +2203,9 @@ p
                <width>0</width>
                <height>20</height>
               </size>
+             </property>
+             <property name="toolTip">
+              <string>Current position of the dynamic motor</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_31">
               <property name="spacing">
@@ -2166,7 +2279,7 @@ p
         <item>
          <widget class="QPushButton" name="testDyno">
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Test execution of the part of the acquire projection procedure between two &amp;quot;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;DynamicShot ?&lt;/span&gt;&amp;quot; tests.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string/>
           </property>
           <property name="text">
            <string>Test dynamic acquisition</string>
@@ -2368,10 +2481,24 @@ p
               </widget>
              </item>
              <item row="0" column="1">
-              <widget class="UScript" name="preAqScript" native="true"/>
+              <widget class="UScript" name="preAqScript" native="true">
+               <property name="toolTip">
+                <string>This script is executed before starting any acquisition on the detector.</string>
+               </property>
+               <property name="whatsThis">
+                <string>Script executed before starting detector</string>
+               </property>
+              </widget>
              </item>
              <item row="1" column="1">
-              <widget class="UScript" name="postAqScript" native="true"/>
+              <widget class="UScript" name="postAqScript" native="true">
+               <property name="toolTip">
+                <string>This script is executed whenever the detector returns to idle state after acquisition.</string>
+               </property>
+               <property name="whatsThis">
+                <string>Script executed whenever detector stops</string>
+               </property>
+              </widget>
              </item>
             </layout>
            </item>
@@ -2384,6 +2511,12 @@ p
            </item>
            <item row="2" column="1">
             <widget class="QComboBox" name="detSelection">
+             <property name="toolTip">
+              <string>Detector in charge of all image acquisition in the experiment. Note: you may try to paste a PV of a detector which is not in the list. It may or may not work depending on the IOC implementation.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Detector in the experiment</string>
+             </property>
              <property name="editable">
               <bool>true</bool>
              </property>
@@ -2530,6 +2663,12 @@ p
              </item>
              <item>
               <widget class="QWidget" name="placePShutterSelection" native="true">
+               <property name="toolTip">
+                <string>Primary shutter opens in the beginning of the experiment and closes in the end.</string>
+               </property>
+               <property name="whatsThis">
+                <string>Primary shutter</string>
+               </property>
                <layout class="QHBoxLayout" name="horizontalLayout_15">
                 <property name="spacing">
                  <number>0</number>
@@ -2569,6 +2708,9 @@ p
                 </property>
                 <item>
                  <widget class="QWidget" name="placePShutterStatus" native="true">
+                  <property name="toolTip">
+                   <string>Detector used in the experiment.</string>
+                  </property>
                   <layout class="QHBoxLayout" name="horizontalLayout_29">
                    <property name="spacing">
                     <number>0</number>
@@ -2616,6 +2758,12 @@ p
              </item>
              <item>
               <widget class="QWidget" name="placeShutterSelection" native="true">
+               <property name="toolTip">
+                <string>Secondary shutter opens and closes for each detector acquisition.</string>
+               </property>
+               <property name="whatsThis">
+                <string>Secondary shutter</string>
+               </property>
                <layout class="QHBoxLayout" name="horizontalLayout_6">
                 <property name="spacing">
                  <number>0</number>
@@ -2721,6 +2869,12 @@ p
            </item>
            <item>
             <widget class="QCheckBox" name="vidFixed">
+             <property name="toolTip">
+              <string>If true, acquire fixed number of images rather than waiting for manual stop.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Fixed length video</string>
+             </property>
              <property name="text">
               <string>fixed length</string>
              </property>
@@ -2742,7 +2896,7 @@ p
               <item>
                <widget class="QMSpinBox" name="vidFrames">
                 <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;TotalProjs&lt;/span&gt;. Defines &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ThetaStep.&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 <string>Number of frames in video</string>
                 </property>
                 <property name="minimum">
                  <number>1</number>
@@ -2762,7 +2916,7 @@ p
               <item>
                <widget class="QTimeEdit" name="vidTime">
                 <property name="toolTip">
-                 <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;&lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;ScanDelay&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+                 <string>Video duration</string>
                 </property>
                 <property name="currentSection">
                  <enum>QDateTimeEdit::HourSection</enum>
@@ -2790,6 +2944,9 @@ p
            </item>
            <item>
             <widget class="QPushButton" name="vidReady">
+             <property name="toolTip">
+              <string>Prepare detector and saving plugins for immediate start and leave it waiting for activation.</string>
+             </property>
              <property name="text">
               <string>Get ready</string>
              </property>
@@ -2797,6 +2954,9 @@ p
            </item>
            <item>
             <widget class="QPushButton" name="vidStartStop">
+             <property name="toolTip">
+              <string>Start or stop video recording. If was not premade ready before, does it before starting.</string>
+             </property>
              <property name="text">
               <string>Start/Stop</string>
              </property>
@@ -2825,9 +2985,6 @@ p
     </item>
     <item>
      <widget class="QPushButton" name="startStop">
-      <property name="toolTip">
-       <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Start / Stop the experiment.&lt;/p&gt;&lt;p&gt;&lt;br/&gt;&lt;/p&gt;&lt;p&gt;On start &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;StopMeNow&lt;/span&gt;=false,&lt;/p&gt;&lt;p&gt;On stop &lt;span style=&quot; font-weight:600; font-style:italic;&quot;&gt;StopMeNow&lt;/span&gt;=true,&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
-      </property>
       <property name="text">
        <string>Start/Stop</string>
       </property>
@@ -2914,16 +3071,30 @@ p
   </connection>
  </connections>
  <buttongroups>
-  <buttongroup name="dyno2DirButtonGroup"/>
-  <buttongroup name="dynoDirButtonGroup"/>
+  <buttongroup name="dyno2DirButtonGroup">
+   <property name="whatsThis" stdset="0">
+    <string>Direction of second dyno motion</string>
+   </property>
+  </buttongroup>
+  <buttongroup name="dynoDirButtonGroup">
+   <property name="whatsThis" stdset="0">
+    <string>Direction of dyno motion</string>
+   </property>
+  </buttongroup>
   <buttongroup name="imageFormatGroup">
    <property name="whatsThis" stdset="0">
+    <string>Image saving format</string>
+   </property>
+   <property name="toolTip" stdset="0">
     <string>Format for image frames storage</string>
    </property>
   </buttongroup>
   <buttongroup name="endConditionButtonGroup">
    <property name="whatsThis" stdset="0">
-    <string>Sets the condition for experiment complition</string>
+    <string>Condition for experiment complition</string>
+   </property>
+   <property name="toolTip" stdset="0">
+    <string>Sets the condition for experiment complition. Note that time condition cannot be used with 2D series.</string>
    </property>
   </buttongroup>
  </buttongroups>

@@ -97,7 +97,6 @@ protected:
 
 
 
-
 void QTableWidgetWithCopyPaste::copy() {
   QString selected_text;
   foreach ( QTableWidgetItem * item , selectedItems() )
@@ -125,8 +124,8 @@ void QTableWidgetWithCopyPaste::keyPressEvent(QKeyEvent * event)
     paste();
   else
     QTableWidget::keyPressEvent(event);
-
 }
+
 
 
 
@@ -145,17 +144,9 @@ PositionList::PositionList(QWidget *parent)
 
   ui->setupUi(this);
 
-  connect( ui->nof, SIGNAL(valueChanged(int)), SLOT(updateNoF()) );
-  connect( ui->list, SIGNAL(itemChanged(QTableWidgetItem*)), SLOT(updateAmOK()));
-  connect( ui->irregular, SIGNAL(toggled(bool)), SLOT(updateAmOK()));
-  connect( ui->step, SIGNAL(valueChanged(double)), SLOT(updateAmOK()));
-  connect( ui->nof, SIGNAL(valueChanged(int)), SIGNAL(parameterChanged()));
-  connect( ui->step, SIGNAL(valueChanged(double)), SIGNAL(parameterChanged()));
-  connect( ui->irregular, SIGNAL(toggled(bool)), SIGNAL(parameterChanged()));
-  connect( ui->list, SIGNAL(itemChanged(QTableWidgetItem*)), SIGNAL(parameterChanged()));
-  connect( ui->list->horizontalHeader(), SIGNAL(sectionClicked(int)), SLOT(updateToDo(int)));
-  connect( ui->irregular, SIGNAL(toggled(bool)), ui->step, SLOT(setDisabled(bool)));
-
+  // replace header items with identical QTableWidgetOtem
+  for (int col=0; col < ui->list->columnCount() ; col++)
+    ui->list->setHorizontalHeaderItem(col, new QTableWidgetOtem(ui->list->horizontalHeaderItem(col)));
   ui->list->setItemDelegateForColumn(0, new NTableDelegate(ui->list));
   QHeaderView * header = ui->list->horizontalHeader();
   //PListHeader * header = new PListHeader(Qt::Horizontal, ui->list);
@@ -172,6 +163,17 @@ PositionList::PositionList(QWidget *parent)
   header->setResizeMode(2, QHeaderView::Fixed);
   header->setResizeMode(3, QHeaderView::Fixed);
   #endif
+
+  connect( ui->nof, SIGNAL(valueChanged(int)), SLOT(updateNoF()) );
+  connect( ui->list, SIGNAL(itemChanged(QTableWidgetItem*)), SLOT(updateAmOK()));
+  connect( ui->irregular, SIGNAL(toggled(bool)), SLOT(updateAmOK()));
+  connect( ui->step, SIGNAL(valueChanged(double)), SLOT(updateAmOK()));
+  connect( ui->nof, SIGNAL(valueChanged(int)), SIGNAL(parameterChanged()));
+  connect( ui->step, SIGNAL(valueChanged(double)), SIGNAL(parameterChanged()));
+  connect( ui->irregular, SIGNAL(toggled(bool)), SIGNAL(parameterChanged()));
+  connect( ui->list, SIGNAL(itemChanged(QTableWidgetItem*)), SIGNAL(parameterChanged()));
+  connect( ui->list->horizontalHeader(), SIGNAL(sectionClicked(int)), SLOT(updateToDo(int)));
+  connect( ui->irregular, SIGNAL(toggled(bool)), ui->step, SLOT(setDisabled(bool)));
 
   updateNoF();
 

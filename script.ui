@@ -6,28 +6,33 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>263</width>
-    <height>38</height>
+    <width>411</width>
+    <height>60</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
   <layout class="QGridLayout" name="gridLayout">
-   <property name="margin">
+   <property name="leftMargin">
+    <number>0</number>
+   </property>
+   <property name="topMargin">
+    <number>0</number>
+   </property>
+   <property name="rightMargin">
+    <number>0</number>
+   </property>
+   <property name="bottomMargin">
     <number>0</number>
    </property>
    <item row="0" column="0">
-    <widget class="QLineEdit" name="path">
-     <property name="toolTip">
-      <string>start script</string>
-     </property>
-    </widget>
+    <widget class="QLineEdit" name="path"/>
    </item>
    <item row="0" column="1">
     <widget class="QPushButton" name="browse">
      <property name="toolTip">
-      <string>Browse for the log file</string>
+      <string>Browse for the exec file</string>
      </property>
      <property name="text">
       <string>Browse</string>
@@ -36,6 +41,9 @@
    </item>
    <item row="0" column="2">
     <widget class="QPushButton" name="execute">
+     <property name="toolTip">
+      <string>Execute command</string>
+     </property>
      <property name="text">
       <string>Execute</string>
      </property>

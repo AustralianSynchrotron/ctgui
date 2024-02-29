@@ -166,22 +166,32 @@ MainWindow::MainWindow(QWidget *parent) :
   outerList->putMotor(new QCaMotorGUI);
   loopList->putMotor(new QCaMotorGUI);
   sloopList->putMotor(new QCaMotorGUI);
-  ui->placeThetaMotor->layout()->addWidget(thetaMotor->setupButton());
-  ui->placeScanCurrent->layout()->addWidget(thetaMotor->currentPosition(true));
-  ui->placeBGmotor->layout()->addWidget(bgMotor->setupButton());
-  ui->placeBGcurrent->layout()->addWidget(bgMotor->currentPosition(true));
-  ui->placeDynoMotor->layout()->addWidget(dynoMotor->setupButton());
-  ui->placeDynoCurrent->layout()->addWidget(dynoMotor->currentPosition(true));
-  ui->placeDyno2Motor->layout()->addWidget(dyno2Motor->setupButton());
-  ui->placeDyno2Current->layout()->addWidget(dyno2Motor->currentPosition(true));
+  auto placeMotor = [](QCaMotorGUI *mot, QWidget *ctrlHere, QWidget *posHere){
+    mot->setupButton()->setToolTip(ctrlHere->toolTip());
+    mot->setupButton()->setWhatsThis(ctrlHere->whatsThis());
+    ctrlHere->layout()->addWidget(mot->setupButton());
+    mot->currentPosition(true)->setToolTip(posHere->toolTip());
+    posHere->layout()->addWidget(mot->currentPosition(true));
+  };
+  placeMotor(thetaMotor, ui->placeThetaMotor, ui->placeScanCurrent);
+  placeMotor(bgMotor, ui->placeBGmotor, ui->placeBGcurrent);
+  placeMotor(dynoMotor, ui->placeDynoMotor, ui->placeDynoCurrent);
+  placeMotor(dyno2Motor, ui->placeDyno2Motor, ui->placeDyno2Current);
 
-  ui->placePShutterSelection->layout()->addWidget(shutterPri->ui->selection);
-  ui->placePShutterStatus->layout()->addWidget(shutterPri->ui->status);
-  ui->placePShutterToggle->layout()->addWidget(shutterPri->ui->toggle);
+  auto placeShutter = [](){
 
-  ui->placeShutterSelection->layout()->addWidget(shutterSec->ui->selection);
-  ui->placeShutterStatus->layout()->addWidget(shutterSec->ui->status);
-  ui->placeShutterToggle->layout()->addWidget(shutterSec->ui->toggle);
+  };
+
+  // can't make it lambda because have to use ## feature
+  #define placeShutter(wdgPrefix, shutUI) \
+    shutUI->selection->setToolTip(wdgPrefix##Selection->toolTip()); \
+    shutUI->selection->setWhatsThis(wdgPrefix##Selection->whatsThis()); \
+    wdgPrefix##Selection->layout()->addWidget(shutUI->selection); \
+    wdgPrefix##Status->layout()->addWidget(shutUI->status); \
+    wdgPrefix##Toggle->layout()->addWidget(shutUI->toggle);
+  placeShutter(ui->placePShutter, shutterPri->ui);
+  placeShutter(ui->placeShutter, shutterSec->ui);
+  #undef placeShutter
 
   connect(ui->browseExpPath, SIGNAL(clicked()), SLOT(onWorkingDirBrowse()));
   connect(ui->checkSerial, SIGNAL(toggled(bool)), SLOT(onSerialCheck()));
@@ -281,14 +291,14 @@ MainWindow::MainWindow(QWidget *parent) :
   configNames[ui->stepTime] = "scan/steptime";
 
   configNames[ui->nofBGs] = "flatfield/bgs";
-  configNames[ui->bgInterval] = "flatfield/bginterval";
+  configNames[ui->bgIntervalSAS] = "flatfield/bginterval";
   configNames[ui->bgIntervalBefore] = "flatfield/bgBefore";
   configNames[ui->bgIntervalAfter] = "flatfield/bgAfter";
   configNames[bgMotor] = "flatfield/motor";
   configNames[ui->bgTravel] = "flatfield/bgtravel";
   configNames[ui->bgExposure] = "flatfield/bgexposure";
   configNames[ui->nofDFs] = "flatfield/dfs";
-  configNames[ui->dfInterval] = "flatfield/dfinterval";
+  configNames[ui->dfIntervalSAS] = "flatfield/dfinterval";
   configNames[ui->dfIntervalBefore] = "flatfield/dfBefore";
   configNames[ui->dfIntervalAfter] = "flatfield/dfAfter";
 
@@ -390,9 +400,8 @@ static void save_cfg(const QObject * obj, const QString & key, QSettings & confi
   } else if ( dynamic_cast<const QLabel*>(obj))
     config.setValue(key, dynamic_cast<const QLabel*>(obj)->text());
   else if ( dynamic_cast<const QButtonGroup*>(obj))
-    config.setValue(key,
-                    dynamic_cast<const QButtonGroup*>(obj)->checkedButton() ?
-                      dynamic_cast<const QButtonGroup*>(obj)->checkedButton()->text() : QString() );
+    config.setValue(key, dynamic_cast<const QButtonGroup*>(obj)->checkedButton()
+                    ? dynamic_cast<const QButtonGroup*>(obj)->checkedButton()->text() : QString() );
   /*
   else if (dynamic_cast<const QTableWidget*>(obj)) {
     const QTableWidget * twdg = dynamic_cast<const QTableWidget*>(obj);
@@ -1017,26 +1026,24 @@ void MainWindow::updateUi_bgInterval() {
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->aqMode, SIGNAL(currentIndexChanged(int)), thisSlot);
     connect( ui->nofBGs, SIGNAL(valueChanged(int)), thisSlot);
-    connect( ui->bgInterval, SIGNAL(valueChanged(int)), thisSlot);
+    connect( ui->bgIntervalSAS, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->bgIntervalAfter, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->bgIntervalBefore, SIGNAL(toggled(bool)), thisSlot);
   }
 
   const bool sasMode = ui->aqMode->currentIndex() == STEPNSHOT;
 
-  ui->bgIntervalWdg->setEnabled(ui->nofBGs->value());
-  if (sasMode)
-    ui->bgIntervalWdg->setCurrentWidget(ui->bgIntervalSAS);
-  else
-    ui->bgIntervalWdg->setCurrentWidget(ui->bgIntervalContinious);
+  ui->bgInterval->setEnabled(ui->nofBGs->value());
+  ui->bgIntervalSAS->setVisible(sasMode);
+  ui->bgIntervalContinious->setVisible(!sasMode);
 
   bool itemOK;
 
   itemOK =
       ! sasMode ||
       ! ui->nofBGs->value() ||
-      ui->bgInterval->value() <= ui->scanProjections->value();
-  check(ui->bgInterval, itemOK);
+      ui->bgIntervalSAS->value() <= ui->scanProjections->value();
+  check(ui->bgIntervalSAS, itemOK);
 
   itemOK =
       sasMode ||
@@ -1054,26 +1061,23 @@ void MainWindow::updateUi_dfInterval() {
     connect( ui->scanProjections, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->aqMode, SIGNAL(currentIndexChanged(int)), thisSlot);
     connect( ui->nofDFs, SIGNAL(valueChanged(int)), thisSlot);
-    connect( ui->dfInterval, SIGNAL(valueChanged(int)), thisSlot);
+    connect( ui->dfIntervalSAS, SIGNAL(valueChanged(int)), thisSlot);
     connect( ui->dfIntervalAfter, SIGNAL(toggled(bool)), thisSlot);
     connect( ui->dfIntervalBefore, SIGNAL(toggled(bool)), thisSlot);
   }
 
   const bool sasMode = ui->aqMode->currentIndex() == STEPNSHOT;
-
-  ui->dfIntervalWdg->setEnabled(ui->nofDFs->value());
-  if (sasMode)
-    ui->dfIntervalWdg->setCurrentWidget(ui->dfIntervalSAS);
-  else
-    ui->dfIntervalWdg->setCurrentWidget(ui->dfIntervalContinious);
+  ui->dfInterval->setEnabled(ui->nofDFs->value());
+  ui->dfIntervalSAS->setVisible(sasMode);
+  ui->dfIntervalContinious->setVisible(!sasMode);
 
   bool itemOK;
 
   itemOK =
       ! sasMode ||
       ! ui->nofDFs->value() ||
-      ui->dfInterval->value() <= ui->scanProjections->value();
-  check(ui->dfInterval, itemOK);
+      ui->nofDFs->value() <= ui->scanProjections->value();
+  check(ui->dfIntervalSAS, itemOK);
 
   itemOK =
       sasMode ||
@@ -2356,8 +2360,8 @@ void MainWindow::engineRun () {
       splitData = uiImageFormat() != Detector::HDF;
 
   const int
-      bgInterval = ui->bgInterval->value(),
-      dfInterval = ui->dfInterval->value(),
+      bgInterval = ui->bgIntervalSAS->value(),
+      dfInterval = ui->dfIntervalSAS->value(),
       scanDelay = QTime(0, 0, 0, 0).msecsTo( ui->scanDelay->time() ),
       scanTime = QTime(0, 0, 0, 0).msecsTo( ui->acquisitionTime->time() ),
       totalProjections = ui->scanProjections->value(),
