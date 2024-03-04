@@ -24,11 +24,14 @@
    <layout class="QVBoxLayout" name="verticalLayoutt">
     <item>
      <widget class="EasyTabWidget" name="control">
+      <property name="focusPolicy">
+       <enum>Qt::TabFocus</enum>
+      </property>
       <property name="tabPosition">
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>6</number>
+       <number>1</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -37,8 +40,14 @@
        <bool>false</bool>
       </property>
       <widget class="QWidget" name="tabConfiguration">
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
        <attribute name="title">
         <string>General</string>
+       </attribute>
+       <attribute name="whatsThis">
+        <string>general</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
         <item row="6" column="0" colspan="2">
@@ -210,6 +219,9 @@
           </item>
           <item row="0" column="1">
            <widget class="UScript" name="preRunScript" native="true">
+            <property name="focusPolicy">
+             <enum>Qt::TabFocus</enum>
+            </property>
             <property name="toolTip">
              <string>This script is executed right after hitting Start button, before anything else.</string>
             </property>
@@ -220,6 +232,9 @@
           </item>
           <item row="1" column="1">
            <widget class="UScript" name="postRunScript" native="true">
+            <property name="focusPolicy">
+             <enum>Qt::TabFocus</enum>
+            </property>
             <property name="toolTip">
              <string>This script is executed as the very last step of the experiment, when all procedures are complete and just before releasing the UI.</string>
             </property>
@@ -349,8 +364,14 @@
        </layout>
       </widget>
       <widget class="QWidget" name="tabSerial">
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
        <attribute name="title">
         <string>Serial</string>
+       </attribute>
+       <attribute name="whatsThis">
+        <string>serialll</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_tabConf">
         <item>
@@ -403,6 +424,9 @@
                     <width>20</width>
                     <height>20</height>
                    </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::TabFocus</enum>
                   </property>
                   <property name="toolTip">
                    <string>List of CT scans in the serial acquisition experiment</string>
@@ -471,6 +495,9 @@ p
                     <height>20</height>
                    </size>
                   </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::TabFocus</enum>
+                  </property>
                   <property name="toolTip">
                    <string>List of CT scans in the serial acquisition experiment</string>
                   </property>
@@ -486,6 +513,9 @@ p
            </item>
            <item row="2" column="1" colspan="3">
             <widget class="UScript" name="conditionScript" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>Experiment finishes when execution of this script returns a non-zero value. Condition is checked between series.</string>
              </property>
@@ -773,6 +803,9 @@ p
            </item>
            <item row="5" column="1" colspan="3">
             <widget class="UScript" name="post2DScript" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>This script is executed after finishing each innear series of scans in 2D series.</string>
              </property>
@@ -783,6 +816,9 @@ p
            </item>
            <item row="4" column="1" colspan="3">
             <widget class="UScript" name="pre2DScript" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>This script is executed before starting each innear series of scans in 2D series.</string>
              </property>
@@ -811,11 +847,17 @@ p
        </layout>
       </widget>
       <widget class="QWidget" name="tabScan">
+       <property name="focusPolicy">
+        <enum>Qt::WheelFocus</enum>
+       </property>
        <property name="toolTip">
         <string>CT scan parameters</string>
        </property>
        <attribute name="title">
         <string>Scan</string>
+       </attribute>
+       <attribute name="whatsThis">
+        <string>scan</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
@@ -944,6 +986,9 @@ p
            </item>
            <item row="19" column="1" colspan="6">
             <widget class="UScript" name="postScanScript" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>This script is executed before each individual CT scan.</string>
              </property>
@@ -990,6 +1035,9 @@ p
            </item>
            <item row="16" column="0">
             <widget class="QWidget" name="placeSpiralMotor" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <layout class="QHBoxLayout" name="horizontalLayout_25">
               <property name="spacing">
                <number>0</number>
@@ -1242,6 +1290,9 @@ p
            </item>
            <item row="0" column="0">
             <widget class="QWidget" name="placeThetaMotor" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>Motor used for the CT scan motion.</string>
              </property>
@@ -1318,6 +1369,9 @@ p
            </item>
            <item row="18" column="1" colspan="6">
             <widget class="UScript" name="preScanScript" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>This script is executed before each individual CT scan.</string>
              </property>
@@ -1353,11 +1407,17 @@ p
        </layout>
       </widget>
       <widget class="QWidget" name="tabFF">
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
        <property name="toolTip">
         <string>Flat field acquisition parameters</string>
        </property>
        <attribute name="title">
         <string>Flat field</string>
+       </attribute>
+       <attribute name="whatsThis">
+        <string>flatfield</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_13">
         <item>
@@ -1501,6 +1561,9 @@ p
            </item>
            <item row="3" column="0">
             <widget class="QWidget" name="placeBGmotor" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>Motor used to remove sample from the beam for background acquisitions. CT scan motion.</string>
              </property>
@@ -1690,11 +1753,17 @@ p
        </layout>
       </widget>
       <widget class="QWidget" name="tabMulti">
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
        <property name="toolTip">
         <string>Multishot mode parameters. In this mode each projection consists of several acquisitions done in a loop.</string>
        </property>
        <attribute name="title">
         <string>Tiles</string>
+       </attribute>
+       <attribute name="whatsThis">
+        <string>tiles</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -1715,6 +1784,9 @@ p
            </item>
            <item row="3" column="1">
             <widget class="UScript" name="preSubLoopScript" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>This script is executed before starting each series of sub-loop tiles in 2D tiling.</string>
              </property>
@@ -1738,6 +1810,9 @@ p
            </item>
            <item row="4" column="1">
             <widget class="UScript" name="postSubLoopScript" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>This script is executed after finishing each series of sub-loop tiles in 2D tiling.</string>
              </property>
@@ -1779,6 +1854,9 @@ p
                     <width>20</width>
                     <height>20</height>
                    </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::TabFocus</enum>
                   </property>
                   <property name="toolTip">
                    <string>List of tiles</string>
@@ -1846,6 +1924,9 @@ p
                     <width>20</width>
                     <height>20</height>
                    </size>
+                  </property>
+                  <property name="focusPolicy">
+                   <enum>Qt::TabFocus</enum>
                   </property>
                   <property name="toolTip">
                    <string>List of tiles</string>
@@ -1938,8 +2019,14 @@ p
        </layout>
       </widget>
       <widget class="QWidget" name="tabDyno">
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
        <attribute name="title">
         <string>Dynamic shot</string>
+       </attribute>
+       <attribute name="whatsThis">
+        <string>dyno</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
@@ -2013,6 +2100,9 @@ p
            </item>
            <item row="6" column="0">
             <widget class="QWidget" name="placeDyno2Motor" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>Second motor used for the motion in dynamic imaging.</string>
              </property>
@@ -2148,6 +2238,9 @@ p
            </item>
            <item row="0" column="0">
             <widget class="QWidget" name="placeDynoMotor" native="true">
+             <property name="focusPolicy">
+              <enum>Qt::TabFocus</enum>
+             </property>
              <property name="toolTip">
               <string>Motor used for the motion in dynamic imaging.</string>
              </property>
@@ -2289,11 +2382,17 @@ p
        </layout>
       </widget>
       <widget class="QWidget" name="tabDetector">
+       <property name="focusPolicy">
+        <enum>Qt::TabFocus</enum>
+       </property>
        <property name="toolTip">
         <string>Detector parameters</string>
        </property>
        <attribute name="title">
         <string>Hardware</string>
+       </attribute>
+       <attribute name="whatsThis">
+        <string>hardware</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_">
         <item>
@@ -2482,6 +2581,9 @@ p
              </item>
              <item row="0" column="1">
               <widget class="UScript" name="preAqScript" native="true">
+               <property name="focusPolicy">
+                <enum>Qt::TabFocus</enum>
+               </property>
                <property name="toolTip">
                 <string>This script is executed before starting any acquisition on the detector.</string>
                </property>
@@ -2492,6 +2594,9 @@ p
              </item>
              <item row="1" column="1">
               <widget class="UScript" name="postAqScript" native="true">
+               <property name="focusPolicy">
+                <enum>Qt::TabFocus</enum>
+               </property>
                <property name="toolTip">
                 <string>This script is executed whenever the detector returns to idle state after acquisition.</string>
                </property>
@@ -2663,6 +2768,9 @@ p
              </item>
              <item>
               <widget class="QWidget" name="placePShutterSelection" native="true">
+               <property name="focusPolicy">
+                <enum>Qt::TabFocus</enum>
+               </property>
                <property name="toolTip">
                 <string>Primary shutter opens in the beginning of the experiment and closes in the end.</string>
                </property>
@@ -2735,6 +2843,9 @@ p
              </item>
              <item>
               <widget class="QLabel" name="label_21">
+               <property name="focusPolicy">
+                <enum>Qt::TabFocus</enum>
+               </property>
                <property name="text">
                 <string/>
                </property>
@@ -2758,6 +2869,9 @@ p
              </item>
              <item>
               <widget class="QWidget" name="placeShutterSelection" native="true">
+               <property name="focusPolicy">
+                <enum>Qt::TabFocus</enum>
+               </property>
                <property name="toolTip">
                 <string>Secondary shutter opens and closes for each detector acquisition.</string>
                </property>
@@ -2803,6 +2917,9 @@ p
                 </property>
                 <item>
                  <widget class="QWidget" name="placeShutterStatus" native="true">
+                  <property name="focusPolicy">
+                   <enum>Qt::TabFocus</enum>
+                  </property>
                   <layout class="QHBoxLayout" name="horizontalLayout_12">
                    <property name="spacing">
                     <number>0</number>
@@ -3049,6 +3166,101 @@ p
    <container>1</container>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>expPath</tabstop>
+  <tabstop>browseExpPath</tabstop>
+  <tabstop>detPathSync</tabstop>
+  <tabstop>tiffFormat</tabstop>
+  <tabstop>hdfFormat</tabstop>
+  <tabstop>aqMode</tabstop>
+  <tabstop>checkSerial</tabstop>
+  <tabstop>checkFF</tabstop>
+  <tabstop>checkMulti</tabstop>
+  <tabstop>checkDyno</tabstop>
+  <tabstop>checkExtTrig</tabstop>
+  <tabstop>checkSpiral</tabstop>
+  <tabstop>preRunScript</tabstop>
+  <tabstop>postRunScript</tabstop>
+  <tabstop>expDesc</tabstop>
+  <tabstop>endNumber</tabstop>
+  <tabstop>endTime</tabstop>
+  <tabstop>endCondition</tabstop>
+  <tabstop>serial2D</tabstop>
+  <tabstop>acquisitionTime</tabstop>
+  <tabstop>conditionScript</tabstop>
+  <tabstop>serialList1</tabstop>
+  <tabstop>serialList2</tabstop>
+  <tabstop>swapSerialLists</tabstop>
+  <tabstop>pre2DScript</tabstop>
+  <tabstop>post2DScript</tabstop>
+  <tabstop>ongoingSeries</tabstop>
+  <tabstop>ffOnEachScan</tabstop>
+  <tabstop>scanDelay</tabstop>
+  <tabstop>testSerial</tabstop>
+  <tabstop>placeThetaMotor</tabstop>
+  <tabstop>scanRange</tabstop>
+  <tabstop>scanProjections</tabstop>
+  <tabstop>scanStep</tabstop>
+  <tabstop>aqsPP</tabstop>
+  <tabstop>scanAdd</tabstop>
+  <tabstop>stepTime</tabstop>
+  <tabstop>aqsSpeed</tabstop>
+  <tabstop>flyRatio</tabstop>
+  <tabstop>placeSpiralMotor</tabstop>
+  <tabstop>spiralTravel</tabstop>
+  <tabstop>spiralSpeed</tabstop>
+  <tabstop>spiralScans</tabstop>
+  <tabstop>preScanScript</tabstop>
+  <tabstop>postScanScript</tabstop>
+  <tabstop>testScan</tabstop>
+  <tabstop>nofBGs</tabstop>
+  <tabstop>bgIntervalBefore</tabstop>
+  <tabstop>bgIntervalAfter</tabstop>
+  <tabstop>bgIntervalSAS</tabstop>
+  <tabstop>placeBGmotor</tabstop>
+  <tabstop>bgTravel</tabstop>
+  <tabstop>bgExposure</tabstop>
+  <tabstop>nofDFs</tabstop>
+  <tabstop>dfIntervalBefore</tabstop>
+  <tabstop>dfIntervalAfter</tabstop>
+  <tabstop>dfIntervalSAS</tabstop>
+  <tabstop>testFF</tabstop>
+  <tabstop>singleBg</tabstop>
+  <tabstop>subLoop</tabstop>
+  <tabstop>multiList1</tabstop>
+  <tabstop>multiList2</tabstop>
+  <tabstop>swapLoopLists</tabstop>
+  <tabstop>preSubLoopScript</tabstop>
+  <tabstop>postSubLoopScript</tabstop>
+  <tabstop>testMulti</tabstop>
+  <tabstop>placeDynoMotor</tabstop>
+  <tabstop>dynoSpeed</tabstop>
+  <tabstop>dynoPos</tabstop>
+  <tabstop>dynoNeg</tabstop>
+  <tabstop>dyno2</tabstop>
+  <tabstop>placeDyno2Motor</tabstop>
+  <tabstop>dynoSpeedLock</tabstop>
+  <tabstop>dynoDirectionLock</tabstop>
+  <tabstop>dyno2Speed</tabstop>
+  <tabstop>dyno2Pos</tabstop>
+  <tabstop>dyno2Neg</tabstop>
+  <tabstop>testDyno</tabstop>
+  <tabstop>placePShutterSelection</tabstop>
+  <tabstop>label_21</tabstop>
+  <tabstop>placeShutterSelection</tabstop>
+  <tabstop>placeShutterStatus</tabstop>
+  <tabstop>detSelection</tabstop>
+  <tabstop>preAqScript</tabstop>
+  <tabstop>postAqScript</tabstop>
+  <tabstop>vidFixed</tabstop>
+  <tabstop>vidFrames</tabstop>
+  <tabstop>vidTime</tabstop>
+  <tabstop>vidReady</tabstop>
+  <tabstop>vidStartStop</tabstop>
+  <tabstop>testDetector</tabstop>
+  <tabstop>startStop</tabstop>
+  <tabstop>control</tabstop>
+ </tabstops>
  <resources>
   <include location="ctgui.qrc"/>
  </resources>

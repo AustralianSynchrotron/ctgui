@@ -60,6 +60,11 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>selection</tabstop>
+  <tabstop>toggle</tabstop>
+  <tabstop>status</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

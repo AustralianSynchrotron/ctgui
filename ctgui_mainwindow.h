@@ -31,7 +31,7 @@ class MainWindow : public QMainWindow
 public:
 
   static const QString storedState;
-  explicit MainWindow(QWidget *parent = 0);
+  explicit MainWindow(int argc, char *argv[], QWidget *parent = 0);
   ~MainWindow();
 
   QHash<QObject*, QString> configNames;

@@ -10,6 +10,7 @@
 #include <QApplication>
 #include <QMessageBox>
 #include <QStandardPaths>
+#include <functional>
 
 #include "additional_classes.h"
 #include "ctgui_mainwindow.h"
@@ -18,10 +19,10 @@
 using namespace  std;
 
 
-#define innearList dynamic_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
-#define outerList dynamic_cast<PositionList*> ( ui->outerListPlace->layout()->itemAt(0)->widget() )
-#define loopList dynamic_cast<PositionList*> ( ui->loopListPlace->layout()->itemAt(0)->widget() )
-#define sloopList dynamic_cast<PositionList*> ( ui->sloopListPlace->layout()->itemAt(0)->widget() )
+#define innearList qobject_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
+#define outerList qobject_cast<PositionList*> ( ui->outerListPlace->layout()->itemAt(0)->widget() )
+#define loopList qobject_cast<PositionList*> ( ui->loopListPlace->layout()->itemAt(0)->widget() )
+#define sloopList qobject_cast<PositionList*> ( ui->sloopListPlace->layout()->itemAt(0)->widget() )
 
 
 
@@ -84,7 +85,7 @@ public:
 static HWstate * preVideoState = 0;
 
 
-MainWindow::MainWindow(QWidget *parent) :
+MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   QMainWindow(parent),
   isLoadingState(false),
   ui(new Ui::MainWindow),
@@ -177,10 +178,6 @@ MainWindow::MainWindow(QWidget *parent) :
   placeMotor(bgMotor, ui->placeBGmotor, ui->placeBGcurrent);
   placeMotor(dynoMotor, ui->placeDynoMotor, ui->placeDynoCurrent);
   placeMotor(dyno2Motor, ui->placeDyno2Motor, ui->placeDyno2Current);
-
-  auto placeShutter = [](){
-
-  };
 
   // can't make it lambda because have to use ## feature
   #define placeShutter(wdgPrefix, shutUI) \
@@ -332,38 +329,73 @@ MainWindow::MainWindow(QWidget *parent) :
 
   }
 
+  function<QString(QObject*)> findGroup = [&findGroup,this](QObject * fgobj){
+    if (const Shutter* shut = qobject_cast<const Shutter*>(fgobj))
+      return findGroup(shut->ui->selection);
+    else if (QCaMotorGUI* mot = qobject_cast<QCaMotorGUI*>(fgobj))
+      return findGroup(mot->setupButton());
+    else if (const QTableWidgetOtem* wdgitm = qobject_cast<const QTableWidgetOtem*>(fgobj))
+      return findGroup(wdgitm->tableWidget());
+    else if (const QButtonGroup* btns = qobject_cast<const QButtonGroup*>(fgobj))
+      foreach (QAbstractButton * but, btns->buttons())
+        return findGroup(but);
+    else if  (QWidget * wdg = qobject_cast<QWidget*>(fgobj))  {
+      qDebug() << "ENT QWDG" << wdg;
+      for (int tabIdx=0 ; tabIdx < ui->control->count() ; tabIdx++ ) {
+        QWidget * tabWdg = ui->control->widget(tabIdx);
+        qDebug() << "   TAB" << tabIdx << tabWdg << tabWdg->isAncestorOf(wdg);
+        if (tabWdg->isAncestorOf(wdg)) {
+          if (ui->control->tabWhatsThis(tabIdx).isEmpty())
+            qDebug() << tabWdg->objectName() << tabWdg << configNames[fgobj] << tabWdg->whatsThis()
+                        << ui->control->tabWhatsThis(tabIdx)
+                        << ui->control->tabToolTip(tabIdx)
+                        << ui->control->tabText(tabIdx) ;
+          qDebug() << "RET" << ui->control->tabWhatsThis(tabIdx);
+          return ui->control->tabWhatsThis(tabIdx);
+        }
+      }
+      //qDebug() << tabWdg->objectName() << tabWdg << configNames[fgobj] << tabWdg->whatsThis()
+      //            << ui->control->tabWhatsThis(tabIdx)
+      //            << ui->control->tabToolTip(tabIdx)
+      //            << ui->control->tabText(tabIdx) ;
+    }
+    qDebug() << "RET EMPTY";
+    return QString();
+  };
+  foreach (QObject * dobj, configNames.keys())
+    if (findGroup(dobj).isEmpty())
+      qDebug() << "WARNING! QObject not found in list" << dobj << dobj->objectName() << configNames[dobj];
+
   //loadConfiguration(configFile);
 
   foreach (QObject * obj, configNames.keys()) {
     const char * sig = 0;
-    if ( dynamic_cast<QLineEdit*>(obj) ||
-         dynamic_cast<QPlainTextEdit*>(obj) ||
-         dynamic_cast<UScript*>(obj) ||
-         dynamic_cast<QSpinBox*>(obj) ||
-         dynamic_cast<QAbstractSpinBox*>(obj) )
+    if ( qobject_cast<QLineEdit*>(obj) ||
+         qobject_cast<QPlainTextEdit*>(obj) ||
+         qobject_cast<UScript*>(obj) ||
+         qobject_cast<QSpinBox*>(obj) ||
+         qobject_cast<QAbstractSpinBox*>(obj) )
       sig = SIGNAL(editingFinished());
-    else if (dynamic_cast<QComboBox*>(obj))
+    else if (qobject_cast<QComboBox*>(obj))
       sig = SIGNAL(currentIndexChanged(int));
-    else if (dynamic_cast<QAbstractButton*>(obj))
+    else if (qobject_cast<QAbstractButton*>(obj))
       sig = SIGNAL(toggled(bool));
-    else if ( dynamic_cast<QButtonGroup*>(obj))
+    else if ( qobject_cast<QButtonGroup*>(obj))
       sig = SIGNAL(buttonClicked(int));
-    else if (dynamic_cast<QCaMotorGUI*>(obj)) {
-      obj = dynamic_cast<QCaMotorGUI*>(obj)->motor();
+    else if (qobject_cast<QCaMotorGUI*>(obj)) {
+      obj = qobject_cast<QCaMotorGUI*>(obj)->motor();
       sig = SIGNAL(changedPv());
-    } else if (dynamic_cast<QTableWidget*>(obj))
+    } else if (qobject_cast<QTableWidget*>(obj))
       sig = SIGNAL(itemChanged(QTableWidgetItem*));
-    else if (dynamic_cast<PositionList*>(obj))
+    else if (qobject_cast<PositionList*>(obj))
       sig = SIGNAL(parameterChanged());
-    else if (dynamic_cast<Shutter*>(obj))
+    else if (qobject_cast<Shutter*>(obj))
       sig = SIGNAL(shutterChanged());
     else
       qDebug() << "Do not know how to connect object " << obj
                << "to the" << SLOT(storeCurrentState());
-
     if (sig)
       connect (obj, sig, SLOT(storeCurrentState()));
-
   }
 
 
@@ -378,44 +410,44 @@ MainWindow::~MainWindow() {
 
 static void save_cfg(const QObject * obj, const QString & key, QSettings & config ) {
 
-  if ( dynamic_cast<const QLineEdit*>(obj))
-    config.setValue(key, dynamic_cast<const QLineEdit*>(obj)->text());
-  else if (dynamic_cast<const QPlainTextEdit*>(obj))
-    config.setValue(key, dynamic_cast<const QPlainTextEdit*>(obj)->toPlainText());
-  else if (dynamic_cast<const QAbstractButton*>(obj))
-    config.setValue(key, dynamic_cast<const QAbstractButton*>(obj)->isChecked());
-  else if (dynamic_cast<const UScript*>(obj))
-    config.setValue(key, dynamic_cast<const UScript*>(obj)->script->path());
-  else if (dynamic_cast<const QComboBox*>(obj))
-    config.setValue(key, dynamic_cast<const QComboBox*>(obj)->currentText());
-  else if (dynamic_cast<const QSpinBox*>(obj))
-    config.setValue(key, dynamic_cast<const QSpinBox*>(obj)->value());
-  else if (dynamic_cast<const QDoubleSpinBox*>(obj))
-    config.setValue(key, dynamic_cast<const QDoubleSpinBox*>(obj)->value());
-  else if (dynamic_cast<const QTimeEdit*>(obj))
-    config.setValue(key, dynamic_cast<const QTimeEdit*>(obj)->time());
-  else if (dynamic_cast<const QCaMotorGUI*>(obj)) {
-    config.setValue(key, dynamic_cast<const QCaMotorGUI*>(obj)->motor()->getPv());
-    config.setValue(key+"Pos", dynamic_cast<const QCaMotorGUI*>(obj)->motor()->getUserPosition());
-  } else if ( dynamic_cast<const QLabel*>(obj))
-    config.setValue(key, dynamic_cast<const QLabel*>(obj)->text());
-  else if ( dynamic_cast<const QButtonGroup*>(obj))
-    config.setValue(key, dynamic_cast<const QButtonGroup*>(obj)->checkedButton()
-                    ? dynamic_cast<const QButtonGroup*>(obj)->checkedButton()->text() : QString() );
+  if ( qobject_cast<const QLineEdit*>(obj))
+    config.setValue(key, qobject_cast<const QLineEdit*>(obj)->text());
+  else if (qobject_cast<const QPlainTextEdit*>(obj))
+    config.setValue(key, qobject_cast<const QPlainTextEdit*>(obj)->toPlainText());
+  else if (qobject_cast<const QAbstractButton*>(obj))
+    config.setValue(key, qobject_cast<const QAbstractButton*>(obj)->isChecked());
+  else if (qobject_cast<const UScript*>(obj))
+    config.setValue(key, qobject_cast<const UScript*>(obj)->script->path());
+  else if (qobject_cast<const QComboBox*>(obj))
+    config.setValue(key, qobject_cast<const QComboBox*>(obj)->currentText());
+  else if (qobject_cast<const QSpinBox*>(obj))
+    config.setValue(key, qobject_cast<const QSpinBox*>(obj)->value());
+  else if (qobject_cast<const QDoubleSpinBox*>(obj))
+    config.setValue(key, qobject_cast<const QDoubleSpinBox*>(obj)->value());
+  else if (qobject_cast<const QTimeEdit*>(obj))
+    config.setValue(key, qobject_cast<const QTimeEdit*>(obj)->time());
+  else if (qobject_cast<const QCaMotorGUI*>(obj)) {
+    config.setValue(key, qobject_cast<const QCaMotorGUI*>(obj)->motor()->getPv());
+    config.setValue(key+"Pos", qobject_cast<const QCaMotorGUI*>(obj)->motor()->getUserPosition());
+  } else if ( qobject_cast<const QLabel*>(obj))
+    config.setValue(key, qobject_cast<const QLabel*>(obj)->text());
+  else if ( qobject_cast<const QButtonGroup*>(obj))
+    config.setValue(key, qobject_cast<const QButtonGroup*>(obj)->checkedButton()
+                    ? qobject_cast<const QButtonGroup*>(obj)->checkedButton()->text() : QString() );
   /*
-  else if (dynamic_cast<const QTableWidget*>(obj)) {
-    const QTableWidget * twdg = dynamic_cast<const QTableWidget*>(obj);
+  else if (qobject_cast<const QTableWidget*>(obj)) {
+    const QTableWidget * twdg = qobject_cast<const QTableWidget*>(obj);
     config.beginWriteArray(key);
     int index = 0;
     foreach (QTableWidgetItem * item,
-             dynamic_cast<const QTableWidget*>(obj)->findItems("", Qt::MatchContains) ) {
+             qobject_cast<const QTableWidget*>(obj)->findItems("", Qt::MatchContains) ) {
       config.setArrayIndex(index++);
       config.setValue("position", item ? item->text() : "");
     }
     config.endArray();
   } */
-  else if (dynamic_cast<const PositionList*>(obj)) {
-    const PositionList *pl = dynamic_cast<const PositionList*>(obj);
+  else if (qobject_cast<const PositionList*>(obj)) {
+    const PositionList *pl = qobject_cast<const PositionList*>(obj);
     save_cfg(pl->ui->label, key, config);
     save_cfg(pl->motui, key + "/motor", config);
     save_cfg(pl->ui->nof, key + "/nofsteps", config);
@@ -430,8 +462,8 @@ static void save_cfg(const QObject * obj, const QString & key, QSettings & confi
       config.setValue("doit", pl->doMe(index));
     }
     config.endArray();
-  } else if (dynamic_cast<const Shutter*>(obj)) {
-    const Shutter * shut = dynamic_cast<const Shutter*>(obj);
+  } else if (qobject_cast<const Shutter*>(obj)) {
+    const Shutter * shut = qobject_cast<const Shutter*>(obj);
     save_cfg(shut->ui->selection, key, config);
     config.setValue(key+"_custom", shut->readCustomDialog());
   } else
@@ -491,34 +523,34 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
   if ( ! value.isValid() ) {
     qDebug() << "Value read from config key" << key << "is not valid";
     return false;
-  } else if ( dynamic_cast<QLineEdit*>(obj) && value.canConvert(QVariant::String) )
-    dynamic_cast<QLineEdit*>(obj)->setText(value.toString());
-  else if ( dynamic_cast<QPlainTextEdit*>(obj) && value.canConvert(QVariant::String) )
-    dynamic_cast<QPlainTextEdit*>(obj)->setPlainText(value.toString());
-  else if ( dynamic_cast<QAbstractButton*>(obj) && value.canConvert(QVariant::Bool) )
-    dynamic_cast<QAbstractButton*>(obj)->setChecked(value.toBool());
-  else if ( dynamic_cast<UScript*>(obj) && value.canConvert(QVariant::String) )
-    dynamic_cast<UScript*>(obj)->script->setPath(value.toString());
-  else if ( dynamic_cast<QComboBox*>(obj) && value.canConvert(QVariant::String) ) {
+  } else if ( qobject_cast<QLineEdit*>(obj) && value.canConvert(QVariant::String) )
+    qobject_cast<QLineEdit*>(obj)->setText(value.toString());
+  else if ( qobject_cast<QPlainTextEdit*>(obj) && value.canConvert(QVariant::String) )
+    qobject_cast<QPlainTextEdit*>(obj)->setPlainText(value.toString());
+  else if ( qobject_cast<QAbstractButton*>(obj) && value.canConvert(QVariant::Bool) )
+    qobject_cast<QAbstractButton*>(obj)->setChecked(value.toBool());
+  else if ( qobject_cast<UScript*>(obj) && value.canConvert(QVariant::String) )
+    qobject_cast<UScript*>(obj)->script->setPath(value.toString());
+  else if ( qobject_cast<QComboBox*>(obj) && value.canConvert(QVariant::String) ) {
     const QString val = value.toString();
-    QComboBox * box = dynamic_cast<QComboBox*>(obj);
+    QComboBox * box = qobject_cast<QComboBox*>(obj);
     const int idx = box->findText(val);
     if ( idx >= 0 )  box->setCurrentIndex(idx);
     else if ( box->isEditable() ) box->setEditText(val);
-  } else if ( dynamic_cast<QSpinBox*>(obj) && value.canConvert(QVariant::Int) )
-    dynamic_cast<QSpinBox*>(obj)->setValue(value.toInt());
-  else if ( dynamic_cast<QDoubleSpinBox*>(obj) && value.canConvert(QVariant::Double) )
-    dynamic_cast<QDoubleSpinBox*>(obj)->setValue(value.toDouble());
-  else if ( dynamic_cast<QTimeEdit*>(obj) && value.canConvert(QVariant::Time) )
-    dynamic_cast<QTimeEdit*>(obj)->setTime(value.toTime());
-  else if ( dynamic_cast<QCaMotorGUI*>(obj) && value.canConvert(QVariant::String) )
-    dynamic_cast<QCaMotorGUI*>(obj)->motor()->setPv(value.toString());
-  else if ( dynamic_cast<QButtonGroup*>(obj) && value.canConvert(QVariant::String) ) {
-    foreach (QAbstractButton * but, dynamic_cast<QButtonGroup*>(obj)->buttons())
+  } else if ( qobject_cast<QSpinBox*>(obj) && value.canConvert(QVariant::Int) )
+    qobject_cast<QSpinBox*>(obj)->setValue(value.toInt());
+  else if ( qobject_cast<QDoubleSpinBox*>(obj) && value.canConvert(QVariant::Double) )
+    qobject_cast<QDoubleSpinBox*>(obj)->setValue(value.toDouble());
+  else if ( qobject_cast<QTimeEdit*>(obj) && value.canConvert(QVariant::Time) )
+    qobject_cast<QTimeEdit*>(obj)->setTime(value.toTime());
+  else if ( qobject_cast<QCaMotorGUI*>(obj) && value.canConvert(QVariant::String) )
+    qobject_cast<QCaMotorGUI*>(obj)->motor()->setPv(value.toString());
+  else if ( qobject_cast<QButtonGroup*>(obj) && value.canConvert(QVariant::String) ) {
+    foreach (QAbstractButton * but, qobject_cast<QButtonGroup*>(obj)->buttons())
       if (but->text() == value.toString())
         but->setChecked(true);
-  } /* else if (dynamic_cast<QTableWidget*>(obj)) {
-    QTableWidget * twdg = dynamic_cast<QTableWidget*>(obj);
+  } /* else if (qobject_cast<QTableWidget*>(obj)) {
+    QTableWidget * twdg = qobject_cast<QTableWidget*>(obj);
     int stepssize = config.beginReadArray(key);
     for (int i = 0; i < stepssize; ++i) {
       config.setArrayIndex(i);
@@ -526,8 +558,8 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
         twdg->item(i,0)->setText(config.value("position").toString());
     }
     config.endArray();
-  } */ else if (dynamic_cast<PositionList*>(obj)) {
-    PositionList *pl = dynamic_cast<PositionList*>(obj);
+  } */ else if (qobject_cast<PositionList*>(obj)) {
+    PositionList *pl = qobject_cast<PositionList*>(obj);
     load_cfg(pl->motui, key + "/motor", config);
     load_cfg(pl->ui->irregular, key + "/irregular", config);
     load_cfg(pl->ui->nof, key + "/nofsteps", config);
@@ -548,8 +580,8 @@ static bool load_cfg(QObject * obj, const QString & key, QSettings & config ) {
         pl->todo(index);
     }
     config.endArray();
-  } else if (dynamic_cast<Shutter*>(obj)) {
-    Shutter * shut = dynamic_cast<Shutter*>(obj);
+  } else if (qobject_cast<Shutter*>(obj)) {
+    Shutter * shut = qobject_cast<Shutter*>(obj);
     QVariant customValue = config.value(key+"_custom");
     if (customValue.canConvert(QVariant::StringList))
       shut->loadCustomDialog(customValue.toStringList());
@@ -898,9 +930,9 @@ void MainWindow::updateUi_scanStep() {
 QMDoubleSpinBox * MainWindow::selectPRS(QObject *prso) {
 
   QMDoubleSpinBox * prs;
-  prs = dynamic_cast<QMDoubleSpinBox*>(prso);
+  prs = qobject_cast<QMDoubleSpinBox*>(prso);
   if ( ! prs )
-    prs = dynamic_cast<QMDoubleSpinBox*>(sender());
+    prs = qobject_cast<QMDoubleSpinBox*>(sender());
   if ( ! prs || ! prsSelection.contains(prs) )
     prs=selectedPRS();
   if ( ! prs )

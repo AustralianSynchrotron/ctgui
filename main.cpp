@@ -218,7 +218,7 @@ QString value (QObject* obj) {
 int main(int argc, char *argv[]) {
 
   QApplication a(argc, argv);
-  MainWindow w;
+  MainWindow w(argc, argv);
 
   QString configFile = MainWindow::storedState;
   QStringList names = w.configNames.values();
@@ -238,7 +238,7 @@ int main(int argc, char *argv[]) {
         if ( w.configNames[mobj] == name )
           obj = mobj;
       const string sname = (name.contains('/') ? "" : "general/") + name.toStdString();
-      if (dynamic_cast<const PositionList*>(obj))
+      if (qobject_cast<const PositionList*>(obj))
         otable
             .add(poptmx::OPTION, &fakeval, 0, sname+"/motor", "shortDesc", "")
             .add(poptmx::OPTION, &fakeval, 0, sname+"/nofsteps", "shortDesc", "")
@@ -280,7 +280,7 @@ int main(int argc, char *argv[]) {
       string longDesc;
       // adding option name to toolTip and getting descriptions
       QString ttAdd = QString::fromStdString( "\n\n--" + sname + postName );
-      if (const QButtonGroup* cobj = dynamic_cast<const QButtonGroup*>(sobj)) {
+      if (const QButtonGroup* cobj = qobject_cast<const QButtonGroup*>(sobj)) {
         QStringList knownFields;
         foreach (QAbstractButton * but, cobj->buttons()) {
           but->setToolTip(but->toolTip() + ttAdd + " \"" + but->text() + "\"");
@@ -315,13 +315,13 @@ int main(int argc, char *argv[]) {
         }
 
         variant<QWidget*, QTableWidgetOtem*> ctrlWdg = (QWidget*) nullptr;
-        if (QCaMotorGUI* cobj = dynamic_cast<QCaMotorGUI*>(sobj))
+        if (QCaMotorGUI* cobj = qobject_cast<QCaMotorGUI*>(sobj))
           ctrlWdg = cobj->setupButton();
-        else if (Shutter* cobj = dynamic_cast<Shutter*>(sobj))
+        else if (Shutter* cobj = qobject_cast<Shutter*>(sobj))
           ctrlWdg = cobj->ui->selection;
-        else if (QWidget * wdg = dynamic_cast<QWidget*>(sobj))
+        else if (QWidget * wdg = qobject_cast<QWidget*>(sobj))
           ctrlWdg = wdg;
-        else if (QTableWidgetOtem * item = dynamic_cast<QTableWidgetOtem*>(sobj))
+        else if (QTableWidgetOtem * item = qobject_cast<QTableWidgetOtem*>(sobj))
           ctrlWdg = item;
         shortDesc = visit( [](auto &x) { return x->whatsThis(); }, ctrlWdg).toStdString();
         longDesc += visit( [](auto &x) { return x->toolTip(); }, ctrlWdg).toStdString();
@@ -333,7 +333,7 @@ int main(int argc, char *argv[]) {
         visit( [&ttAdd](auto &x) { x->setToolTip( x->toolTip() + ttAdd ); }, ctrlWdg);
       }
       // adding option to parse table
-      string svalue = value(sobj).toStdString();
+      const string svalue = value(sobj).toStdString();
       otable.add( poptmx::OPTION, sobj, 0, sname+postName
                 , preShort + shortDesc, preLong + longDesc, svalue.empty() ? "<none>" : svalue);
     };
