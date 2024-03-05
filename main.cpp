@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
   MainWindow w(argc, argv);
 
   QString configFile = MainWindow::storedState;
-  QStringList names = w.configNames.values();
+  QStringList names = w.configNames();
   names.sort();
   int moveTo = 0;
   for (int idx=0 ; idx < names.count() ; idx++ )
@@ -234,8 +234,8 @@ int main(int argc, char *argv[]) {
     string fakeval;
     foreach (QString name,  names ) {
       QObject * obj = 0;
-      foreach (QObject * mobj, w.configNames.keys())
-        if ( w.configNames[mobj] == name )
+      foreach (QObject * mobj, w.configObjes())
+        //if ( w.configNames[mobj] == name )
           obj = mobj;
       const string sname = (name.contains('/') ? "" : "general/") + name.toStdString();
       if (qobject_cast<const PositionList*>(obj))
@@ -269,9 +269,9 @@ int main(int argc, char *argv[]) {
 
     const string sname = (name.contains('/') ? "" : "general/") + name.toStdString();
     QObject * obj = 0;
-    foreach (QObject * mobj, w.configNames.keys())
-      if ( w.configNames[mobj] == name )
-        obj = mobj;
+    //foreach (QObject * mobj, w.configNames.keys())
+    //  if ( w.configNames[mobj] == name )
+    //    obj = mobj;
 
     auto addOpt = [&otable,&sname]
         (QObject * sobj, const string & postName="", const string & preShort="", const string & preLong="" )

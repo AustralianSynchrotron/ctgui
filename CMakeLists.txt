@@ -3,7 +3,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 project(ctgui
-        VERSION 1.0 )
+        VERSION 2.0 )
 add_definitions(-DAPP_VERSION=${PROJECT_VERSION})
 
 set(CMAKE_AUTOMOC ON)

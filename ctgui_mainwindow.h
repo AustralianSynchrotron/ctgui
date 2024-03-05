@@ -34,7 +34,12 @@ public:
   explicit MainWindow(int argc, char *argv[], QWidget *parent = 0);
   ~MainWindow();
 
-  QHash<QObject*, QString> configNames;
+  //QHash<QObject*, QString> configNames;
+  QList< QPair<QObject*, QString> > configPairs;
+  QStringList configNames() const { QStringList toRet; foreach(auto & cO, configPairs) toRet << cO.second ; return toRet; }
+  QObjectList configObjes() const { QObjectList toRet; foreach(auto & cO, configPairs) toRet << cO.first ; return toRet; }
+  QString configGroup(const QObject* obj) const;
+
 
 public slots:
   void saveConfiguration(QString fileName = QString());

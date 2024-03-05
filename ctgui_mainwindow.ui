@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2206</width>
-    <height>1110</height>
+    <width>1130</width>
+    <height>767</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -3283,9 +3283,12 @@ p
   </connection>
  </connections>
  <buttongroups>
-  <buttongroup name="dyno2DirButtonGroup">
+  <buttongroup name="imageFormatGroup">
    <property name="whatsThis" stdset="0">
-    <string>Direction of second dyno motion</string>
+    <string>Image saving format</string>
+   </property>
+   <property name="toolTip" stdset="0">
+    <string>Format for image frames storage</string>
    </property>
   </buttongroup>
   <buttongroup name="dynoDirButtonGroup">
@@ -3293,12 +3296,9 @@ p
     <string>Direction of dyno motion</string>
    </property>
   </buttongroup>
-  <buttongroup name="imageFormatGroup">
+  <buttongroup name="dyno2DirButtonGroup">
    <property name="whatsThis" stdset="0">
-    <string>Image saving format</string>
-   </property>
-   <property name="toolTip" stdset="0">
-    <string>Format for image frames storage</string>
+    <string>Direction of second dyno motion</string>
    </property>
   </buttongroup>
   <buttongroup name="endConditionButtonGroup">

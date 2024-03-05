@@ -249,7 +249,85 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
 
   // populate configNames
   {
+    configPairs << QPair(ui->checkSerial, "doserialscans");
+    configPairs << QPair(ui->expDesc, "description");
+    configPairs << QPair(ui->expPath, "workingdir");
+    configPairs << QPair(ui->detPathSync, "syncdetectordir");
+    configPairs << QPair(ui->aqMode, "acquisitionmode");
+    configPairs << QPair(ui->checkSerial, "doserialscans");
+    configPairs << QPair(ui->checkFF, "doflatfield");
+    configPairs << QPair(ui->checkDyno, "dodyno");
+    configPairs << QPair(ui->checkMulti, "domulti");
+    configPairs << QPair(ui->checkExtTrig, "useExtTrig");
+    configPairs << QPair(ui->imageFormatGroup, "imageFormat");
+    configPairs << QPair(ui->preRunScript, "prerun");
+    configPairs << QPair(ui->postRunScript, "postrun");
 
+    configPairs << QPair(ui->endConditionButtonGroup, "endCondition");
+    configPairs << QPair(ui->acquisitionTime, "time");
+    configPairs << QPair(ui->conditionScript, "stopscript");
+    configPairs << QPair(ui->ongoingSeries, "ongoingseries");
+    configPairs << QPair(ui->ffOnEachScan, "ffoneachscan");
+    configPairs << QPair(ui->scanDelay, "scandelay");
+    configPairs << QPair(innearList, "innearseries"); // redefined in onSwapSerial
+    configPairs << QPair(outerList, "outerseries"); // redefined in onSwapSerial
+    configPairs << QPair(ui->serial2D, "2d");
+    configPairs << QPair(ui->pre2DScript, "prescript");
+    configPairs << QPair(ui->post2DScript, "postscript");
+
+    configPairs << QPair(thetaMotor, "motor");
+    configPairs << QPair(ui->scanRange, "range");
+    configPairs << QPair(ui->scanProjections, "steps");
+    configPairs << QPair(ui->scanStep, "step");
+    configPairs << QPair(ui->aqsPP, "aquisitionsperprojection");
+    configPairs << QPair(ui->scanAdd, "add");
+    configPairs << QPair(ui->preScanScript, "prescan");
+    configPairs << QPair(ui->postScanScript, "postscan");
+    configPairs << QPair(ui->flyRatio, "flyratio");
+    configPairs << QPair(ui->aqsSpeed, "aqspeed");
+    configPairs << QPair(ui->stepTime, "steptime");
+
+    configPairs << QPair(ui->nofBGs, "bgs");
+    configPairs << QPair(ui->bgIntervalSAS, "bginterval");
+    configPairs << QPair(ui->bgIntervalBefore, "bgBefore");
+    configPairs << QPair(ui->bgIntervalAfter, "bgAfter");
+    configPairs << QPair(bgMotor, "motor");
+    configPairs << QPair(ui->bgTravel, "bgtravel");
+    configPairs << QPair(ui->bgExposure, "bgexposure");
+    configPairs << QPair(ui->nofDFs, "dfs");
+    configPairs << QPair(ui->dfIntervalSAS, "dfinterval");
+    configPairs << QPair(ui->dfIntervalBefore, "dfBefore");
+    configPairs << QPair(ui->dfIntervalAfter, "dfAfter");
+
+    configPairs << QPair(ui->singleBg, "singlebg");
+    configPairs << QPair(ui->subLoop, "subloop");
+    configPairs << QPair(loopList, "loopseries");
+    configPairs << QPair(sloopList, "subloopseries");
+    configPairs << QPair(ui->preSubLoopScript, "presubscript");
+    configPairs << QPair(ui->postSubLoopScript, "postsubscript");
+
+    configPairs << QPair(dynoMotor, "motor");
+    configPairs << QPair(ui->dynoSpeed, "speed");
+    configPairs << QPair(ui->dynoDirButtonGroup, "direction");
+
+    configPairs << QPair(ui->dyno2, "dyno2");
+    configPairs << QPair(dyno2Motor, "motor");
+    configPairs << QPair(ui->dynoSpeedLock, "dyno2/speedLock");
+    configPairs << QPair(ui->dyno2Speed, "dyno2/speed");
+    configPairs << QPair(ui->dyno2DirButtonGroup, "dyno2/direction");
+    configPairs << QPair(ui->dynoDirectionLock, "dyno2/dirLock");
+
+    configPairs << QPair(shutterSec, "shutterBox");
+    configPairs << QPair(shutterPri, "primaryShutterBox");
+    configPairs << QPair(ui->detSelection, "detectorBox");
+    configPairs << QPair(ui->preAqScript, "preacquire");
+    configPairs << QPair(ui->postAqScript, "postacquire");
+
+    configPairs << QPair(ui->vidFixed, "videofixedLength");
+    configPairs << QPair(ui->vidFrames, "videoframes");
+    configPairs << QPair(ui->vidTime, "videotime");
+
+/*
   configNames[ui->expDesc] = "description";
   configNames[ui->expPath] = "workingdir";
   configNames[ui->detPathSync] = "syncdetectordir";
@@ -326,49 +404,16 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   configNames[ui->vidFixed] = "video/fixedLength";
   configNames[ui->vidFrames] = "video/frames";
   configNames[ui->vidTime] = "video/time";
-
+*/
   }
 
-  function<QString(QObject*)> findGroup = [&findGroup,this](QObject * fgobj){
-    if (const Shutter* shut = qobject_cast<const Shutter*>(fgobj))
-      return findGroup(shut->ui->selection);
-    else if (QCaMotorGUI* mot = qobject_cast<QCaMotorGUI*>(fgobj))
-      return findGroup(mot->setupButton());
-    else if (const QTableWidgetOtem* wdgitm = qobject_cast<const QTableWidgetOtem*>(fgobj))
-      return findGroup(wdgitm->tableWidget());
-    else if (const QButtonGroup* btns = qobject_cast<const QButtonGroup*>(fgobj))
-      foreach (QAbstractButton * but, btns->buttons())
-        return findGroup(but);
-    else if  (QWidget * wdg = qobject_cast<QWidget*>(fgobj))  {
-      qDebug() << "ENT QWDG" << wdg;
-      for (int tabIdx=0 ; tabIdx < ui->control->count() ; tabIdx++ ) {
-        QWidget * tabWdg = ui->control->widget(tabIdx);
-        qDebug() << "   TAB" << tabIdx << tabWdg << tabWdg->isAncestorOf(wdg);
-        if (tabWdg->isAncestorOf(wdg)) {
-          if (ui->control->tabWhatsThis(tabIdx).isEmpty())
-            qDebug() << tabWdg->objectName() << tabWdg << configNames[fgobj] << tabWdg->whatsThis()
-                        << ui->control->tabWhatsThis(tabIdx)
-                        << ui->control->tabToolTip(tabIdx)
-                        << ui->control->tabText(tabIdx) ;
-          qDebug() << "RET" << ui->control->tabWhatsThis(tabIdx);
-          return ui->control->tabWhatsThis(tabIdx);
-        }
-      }
-      //qDebug() << tabWdg->objectName() << tabWdg << configNames[fgobj] << tabWdg->whatsThis()
-      //            << ui->control->tabWhatsThis(tabIdx)
-      //            << ui->control->tabToolTip(tabIdx)
-      //            << ui->control->tabText(tabIdx) ;
-    }
-    qDebug() << "RET EMPTY";
-    return QString();
-  };
-  foreach (QObject * dobj, configNames.keys())
-    if (findGroup(dobj).isEmpty())
-      qDebug() << "WARNING! QObject not found in list" << dobj << dobj->objectName() << configNames[dobj];
+  foreach (auto & dobj, configPairs)
+    qDebug() << configGroup(dobj.first) << dobj.second;
+
 
   //loadConfiguration(configFile);
-
-  foreach (QObject * obj, configNames.keys()) {
+  foreach (auto & dobj, configPairs) {
+    QObject * obj = dobj.first;
     const char * sig = 0;
     if ( qobject_cast<QLineEdit*>(obj) ||
          qobject_cast<QPlainTextEdit*>(obj) ||
@@ -407,101 +452,139 @@ MainWindow::~MainWindow() {
 }
 
 
-
-static void save_cfg(const QObject * obj, const QString & key, QSettings & config ) {
-
-  if ( qobject_cast<const QLineEdit*>(obj))
-    config.setValue(key, qobject_cast<const QLineEdit*>(obj)->text());
-  else if (qobject_cast<const QPlainTextEdit*>(obj))
-    config.setValue(key, qobject_cast<const QPlainTextEdit*>(obj)->toPlainText());
-  else if (qobject_cast<const QAbstractButton*>(obj))
-    config.setValue(key, qobject_cast<const QAbstractButton*>(obj)->isChecked());
-  else if (qobject_cast<const UScript*>(obj))
-    config.setValue(key, qobject_cast<const UScript*>(obj)->script->path());
-  else if (qobject_cast<const QComboBox*>(obj))
-    config.setValue(key, qobject_cast<const QComboBox*>(obj)->currentText());
-  else if (qobject_cast<const QSpinBox*>(obj))
-    config.setValue(key, qobject_cast<const QSpinBox*>(obj)->value());
-  else if (qobject_cast<const QDoubleSpinBox*>(obj))
-    config.setValue(key, qobject_cast<const QDoubleSpinBox*>(obj)->value());
-  else if (qobject_cast<const QTimeEdit*>(obj))
-    config.setValue(key, qobject_cast<const QTimeEdit*>(obj)->time());
-  else if (qobject_cast<const QCaMotorGUI*>(obj)) {
-    config.setValue(key, qobject_cast<const QCaMotorGUI*>(obj)->motor()->getPv());
-    config.setValue(key+"Pos", qobject_cast<const QCaMotorGUI*>(obj)->motor()->getUserPosition());
-  } else if ( qobject_cast<const QLabel*>(obj))
-    config.setValue(key, qobject_cast<const QLabel*>(obj)->text());
-  else if ( qobject_cast<const QButtonGroup*>(obj))
-    config.setValue(key, qobject_cast<const QButtonGroup*>(obj)->checkedButton()
-                    ? qobject_cast<const QButtonGroup*>(obj)->checkedButton()->text() : QString() );
-  /*
-  else if (qobject_cast<const QTableWidget*>(obj)) {
-    const QTableWidget * twdg = qobject_cast<const QTableWidget*>(obj);
-    config.beginWriteArray(key);
-    int index = 0;
-    foreach (QTableWidgetItem * item,
-             qobject_cast<const QTableWidget*>(obj)->findItems("", Qt::MatchContains) ) {
-      config.setArrayIndex(index++);
-      config.setValue("position", item ? item->text() : "");
+QString MainWindow::configGroup(const QObject * obj) const {
+  if (const Shutter* shut = qobject_cast<const Shutter*>(obj))
+    return configGroup(shut->ui->selection);
+  else if (QCaMotorGUI* mot = qobject_cast<QCaMotorGUI*>(obj))
+    return configGroup(mot->setupButton());
+  else if (const QTableWidgetOtem* wdgitm = qobject_cast<const QTableWidgetOtem*>(obj))
+    return configGroup(wdgitm->tableWidget());
+  else if (const QButtonGroup* btns = qobject_cast<const QButtonGroup*>(obj))
+    foreach (QAbstractButton * but, btns->buttons())
+      return configGroup(but);
+  else if (Shutter * shut = qobject_cast<Shutter*>(obj))
+    return configGroup(shut->ui->selection);
+  else if  (QWidget * wdg = qobject_cast<QWidget*>(obj))  {
+    foreach (QWidget * tabWdg , ui->control->tabs()) {
+      if (tabWdg->isAncestorOf(wdg)) {
+        if (tabWdg == ui->tabConfiguration)
+          return QString("general");
+        else if (tabWdg == ui->tabSerial)
+          return QString("serial");
+        else if (tabWdg == ui->tabScan)
+          return QString("scan");
+        else if (tabWdg == ui->tabFF)
+          return QString("flatfield");
+        else if (tabWdg == ui->tabMulti)
+          return QString("tiles");
+        else if (tabWdg == ui->tabDyno)
+          return QString("dyno");
+        else if (tabWdg == ui->tabDetector)
+          return QString("hardware");
+        else
+          return QString("other");
+      }
     }
-    config.endArray();
-  } */
-  else if (qobject_cast<const PositionList*>(obj)) {
-    const PositionList *pl = qobject_cast<const PositionList*>(obj);
-    save_cfg(pl->ui->label, key, config);
-    save_cfg(pl->motui, key + "/motor", config);
-    save_cfg(pl->ui->nof, key + "/nofsteps", config);
-    save_cfg(pl->ui->step, key + "/step", config);
-    save_cfg(pl->ui->irregular, key + "/irregular", config);
-    //save_cfg(pl->ui->list, key + "/positions", config);
-    int steps = pl->ui->list->rowCount();
-    config.beginWriteArray(key + "/positions");
-    for (int index=0; index < steps ; index++) {
-      config.setArrayIndex(index);
-      config.setValue("pos", pl->position(index));
-      config.setValue("doit", pl->doMe(index));
-    }
-    config.endArray();
-  } else if (qobject_cast<const Shutter*>(obj)) {
-    const Shutter * shut = qobject_cast<const Shutter*>(obj);
-    save_cfg(shut->ui->selection, key, config);
-    config.setValue(key+"_custom", shut->readCustomDialog());
+  }
+  qDebug() << "RET EMPTY";
+  return QString();
+};
+
+
+
+QString value (const QObject* obj, bool clean=false) {
+  auto quoteNonEmpty = [&clean](const QString & str){ return clean || str.isEmpty() ? str : "'" + str + "'"; };
+  auto specValue = [&clean](variant<QSpinBox*, QDoubleSpinBox*, QTimeEdit*> specValWdg) {
+    return visit( [&clean](auto &x) { return ( ! clean && x->specialValueText() == x->text() ) ? " (" + x->text() + ")" : "" ; } , specValWdg);
+  };
+  if (!obj)
+    return "";
+  else if (QLineEdit* cobj = qobject_cast<QLineEdit*>(obj))
+    return quoteNonEmpty(cobj->text());
+  else if (QPlainTextEdit* cobj = qobject_cast<QPlainTextEdit*>(obj))
+    return quoteNonEmpty(cobj->toPlainText());
+  else if (QAbstractButton* cobj = qobject_cast<QAbstractButton*>(obj))
+    return cobj->isChecked() ? "true" : "false";
+  else if (QComboBox* cobj = qobject_cast<QComboBox*>(obj))
+    return quoteNonEmpty(cobj->currentText());
+  else if (QSpinBox* cobj = qobject_cast<QSpinBox*>(obj))
+    return QString::number(cobj->value()) + specValue(cobj);
+  else if (QDoubleSpinBox* cobj = qobject_cast<QDoubleSpinBox*>(obj))
+    return QString::number(cobj->value()) + specValue(cobj);
+  else if (QTimeEdit* cobj = qobject_cast<QTimeEdit*>(obj))
+    return cobj->time().toString() + specValue(cobj);
+  else if (QLabel* cobj = qobject_cast<QLabel*>(obj))
+    return quoteNonEmpty(cobj->text());
+  else if (UScript* cobj = qobject_cast<UScript*>(obj))
+    return quoteNonEmpty(cobj->script->path());
+  else if (QCaMotorGUI* cobj = qobject_cast<QCaMotorGUI*>(obj))
+    return cobj->motor()->getPv();
+  else if (QButtonGroup* cobj = qobject_cast<QButtonGroup*>(obj))
+    return cobj->checkedButton() ? quoteNonEmpty(cobj->checkedButton()->text()) : "";
+  else if (QTableWidgetOtem* cobj = qobject_cast<QTableWidgetOtem*>(obj)){
+    QTableWidget * wdg = cobj->tableWidget();
+    // following commented line returns -1 for headeritem: have to get it manually
+    // const int column = cobj->column();
+    const int column = [&wdg,&cobj]() {
+      for (int col=0; col < wdg->columnCount() ; col++)
+        if (wdg->horizontalHeaderItem(col)==cobj)
+          return col;
+      qDebug() << "Can't find column in tablewidget with given horizontal header item.";
+      return -1;
+    } ();
+    if (column<0)
+      return "";
+    QStringList list;
+    for (int row = 0 ; row < wdg->rowCount() ; row++)
+      if ( QCheckBox* chBox = wdg->cellWidget(row, column)->findChild<QCheckBox*>() )
+        list << ( chBox->isChecked() ? "true" : "false" );
+      else
+        list << wdg->item(row, column)->text();
+    return clean  ?  list.join(',')  :  "["+list.join(',')+"]" ;
   } else
-    qDebug() << "Cannot save the value of object" << obj << "into config";
-
+    qDebug() << "Cannot get default value of object" << obj
+             << ": unsupported type" << obj->metaObject()->className();
+  return "";
 }
+
 
 
 void MainWindow::saveConfiguration(QString fileName) {
 
   if ( fileName.isEmpty() )
     fileName = QFileDialog::getSaveFileName(0, "Save configuration", QDir::currentPath());
-
   QSettings config(fileName, QSettings::IniFormat);
   config.clear();
 
   config.setValue("version", QString::number(APP_VERSION));
-
-  foreach (QObject * obj, configNames.keys())
-    save_cfg(obj, configNames[obj], config);
-
-  const QMDoubleSpinBox * prs = selectedPRS();
-  if (prs)
-    config.setValue("scan/fixprs", prs->objectName());
-
-  config.beginGroup("hardware");
-  if (det) {
-    config.setValue("detectorpv", det->pv());
-    config.setValue("detectorexposure", det->exposure());
-    config.setValue("detectorsavepath", det->path(uiImageFormat()));
+  foreach (auto & dobj, configPairs) {
+    const QString fname = configGroup(dobj.first) + "/" + dobj.second;
+    if (const PositionList *pl = qobject_cast<const PositionList*>(dobj.first)) {
+      config.setValue(fname, value(pl->ui->label));
+      config.setValue(fname + "/motor", value(pl->motui));
+      config.setValue(fname + "/nofsteps", value(pl->ui->nof));
+      config.setValue(fname + "/step", value(pl->ui->step));
+      config.setValue(fname + "/irregular", value(pl->ui->irregular));
+      config.setValue(fname + "/positions", value(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(0))));
+      config.setValue(fname + "/todos", value(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(3))));
+    } else if (const Shutter * shut =  qobject_cast<const Shutter*>(dobj.first)) {
+      config.setValue(fname, value(shut->ui->selection, true));
+      config.setValue(fname+"_custom", shut->readCustomDialog());
+    } else
+      config.setValue(fname, value(dobj.first, true));
   }
-  config.endGroup();
+  if (const QMDoubleSpinBox * prs = selectedPRS())
+    config.setValue("scan/fixprs", prs->objectName());
+  if (det) {
+    config.setValue("hardware/detectorpv", det->pv());
+    config.setValue("hardware/detectorexposure", det->exposure());
+    config.setValue("hardware/detectorsavepath", det->path(uiImageFormat()));
+  }
 
   setenv("SERIALMOTORIPV", innearList->motui->motor()->getPv().toLatin1() , 1);
   setenv("SERIALMOTOROPV", outerList->motui->motor()->getPv().toLatin1() , 1);
   setenv("LOOPMOTORIPV", loopList->motui->motor()->getPv().toLatin1() , 1);
   setenv("SUBLOOPMOTOROPV", sloopList->motui->motor()->getPv().toLatin1() , 1);
-
 
 }
 
