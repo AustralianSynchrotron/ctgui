@@ -250,7 +250,6 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
 
   // populate configNames
   {
-    configPairs << QPair(ui->checkSerial, "doserialscans");
     configPairs << QPair(ui->expDesc, "description");
     configPairs << QPair(ui->expPath, "workingdir");
     configPairs << QPair(ui->detPathSync, "syncdetectordir");
@@ -329,6 +328,7 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
 
   }
   parseArgv(argc,argv);
+  storeCurrentState();
 
   foreach (auto & dobj, configPairs) {
     QObject * obj = dobj.first;
