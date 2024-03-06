@@ -55,6 +55,14 @@ public:
     : QObject()
     , QTableWidgetItem(*other)
   {}
+  int column() {
+    QTableWidget * wdg = tableWidget();
+    const int columns = wdg->columnCount();
+    for (int col = 0 ; col<columns ; col++)
+      if (wdg->horizontalHeaderItem(col)==this)
+        return col;
+    return QTableWidgetItem::column();
+  }
 };
 
 #include "ui_positionlist.h"

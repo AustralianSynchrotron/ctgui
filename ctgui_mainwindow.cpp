@@ -26,7 +26,7 @@ using namespace  std;
 #define sloopList qobject_cast<PositionList*> ( ui->sloopListPlace->layout()->itemAt(0)->widget() )
 
 
-
+static const char * configProp = "saveToConfig";
 static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
 static const QString ssText = "Start experiment";
 
@@ -98,6 +98,7 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   det(new Detector(this)),
   tct(new TriggCT(this)),
   thetaMotor(new QCaMotorGUI),
+  spiralMotor(new QCaMotorGUI),
   bgMotor(new QCaMotorGUI),
   dynoMotor(new QCaMotorGUI),
   dyno2Motor(new QCaMotorGUI),
@@ -171,11 +172,19 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   auto placeMotor = [](QCaMotorGUI *mot, QWidget *ctrlHere, QWidget *posHere){
     mot->setupButton()->setToolTip(ctrlHere->toolTip());
     mot->setupButton()->setWhatsThis(ctrlHere->whatsThis());
+    if (ctrlHere->property(configProp).isValid()) {
+      mot->setupButton()->setProperty(
+        configProp, ctrlHere->property(configProp));
+      ctrlHere->setProperty(configProp,QVariant());
+    }
     ctrlHere->layout()->addWidget(mot->setupButton());
     mot->currentPosition(true)->setToolTip(posHere->toolTip());
     posHere->layout()->addWidget(mot->currentPosition(true));
+    QWidget::setTabOrder(ctrlHere->previousInFocusChain(), mot->setupButton());
+    QWidget::setTabOrder(mot->setupButton(), mot->currentPosition(true));
   };
   placeMotor(thetaMotor, ui->placeThetaMotor, ui->placeScanCurrent);
+  placeMotor(spiralMotor, ui->placeSpiralMotor, ui->placeSpiralCurrent);
   placeMotor(bgMotor, ui->placeBGmotor, ui->placeBGcurrent);
   placeMotor(dynoMotor, ui->placeDynoMotor, ui->placeDynoCurrent);
   placeMotor(dyno2Motor, ui->placeDyno2Motor, ui->placeDyno2Current);
@@ -184,9 +193,15 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   #define placeShutter(wdgPrefix, shutUI) \
     shutUI->selection->setToolTip(wdgPrefix##Selection->toolTip()); \
     shutUI->selection->setWhatsThis(wdgPrefix##Selection->whatsThis()); \
+    if (wdgPrefix##Selection->property(configProp).isValid()) { \
+      shutUI->selection->setProperty(configProp, wdgPrefix##Selection->property(configProp)); \
+      wdgPrefix##Selection->setProperty(configProp,QVariant()); \
+    } \
     wdgPrefix##Selection->layout()->addWidget(shutUI->selection); \
     wdgPrefix##Status->layout()->addWidget(shutUI->status); \
-    wdgPrefix##Toggle->layout()->addWidget(shutUI->toggle);
+    wdgPrefix##Toggle->layout()->addWidget(shutUI->toggle); \
+    QWidget::setTabOrder(wdgPrefix##Selection->previousInFocusChain(), shutUI->selection); \
+    QWidget::setTabOrder(shutUI->selection, shutUI->toggle);
   placeShutter(ui->placePShutter, shutterPri->ui);
   placeShutter(ui->placeShutter, shutterSec->ui);
   #undef placeShutter
@@ -330,6 +345,24 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   parseArgv(argc,argv);
   storeCurrentState();
 
+  QWidget * wdg = ui->centralWidget->nextInFocusChain();
+  while (wdg && wdg != ui->centralWidget) {
+    if ( ! ui->control->tabs().contains(wdg) ) {
+      QObject * obj = wdg;
+      if ( QAbstractButton * but = qobject_cast<QAbstractButton*>(wdg);
+          but && but->group() && but->group()->property(configProp).isValid() )
+        obj = but->group();
+      if (obj->property(configProp).isValid()) {
+        //QString fname = configGroup(obj) + "/" + obj->property(configProp).toString();
+        if (!configs.contains(obj))
+          configs << obj;
+      }
+    }
+    wdg = wdg->nextInFocusChain();
+  }
+
+
+
   foreach (auto & dobj, configPairs) {
     QObject * obj = dobj.first;
     const char * sig = 0;
@@ -380,37 +413,18 @@ QString MainWindow::configGroup(QObject * obj) const {
   else if (const QButtonGroup* btns = qobject_cast<const QButtonGroup*>(obj))
     foreach (QAbstractButton * but, btns->buttons())
       return configGroup(but);
-  else if (Shutter * shut = qobject_cast<Shutter*>(obj))
-    return configGroup(shut->ui->selection);
-  else if  (QWidget * wdg = qobject_cast<QWidget*>(obj))  {
-    foreach (QWidget * tabWdg , ui->control->tabs()) {
-      if (tabWdg->isAncestorOf(wdg)) {
-        if (tabWdg == ui->tabConfiguration)
-          return QString("general");
-        else if (tabWdg == ui->tabSerial)
-          return QString("serial");
-        else if (tabWdg == ui->tabScan)
-          return QString("scan");
-        else if (tabWdg == ui->tabFF)
-          return QString("flatfield");
-        else if (tabWdg == ui->tabMulti)
-          return QString("tiles");
-        else if (tabWdg == ui->tabDyno)
-          return QString("dyno");
-        else if (tabWdg == ui->tabDetector)
-          return QString("hardware");
-        else
-          return QString("other");
-      }
-    }
+  else if  (QWidget * wdg = qobject_cast<QWidget*>(obj)) {
+    foreach (QWidget * tabWdg , ui->control->tabs())
+      if (tabWdg->isAncestorOf(wdg))
+        return tabWdg->property(configProp).toString();
   }
-  qDebug() << "RET EMPTY";
+  //qDebug() << "RET EMPTY";
   return QString();
 };
 
 
 
-QString obj2str (QObject* obj, bool clean=false) {
+QString obj2str (QObject* obj, bool clean=true) {
   auto quoteNonEmpty = [&clean](const QString & str){ return clean || str.isEmpty() ? str : "'" + str + "'"; };
   auto specValue = [&clean](variant<QSpinBox*, QDoubleSpinBox*, QTimeEdit*> specValWdg) {
     return visit( [&clean](auto &x) { return ( ! clean && x->specialValueText() == x->text() ) ? " (" + x->text() + ")" : "" ; } , specValWdg);
@@ -486,10 +500,10 @@ void MainWindow::saveConfiguration(QString fileName) {
       config.setValue(fname + "/positions", obj2str(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(0))));
       config.setValue(fname + "/todos", obj2str(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(3))));
     } else if (const Shutter * shut =  qobject_cast<const Shutter*>(dobj.first)) {
-      config.setValue(fname, obj2str(shut->ui->selection, true));
+      config.setValue(fname, obj2str(shut->ui->selection));
       config.setValue(fname+"_custom", shut->readCustomDialog());
     } else
-      config.setValue(fname, obj2str(dobj.first, true));
+      config.setValue(fname, obj2str(dobj.first));
   }
   if (const QMDoubleSpinBox * prs = selectedPRS())
     config.setValue("scan/fixprs", prs->objectName());
@@ -612,30 +626,40 @@ void MainWindow::loadConfiguration(QString fileName) {
   QSettings config(fileName, QSettings::IniFormat);
   isLoadingState=true;
 
-  const QString fixprsName = config.value("scan/fixprs").toString();
+  auto fromConf = [](const QString & key, const QSettings & config){
+    if (config.contains(key))
+      return config.value(key).toString();
+    qDebug() << "Key" << key << "not found in config file" << config.fileName();
+    return QString();
+  };
+
+  const QString fixprsName = fromConf("scan/fixprs",config);
   foreach (QAbstractSpinBox* prs, prsSelection)
     if ( fixprsName == prs->objectName() )
       selectPRS(prs);
   selectPRS(selectedPRS()); // if nothing found
 
-  const QString ver = config.value("version").toString();
+  const QString ver = fromConf("version",config);
   foreach (auto & dobj, configPairs) {
     const QString fname = configGroup(dobj.first) + "/" + dobj.second;
     if (const PositionList *pl = qobject_cast<const PositionList*>(dobj.first)) {
-      str2obj(pl->motui, config.value(fname + "/motor").toString());
-      str2obj(pl->ui->nof, config.value(fname + "/nofsteps").toString());
-      str2obj(pl->ui->step, config.value(fname + "/step").toString());
-      str2obj(pl->ui->irregular, config.value(fname + "/irregular").toString());
-      str2obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(0)), config.value(fname + "/positions").toString());
-      str2obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(3)), config.value(fname + "/todos").toString());
+      str2obj(pl->motui, fromConf(fname + "/motor",config));
+      str2obj(pl->ui->nof, fromConf(fname + "/nofsteps",config));
+      str2obj(pl->ui->step, fromConf(fname + "/step",config));
+      str2obj(pl->ui->irregular, fromConf(fname + "/irregular",config));
+      str2obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(0)), fromConf(fname + "/positions",config));
+      str2obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(3)), fromConf(fname + "/todos",config));
     } else if (Shutter * shut =  qobject_cast<Shutter*>(dobj.first)) {
-      QVariant customValue = config.value(fname+"_custom");
-      if (customValue.canConvert(QVariant::StringList))
-        shut->loadCustomDialog(customValue.toStringList());
-      str2obj(shut->ui->selection, config.value(fname).toString());
+      const QString cname = fname+"_custom";
+      if (!config.contains(cname)) {
+        qDebug() << "Key" << cname << "not found in config file" << config.fileName();
+        continue;
+      }
+      shut->loadCustomDialog(config.value(cname).toStringList());
+      str2obj(shut->ui->selection, fromConf(fname,config));
       shut->setShutter();
     } else
-      str2obj(dobj.first, config.value(fname).toString());
+      str2obj(dobj.first, fromConf(fname,config));
   }
 
   if ( ui->expPath->text().isEmpty()  || fileName.isEmpty() )
@@ -763,7 +787,7 @@ void addOpt(poptmx::OptionTable & otable, QObject * sobj, const QString & sname,
   }
 
   // adding option to parse table
-  const string svalue = obj2str(sobj).toStdString();
+  const string svalue = obj2str(sobj, false).toStdString();
   otable.add( poptmx::OPTION, sobj, 0, sname.toStdString(), preShort + shortDesc, preLong + longDesc
             , svalue.empty() ? "<none>" : svalue);
 

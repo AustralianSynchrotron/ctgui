@@ -389,13 +389,13 @@ void UScript::updateState() {
   ui->path->setEnabled( ! script->isRunning() );
   ui->execute->setText( script->isRunning() ? "Stop" : "Execute" );
   ui->execute->setStyleSheet( ! script->isRunning() && script->exitCode()
-                              ? "color: rgb(255, 0, 0);" : "");
+                              ? "color: rgba(255, 0, 0, 0);" : "");
 }
 
 void UScript::updatePath() {
   ui->path->setText(script->path());
   ui->execute->setStyleSheet("");
-  ui->path->setStyleSheet( script->evaluate() ? "color: rgb(255, 0, 0);" : "");
+  ui->path->setStyleSheet( script->evaluate() ? "color: rgba(255, 0, 0, 0);" : "");
 }
 
 
@@ -466,7 +466,7 @@ void UPVorCOM::setValueText(const QString & txt) {
 
 void UPVorCOM::indicateState(PVorCOM::WhoAmI state) {
   ui->val->setEnabled( state == PVorCOM::GOODSCRIPT || state == PVorCOM::BADSCRIPT );
-  ui->val->setStyleSheet( state == PVorCOM::BADSCRIPT ? "color: rgb(255, 0, 0);" : "" );
+  ui->val->setStyleSheet( state == PVorCOM::BADSCRIPT ? "color: rgba(255, 0, 0, 0);" : "" );
 }
 
 void UPVorCOM::evaluateScript() {

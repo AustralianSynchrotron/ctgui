@@ -35,6 +35,7 @@ public:
   ~MainWindow();
 
   QList< QPair<QObject*, QString> > configPairs;
+  QObjectList configs;
   QString configGroup(QObject* obj) const;
 
 
@@ -60,6 +61,7 @@ private:
   TriggCT * tct;
 
   QCaMotorGUI * thetaMotor;
+  QCaMotorGUI * spiralMotor;
   QCaMotorGUI * bgMotor;
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;

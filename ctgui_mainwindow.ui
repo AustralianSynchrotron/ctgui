@@ -43,6 +43,9 @@
        <property name="focusPolicy">
         <enum>Qt::TabFocus</enum>
        </property>
+       <property name="saveToConfig" stdset="0">
+        <string>General</string>
+       </property>
        <attribute name="title">
         <string>General</string>
        </attribute>
@@ -84,6 +87,9 @@
             <property name="text">
              <string>Tiles</string>
             </property>
+            <property name="saveToConfig" stdset="0">
+             <string>dotiles</string>
+            </property>
            </widget>
           </item>
           <item row="0" column="0">
@@ -123,6 +129,9 @@
             <property name="text">
              <string>Serial scans</string>
             </property>
+            <property name="saveToConfig" stdset="0">
+             <string>doserialscans</string>
+            </property>
            </widget>
           </item>
           <item row="3" column="1">
@@ -135,6 +144,9 @@
             </property>
             <property name="text">
              <string>External triggering</string>
+            </property>
+            <property name="saveToConfig" stdset="0">
+             <string>useExtTrig</string>
             </property>
            </widget>
           </item>
@@ -149,6 +161,9 @@
             <property name="text">
              <string>Flat field</string>
             </property>
+            <property name="saveToConfig" stdset="0">
+             <string>doflatfield</string>
+            </property>
            </widget>
           </item>
           <item row="2" column="2">
@@ -162,6 +177,9 @@
             <property name="text">
              <string>Dynamic shot</string>
             </property>
+            <property name="saveToConfig" stdset="0">
+             <string>dodyno</string>
+            </property>
            </widget>
           </item>
           <item row="0" column="1" colspan="2">
@@ -171,6 +189,9 @@
             </property>
             <property name="whatsThis">
              <string>Acquisition mode</string>
+            </property>
+            <property name="saveToConfig" stdset="0">
+             <string>acquisitionmode</string>
             </property>
            </widget>
           </item>
@@ -184,6 +205,9 @@
             </property>
             <property name="text">
              <string>Spiral CT</string>
+            </property>
+            <property name="saveToConfig" stdset="0">
+             <string>dospiral</string>
             </property>
            </widget>
           </item>
@@ -199,6 +223,9 @@
           </property>
           <property name="documentTitle">
            <string/>
+          </property>
+          <property name="saveToConfig" stdset="0">
+           <string>description</string>
           </property>
          </widget>
         </item>
@@ -228,6 +255,9 @@
             <property name="whatsThis">
              <string>Script executed before the experiment</string>
             </property>
+            <property name="saveToConfig" stdset="0">
+             <string>prerun</string>
+            </property>
            </widget>
           </item>
           <item row="1" column="1">
@@ -240,6 +270,9 @@
             </property>
             <property name="whatsThis">
              <string>Script executed after the experiment</string>
+            </property>
+            <property name="saveToConfig" stdset="0">
+             <string>postrun</string>
             </property>
            </widget>
           </item>
@@ -288,6 +321,9 @@
             <property name="readOnly">
              <bool>true</bool>
             </property>
+            <property name="saveToConfig" stdset="0">
+             <string>workingdir</string>
+            </property>
            </widget>
           </item>
           <item row="0" column="2">
@@ -310,6 +346,9 @@
             </property>
             <property name="text">
              <string>Synchronize detector save directory with the working directory</string>
+            </property>
+            <property name="saveToConfig" stdset="0">
+             <string>syncdetectordir</string>
             </property>
            </widget>
           </item>
@@ -366,6 +405,9 @@
       <widget class="QWidget" name="tabSerial">
        <property name="focusPolicy">
         <enum>Qt::TabFocus</enum>
+       </property>
+       <property name="saveToConfig" stdset="0">
+        <string>serial</string>
        </property>
        <attribute name="title">
         <string>Serial</string>
@@ -434,6 +476,9 @@
                   <property name="whatsThis">
                    <string>List of serial scans</string>
                   </property>
+                  <property name="saveToConfig" stdset="0">
+                   <string>outerseries</string>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -449,9 +494,6 @@
                </property>
                <property name="toolTip">
                 <string>swap innear and outer loops</string>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">font: 12pt &quot;Monospace&quot;;</string>
                </property>
                <property name="text">
                 <string>s
@@ -504,6 +546,9 @@ p
                   <property name="whatsThis">
                    <string>List of serial scans</string>
                   </property>
+                  <property name="saveToConfig" stdset="0">
+                   <string>innearseries</string>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -521,6 +566,9 @@ p
              </property>
              <property name="whatsThis">
               <string>End condition script</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>stopscript</string>
              </property>
             </widget>
            </item>
@@ -574,6 +622,9 @@ p
                 <property name="displayFormat">
                  <string>HH:mm:ss.z</string>
                 </property>
+                <property name="saveToConfig" stdset="0">
+                 <string>scandelay</string>
+                </property>
                </widget>
               </item>
               <item>
@@ -597,6 +648,9 @@ p
              <property name="text">
               <string>Non-stop series</string>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>ongoingseries</string>
+             </property>
             </widget>
            </item>
            <item row="7" column="2" colspan="2">
@@ -609,6 +663,9 @@ p
              </property>
              <property name="text">
               <string>Acquire flat field on each scan</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>ffoneachscan</string>
              </property>
             </widget>
            </item>
@@ -726,6 +783,9 @@ p
                   <second>1</second>
                  </time>
                 </property>
+                <property name="saveToConfig" stdset="0">
+                 <string>time</string>
+                </property>
                </widget>
               </item>
               <item>
@@ -799,6 +859,9 @@ p
              <property name="checked">
               <bool>true</bool>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>2d</string>
+             </property>
             </widget>
            </item>
            <item row="5" column="1" colspan="3">
@@ -812,6 +875,9 @@ p
              <property name="whatsThis">
               <string>Script executed after each internal series</string>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>postscript</string>
+             </property>
             </widget>
            </item>
            <item row="4" column="1" colspan="3">
@@ -824,6 +890,9 @@ p
              </property>
              <property name="whatsThis">
               <string>Script executed before each internal series</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>prescript</string>
              </property>
             </widget>
            </item>
@@ -852,6 +921,9 @@ p
        </property>
        <property name="toolTip">
         <string>CT scan parameters</string>
+       </property>
+       <property name="saveToConfig" stdset="0">
+        <string>scan</string>
        </property>
        <attribute name="title">
         <string>Scan</string>
@@ -888,6 +960,9 @@ p
              <property name="maximum">
               <double>2147483647.000000000000000</double>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>spiralTravel</string>
+             </property>
             </widget>
            </item>
            <item row="4" column="1" colspan="6">
@@ -903,6 +978,9 @@ p
              </property>
              <property name="maximum">
               <number>2147483647</number>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>framesPerProjection</string>
              </property>
             </widget>
            </item>
@@ -946,6 +1024,9 @@ p
              </property>
              <property name="maximum">
               <double>2147483647.000000000000000</double>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>stepTime</string>
              </property>
             </widget>
            </item>
@@ -995,6 +1076,9 @@ p
              <property name="whatsThis">
               <string>Script executed after CT scan</string>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>postscan</string>
+             </property>
             </widget>
            </item>
            <item row="5" column="0" colspan="7">
@@ -1010,6 +1094,9 @@ p
              </property>
              <property name="checked">
               <bool>true</bool>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>add</string>
              </property>
             </widget>
            </item>
@@ -1037,6 +1124,9 @@ p
             <widget class="QWidget" name="placeSpiralMotor" native="true">
              <property name="focusPolicy">
               <enum>Qt::TabFocus</enum>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>spiralMotor</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_25">
               <property name="spacing">
@@ -1087,6 +1177,9 @@ p
              </property>
              <property name="maximum">
               <double>18000.000000000000000</double>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>aqSpeed</string>
              </property>
             </widget>
            </item>
@@ -1159,6 +1252,9 @@ p
              <property name="value">
               <double>90.000000000000000</double>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>step</string>
+             </property>
             </widget>
            </item>
            <item row="13" column="5">
@@ -1184,6 +1280,9 @@ p
              </property>
              <property name="value">
               <double>180.000000000000000</double>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>range</string>
              </property>
             </widget>
            </item>
@@ -1235,6 +1334,9 @@ p
              <property name="maximum">
               <double>18000.000000000000000</double>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>spiralAqSpeed</string>
+             </property>
             </widget>
            </item>
            <item row="13" column="1">
@@ -1272,6 +1374,9 @@ p
              <property name="maximum">
               <number>2147483647</number>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>steps</string>
+             </property>
             </widget>
            </item>
            <item row="16" column="3">
@@ -1298,6 +1403,9 @@ p
              </property>
              <property name="whatsThis">
               <string>CT scan motor</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>motor</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_21">
               <property name="spacing">
@@ -1343,6 +1451,9 @@ p
              <property name="maximum">
               <number>2147483647</number>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>spirals</string>
+             </property>
             </widget>
            </item>
            <item row="13" column="6">
@@ -1365,6 +1476,9 @@ p
              <property name="singleStep">
               <double>0.100000000000000</double>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>flyratio</string>
+             </property>
             </widget>
            </item>
            <item row="18" column="1" colspan="6">
@@ -1377,6 +1491,9 @@ p
              </property>
              <property name="whatsThis">
               <string>Script executed before CT scan</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>prescan</string>
              </property>
             </widget>
            </item>
@@ -1412,6 +1529,9 @@ p
        </property>
        <property name="toolTip">
         <string>Flat field acquisition parameters</string>
+       </property>
+       <property name="saveToConfig" stdset="0">
+        <string>flatfield</string>
        </property>
        <attribute name="title">
         <string>Flat field</string>
@@ -1451,6 +1571,9 @@ p
              <property name="maximum">
               <number>999999</number>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>bgs</string>
+             </property>
             </widget>
            </item>
            <item row="5" column="1">
@@ -1475,6 +1598,9 @@ p
              </property>
              <property name="singleStep">
               <double>0.010000000000000</double>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>bgexposure</string>
              </property>
             </widget>
            </item>
@@ -1533,6 +1659,9 @@ p
              <property name="maximum">
               <number>999999</number>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>dfs</string>
+             </property>
             </widget>
            </item>
            <item row="5" column="0">
@@ -1569,6 +1698,9 @@ p
              </property>
              <property name="whatsThis">
               <string>Background motor</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>motor</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_17">
               <property name="spacing">
@@ -1617,6 +1749,9 @@ p
              <property name="maximum">
               <double>2147483647.000000000000000</double>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>bgtravel</string>
+             </property>
             </widget>
            </item>
            <item row="2" column="1">
@@ -1636,6 +1771,9 @@ p
                    <property name="text">
                     <string>Before</string>
                    </property>
+                   <property name="saveToConfig" stdset="0">
+                    <string>bgBefore</string>
+                   </property>
                   </widget>
                  </item>
                  <item>
@@ -1648,6 +1786,9 @@ p
                    </property>
                    <property name="text">
                     <string>After</string>
+                   </property>
+                   <property name="saveToConfig" stdset="0">
+                    <string>bgAfter</string>
                    </property>
                   </widget>
                  </item>
@@ -1667,6 +1808,9 @@ p
                 </property>
                 <property name="maximum">
                  <number>2147483647</number>
+                </property>
+                <property name="saveToConfig" stdset="0">
+                 <string>bginterval</string>
                 </property>
                </widget>
               </item>
@@ -1690,6 +1834,9 @@ p
                    <property name="text">
                     <string>Before</string>
                    </property>
+                   <property name="saveToConfig" stdset="0">
+                    <string>dfBefore</string>
+                   </property>
                   </widget>
                  </item>
                  <item>
@@ -1702,6 +1849,9 @@ p
                    </property>
                    <property name="text">
                     <string>After</string>
+                   </property>
+                   <property name="saveToConfig" stdset="0">
+                    <string>dfAfter</string>
                    </property>
                   </widget>
                  </item>
@@ -1721,6 +1871,9 @@ p
                 </property>
                 <property name="maximum">
                  <number>2147483647</number>
+                </property>
+                <property name="saveToConfig" stdset="0">
+                 <string>dfinterval</string>
                 </property>
                </widget>
               </item>
@@ -1759,6 +1912,9 @@ p
        <property name="toolTip">
         <string>Multishot mode parameters. In this mode each projection consists of several acquisitions done in a loop.</string>
        </property>
+       <property name="saveToConfig" stdset="0">
+        <string>tiles</string>
+       </property>
        <attribute name="title">
         <string>Tiles</string>
        </attribute>
@@ -1793,6 +1949,9 @@ p
              <property name="whatsThis">
               <string>Script executed before each sub-loop series.</string>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>presubscript</string>
+             </property>
             </widget>
            </item>
            <item row="3" column="0">
@@ -1818,6 +1977,9 @@ p
              </property>
              <property name="whatsThis">
               <string>Script executed after finishing each sub-loop series.</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>postsubscript</string>
              </property>
             </widget>
            </item>
@@ -1864,6 +2026,9 @@ p
                   <property name="whatsThis">
                    <string>List of tiles</string>
                   </property>
+                  <property name="saveToConfig" stdset="0">
+                   <string>loopseries</string>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -1879,9 +2044,6 @@ p
                </property>
                <property name="toolTip">
                 <string>swap innear and outer loops</string>
-               </property>
-               <property name="styleSheet">
-                <string notr="true">font: 12pt &quot;Monospace&quot;;</string>
                </property>
                <property name="text">
                 <string>s
@@ -1934,6 +2096,9 @@ p
                   <property name="whatsThis">
                    <string>List of tiles</string>
                   </property>
+                  <property name="saveToConfig" stdset="0">
+                   <string>subloopseries</string>
+                  </property>
                  </widget>
                 </item>
                </layout>
@@ -1979,6 +2144,9 @@ p
                 <property name="checked">
                  <bool>true</bool>
                 </property>
+                <property name="saveToConfig" stdset="0">
+                 <string>singlebg</string>
+                </property>
                </widget>
               </item>
               <item>
@@ -1994,6 +2162,9 @@ p
                 </property>
                 <property name="checked">
                  <bool>true</bool>
+                </property>
+                <property name="saveToConfig" stdset="0">
+                 <string>subloop</string>
                 </property>
                </widget>
               </item>
@@ -2021,6 +2192,9 @@ p
       <widget class="QWidget" name="tabDyno">
        <property name="focusPolicy">
         <enum>Qt::TabFocus</enum>
+       </property>
+       <property name="saveToConfig" stdset="0">
+        <string>dyno</string>
        </property>
        <attribute name="title">
         <string>Dynamic shot</string>
@@ -2109,6 +2283,9 @@ p
              <property name="whatsThis">
               <string>Second motor for dynamic shot</string>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>dyno2/motor</string>
+             </property>
              <layout class="QHBoxLayout" name="horizontalLayout_23">
               <property name="spacing">
                <number>0</number>
@@ -2156,6 +2333,9 @@ p
              <property name="maximum">
               <double>2147483647.000000000000000</double>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>dyno2/speed</string>
+             </property>
             </widget>
            </item>
            <item row="7" column="1" colspan="2">
@@ -2201,6 +2381,9 @@ p
              <property name="text">
               <string>as first</string>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>dyno2/dirLock</string>
+             </property>
             </widget>
            </item>
            <item row="2" column="0">
@@ -2227,6 +2410,9 @@ p
              <property name="maximum">
               <double>2147483647.000000000000000</double>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>speed</string>
+             </property>
             </widget>
            </item>
            <item row="1" column="1" colspan="2">
@@ -2246,6 +2432,9 @@ p
              </property>
              <property name="whatsThis">
               <string>Motor for dynamic shot</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>motor</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_22">
               <property name="spacing">
@@ -2286,6 +2475,9 @@ p
              </property>
              <property name="text">
               <string>as first</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>dyno2/speedLock</string>
              </property>
             </widget>
            </item>
@@ -2387,6 +2579,9 @@ p
        </property>
        <property name="toolTip">
         <string>Detector parameters</string>
+       </property>
+       <property name="saveToConfig" stdset="0">
+        <string>hardware</string>
        </property>
        <attribute name="title">
         <string>Hardware</string>
@@ -2590,6 +2785,9 @@ p
                <property name="whatsThis">
                 <string>Script executed before starting detector</string>
                </property>
+               <property name="saveToConfig" stdset="0">
+                <string>preacquire</string>
+               </property>
               </widget>
              </item>
              <item row="1" column="1">
@@ -2602,6 +2800,9 @@ p
                </property>
                <property name="whatsThis">
                 <string>Script executed whenever detector stops</string>
+               </property>
+               <property name="saveToConfig" stdset="0">
+                <string>postacquire</string>
                </property>
               </widget>
              </item>
@@ -2624,6 +2825,9 @@ p
              </property>
              <property name="editable">
               <bool>true</bool>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>detectorBox</string>
              </property>
             </widget>
            </item>
@@ -2777,6 +2981,9 @@ p
                <property name="whatsThis">
                 <string>Primary shutter</string>
                </property>
+               <property name="saveToConfig" stdset="0">
+                <string>primaryShutter</string>
+               </property>
                <layout class="QHBoxLayout" name="horizontalLayout_15">
                 <property name="spacing">
                  <number>0</number>
@@ -2877,6 +3084,9 @@ p
                </property>
                <property name="whatsThis">
                 <string>Secondary shutter</string>
+               </property>
+               <property name="saveToConfig" stdset="0">
+                <string>secondaryShutter</string>
                </property>
                <layout class="QHBoxLayout" name="horizontalLayout_6">
                 <property name="spacing">
@@ -2998,6 +3208,9 @@ p
              <property name="checked">
               <bool>true</bool>
              </property>
+             <property name="saveToConfig" stdset="0">
+              <string>video/fixed</string>
+             </property>
             </widget>
            </item>
            <item>
@@ -3021,6 +3234,9 @@ p
                 <property name="maximum">
                  <number>2147483647</number>
                 </property>
+                <property name="saveToConfig" stdset="0">
+                 <string>video/frames</string>
+                </property>
                </widget>
               </item>
               <item>
@@ -3040,6 +3256,9 @@ p
                 </property>
                 <property name="displayFormat">
                  <string>h:mm:ss.z</string>
+                </property>
+                <property name="saveToConfig" stdset="0">
+                 <string>video/time</string>
                 </property>
                </widget>
               </item>
@@ -3290,15 +3509,27 @@ p
    <property name="toolTip" stdset="0">
     <string>Format for image frames storage</string>
    </property>
+   <property name="saveToConfig" stdset="0">
+    <string>imageFormat</string>
+   </property>
   </buttongroup>
   <buttongroup name="dynoDirButtonGroup">
    <property name="whatsThis" stdset="0">
     <string>Direction of dyno motion</string>
    </property>
+   <property name="saveToConfig" stdset="0">
+    <string>direction</string>
+   </property>
   </buttongroup>
   <buttongroup name="dyno2DirButtonGroup">
    <property name="whatsThis" stdset="0">
     <string>Direction of second dyno motion</string>
+   </property>
+   <property name="dyno2/direction" stdset="0">
+    <string/>
+   </property>
+   <property name="saveToConfig" stdset="0">
+    <string>dyno2/direction</string>
    </property>
   </buttongroup>
   <buttongroup name="endConditionButtonGroup">
@@ -3307,6 +3538,9 @@ p
    </property>
    <property name="toolTip" stdset="0">
     <string>Sets the condition for experiment complition. Note that time condition cannot be used with 2D series.</string>
+   </property>
+   <property name="saveToConfig" stdset="0">
+    <string>endCondition</string>
    </property>
   </buttongroup>
  </buttongroups>
