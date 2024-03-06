@@ -34,9 +34,9 @@ public:
   explicit MainWindow(int argc, char *argv[], QWidget *parent = 0);
   ~MainWindow();
 
-  QList< QPair<QObject*, QString> > configPairs;
+  //QList< QPair<QObject*, QString> > configPairs;
   QObjectList configs;
-  QString configGroup(QObject* obj) const;
+  QString configName(QObject* obj) const;
 
 
 public slots:

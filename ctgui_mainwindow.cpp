@@ -263,87 +263,6 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   onDetectorSelection();
 
 
-  // populate configNames
-  {
-    configPairs << QPair(ui->expDesc, "description");
-    configPairs << QPair(ui->expPath, "workingdir");
-    configPairs << QPair(ui->detPathSync, "syncdetectordir");
-    configPairs << QPair(ui->aqMode, "acquisitionmode");
-    configPairs << QPair(ui->checkSerial, "doserialscans");
-    configPairs << QPair(ui->checkFF, "doflatfield");
-    configPairs << QPair(ui->checkDyno, "dodyno");
-    configPairs << QPair(ui->checkMulti, "domulti");
-    configPairs << QPair(ui->checkExtTrig, "useExtTrig");
-    configPairs << QPair(ui->imageFormatGroup, "imageFormat");
-    configPairs << QPair(ui->preRunScript, "prerun");
-    configPairs << QPair(ui->postRunScript, "postrun");
-
-    configPairs << QPair(ui->endConditionButtonGroup, "endCondition");
-    configPairs << QPair(ui->acquisitionTime, "time");
-    configPairs << QPair(ui->conditionScript, "stopscript");
-    configPairs << QPair(ui->ongoingSeries, "ongoingseries");
-    configPairs << QPair(ui->ffOnEachScan, "ffoneachscan");
-    configPairs << QPair(ui->scanDelay, "scandelay");
-    configPairs << QPair(innearList, "innearseries"); // redefined in onSwapSerial
-    configPairs << QPair(outerList, "outerseries"); // redefined in onSwapSerial
-    configPairs << QPair(ui->serial2D, "2d");
-    configPairs << QPair(ui->pre2DScript, "prescript");
-    configPairs << QPair(ui->post2DScript, "postscript");
-
-    configPairs << QPair(thetaMotor, "motor");
-    configPairs << QPair(ui->scanRange, "range");
-    configPairs << QPair(ui->scanProjections, "steps");
-    configPairs << QPair(ui->scanStep, "step");
-    configPairs << QPair(ui->aqsPP, "aquisitionsperprojection");
-    configPairs << QPair(ui->scanAdd, "add");
-    configPairs << QPair(ui->preScanScript, "prescan");
-    configPairs << QPair(ui->postScanScript, "postscan");
-    configPairs << QPair(ui->flyRatio, "flyratio");
-    configPairs << QPair(ui->aqsSpeed, "aqspeed");
-    configPairs << QPair(ui->stepTime, "steptime");
-
-    configPairs << QPair(ui->nofBGs, "bgs");
-    configPairs << QPair(ui->bgIntervalSAS, "bginterval");
-    configPairs << QPair(ui->bgIntervalBefore, "bgBefore");
-    configPairs << QPair(ui->bgIntervalAfter, "bgAfter");
-    configPairs << QPair(bgMotor, "motor");
-    configPairs << QPair(ui->bgTravel, "bgtravel");
-    configPairs << QPair(ui->bgExposure, "bgexposure");
-    configPairs << QPair(ui->nofDFs, "dfs");
-    configPairs << QPair(ui->dfIntervalSAS, "dfinterval");
-    configPairs << QPair(ui->dfIntervalBefore, "dfBefore");
-    configPairs << QPair(ui->dfIntervalAfter, "dfAfter");
-
-    configPairs << QPair(ui->singleBg, "singlebg");
-    configPairs << QPair(ui->subLoop, "subloop");
-    configPairs << QPair(loopList, "loopseries");
-    configPairs << QPair(sloopList, "subloopseries");
-    configPairs << QPair(ui->preSubLoopScript, "presubscript");
-    configPairs << QPair(ui->postSubLoopScript, "postsubscript");
-
-    configPairs << QPair(dynoMotor, "motor");
-    configPairs << QPair(ui->dynoSpeed, "speed");
-    configPairs << QPair(ui->dynoDirButtonGroup, "direction");
-    configPairs << QPair(ui->dyno2, "dyno2");
-    configPairs << QPair(dyno2Motor, "dyno2/motor");
-    configPairs << QPair(ui->dyno2Speed, "dyno2/speed");
-    configPairs << QPair(ui->dyno2DirButtonGroup, "dyno2/direction");
-    configPairs << QPair(ui->dynoSpeedLock, "dyno2/speedLock");
-    configPairs << QPair(ui->dynoDirectionLock, "dyno2/dirLock");
-
-    configPairs << QPair(shutterSec, "shutterBox");
-    configPairs << QPair(shutterPri, "primaryShutterBox");
-    configPairs << QPair(ui->detSelection, "detectorBox");
-    configPairs << QPair(ui->preAqScript, "preacquire");
-    configPairs << QPair(ui->postAqScript, "postacquire");
-
-    configPairs << QPair(ui->vidFixed, "video/fixedLength");
-    configPairs << QPair(ui->vidFrames, "video/frames");
-    configPairs << QPair(ui->vidTime, "video/time");
-
-  }
-  parseArgv(argc,argv);
-  storeCurrentState();
 
   QWidget * wdg = ui->centralWidget->nextInFocusChain();
   while (wdg && wdg != ui->centralWidget) {
@@ -360,11 +279,10 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
     }
     wdg = wdg->nextInFocusChain();
   }
+  parseArgv(argc,argv);
+  storeCurrentState();
 
-
-
-  foreach (auto & dobj, configPairs) {
-    QObject * obj = dobj.first;
+  foreach (auto obj, configs) {
     const char * sig = 0;
     if ( qobject_cast<QLineEdit*>(obj) ||
          qobject_cast<QPlainTextEdit*>(obj) ||
@@ -403,20 +321,22 @@ MainWindow::~MainWindow() {
 }
 
 
-QString MainWindow::configGroup(QObject * obj) const {
+QString MainWindow::configName(QObject * obj) const {
   if (const Shutter* shut = qobject_cast<const Shutter*>(obj))
-    return configGroup(shut->ui->selection);
+    return configName(shut->ui->selection);
   else if (QCaMotorGUI* mot = qobject_cast<QCaMotorGUI*>(obj))
-    return configGroup(mot->setupButton());
+    return configName(mot->setupButton());
   else if (const QTableWidgetOtem* wdgitm = qobject_cast<const QTableWidgetOtem*>(obj))
-    return configGroup(wdgitm->tableWidget());
+    return configName(wdgitm->tableWidget());
   else if (const QButtonGroup* btns = qobject_cast<const QButtonGroup*>(obj))
     foreach (QAbstractButton * but, btns->buttons())
-      return configGroup(but);
+      return configName(but) + btns->property(configProp).toString();
   else if  (QWidget * wdg = qobject_cast<QWidget*>(obj)) {
+    QString toRet;
     foreach (QWidget * tabWdg , ui->control->tabs())
-      if (tabWdg->isAncestorOf(wdg))
-        return tabWdg->property(configProp).toString();
+      if ( tabWdg->isAncestorOf(wdg) )
+        toRet += tabWdg->property(configProp).toString() + "/";
+    return toRet + wdg->property(configProp).toString();
   }
   //qDebug() << "RET EMPTY";
   return QString();
@@ -489,9 +409,11 @@ void MainWindow::saveConfiguration(QString fileName) {
   config.clear();
 
   config.setValue("version", QString::number(APP_VERSION));
-  foreach (auto & dobj, configPairs) {
-    const QString fname = configGroup(dobj.first) + "/" + dobj.second;
-    if (const PositionList *pl = qobject_cast<const PositionList*>(dobj.first)) {
+  foreach (auto obj, configs) {
+    QString fname = configName(obj);
+    if (fname.startsWith("General/"))
+      fname.remove(0,8);
+    if (const PositionList *pl = qobject_cast<const PositionList*>(obj)) {
       config.setValue(fname, obj2str(pl->ui->label));
       config.setValue(fname + "/motor", obj2str(pl->motui));
       config.setValue(fname + "/nofsteps", obj2str(pl->ui->nof));
@@ -499,11 +421,11 @@ void MainWindow::saveConfiguration(QString fileName) {
       config.setValue(fname + "/irregular", obj2str(pl->ui->irregular));
       config.setValue(fname + "/positions", obj2str(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(0))));
       config.setValue(fname + "/todos", obj2str(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(3))));
-    } else if (const Shutter * shut =  qobject_cast<const Shutter*>(dobj.first)) {
+    } else if (const Shutter * shut =  qobject_cast<const Shutter*>(obj)) {
       config.setValue(fname, obj2str(shut->ui->selection));
       config.setValue(fname+"_custom", shut->readCustomDialog());
     } else
-      config.setValue(fname, obj2str(dobj.first));
+      config.setValue(fname, obj2str(obj));
   }
   if (const QMDoubleSpinBox * prs = selectedPRS())
     config.setValue("scan/fixprs", prs->objectName());
@@ -626,40 +548,44 @@ void MainWindow::loadConfiguration(QString fileName) {
   QSettings config(fileName, QSettings::IniFormat);
   isLoadingState=true;
 
-  auto fromConf = [](const QString & key, const QSettings & config){
-    if (config.contains(key))
-      return config.value(key).toString();
-    qDebug() << "Key" << key << "not found in config file" << config.fileName();
-    return QString();
+  auto fromConf2Obj = [](QObject * obj, QString key, const QSettings & config){
+    if (key.startsWith("General/"))
+      key.remove(0,8);
+    if (!config.contains(key))
+      qDebug() << "Key" << key << "not found in config file" << config.fileName();
+    else {
+      QString val = config.value(key).toString();
+      if (!val.isEmpty())
+        str2obj(obj, val);
+    }
   };
 
-  const QString fixprsName = fromConf("scan/fixprs",config);
-  foreach (QAbstractSpinBox* prs, prsSelection)
-    if ( fixprsName == prs->objectName() )
-      selectPRS(prs);
-  selectPRS(selectedPRS()); // if nothing found
-
-  const QString ver = fromConf("version",config);
-  foreach (auto & dobj, configPairs) {
-    const QString fname = configGroup(dobj.first) + "/" + dobj.second;
-    if (const PositionList *pl = qobject_cast<const PositionList*>(dobj.first)) {
-      str2obj(pl->motui, fromConf(fname + "/motor",config));
-      str2obj(pl->ui->nof, fromConf(fname + "/nofsteps",config));
-      str2obj(pl->ui->step, fromConf(fname + "/step",config));
-      str2obj(pl->ui->irregular, fromConf(fname + "/irregular",config));
-      str2obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(0)), fromConf(fname + "/positions",config));
-      str2obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(3)), fromConf(fname + "/todos",config));
-    } else if (Shutter * shut =  qobject_cast<Shutter*>(dobj.first)) {
+  //const QString ver = config.value("version").toString();
+  if (config.contains("scan/fixprs")) {
+    const QString fixprsName = config.value("scan/fixprs").toString();
+    foreach (QAbstractSpinBox* prs, prsSelection)
+      if ( fixprsName == prs->objectName() )
+        selectPRS(prs);
+    selectPRS(selectedPRS()); // if nothing found
+  }
+  foreach (auto obj, configs) {
+    const QString fname = configName(obj);
+    if (const PositionList *pl = qobject_cast<const PositionList*>(obj)) {
+      fromConf2Obj(pl->motui, fname + "/motor", config);
+      fromConf2Obj(pl->ui->nof, fname + "/nofsteps",config);
+      fromConf2Obj(pl->ui->step, fname + "/step",config);
+      fromConf2Obj(pl->ui->irregular, fname + "/irregular",config);
+      fromConf2Obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(0)), fname + "/positions",config);
+      fromConf2Obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(3)), fname + "/todos",config);
+    } else if (Shutter * shut =  qobject_cast<Shutter*>(obj) ) {
       const QString cname = fname+"_custom";
-      if (!config.contains(cname)) {
-        qDebug() << "Key" << cname << "not found in config file" << config.fileName();
-        continue;
+      if (config.contains(cname)) {
+        shut->loadCustomDialog(config.value(cname).toStringList());
+        fromConf2Obj(shut->ui->selection, fname, config);
+        shut->setShutter();
       }
-      shut->loadCustomDialog(config.value(cname).toStringList());
-      str2obj(shut->ui->selection, fromConf(fname,config));
-      shut->setShutter();
     } else
-      str2obj(dobj.first, fromConf(fname,config));
+      fromConf2Obj(obj, fname, config);
   }
 
   if ( ui->expPath->text().isEmpty()  || fileName.isEmpty() )
@@ -801,9 +727,9 @@ bool MainWindow::parseArgv(int argc, char *argv[]) {
   poptmx::OptionTable ftable("this is fake option table", "just to get config file");
   ftable.add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.", "");
   string fakeval;
-  foreach (auto & dobj, configPairs) {
-    const string fname = (configGroup(dobj.first) + "/" + dobj.second).toStdString();
-    if (qobject_cast<const PositionList*>(dobj.first))
+  foreach (auto obj, configs) {
+    const string fname = configName(obj).toStdString();
+    if (qobject_cast<const PositionList*>(obj))
       ftable
           .add(poptmx::OPTION, &fakeval, 0, fname+"/motor", "shortDesc", "")
           .add(poptmx::OPTION, &fakeval, 0, fname+"/nofsteps", "shortDesc", "")
@@ -821,7 +747,6 @@ bool MainWindow::parseArgv(int argc, char *argv[]) {
   ftable.parse(argc,argv);
   loadConfiguration(configFile);
 
-
   // Only after loading configFile, I prepare and parse argv properly.
   bool beverbose=false;
   poptmx::OptionTable otable("CT acquisition", "Executes CT experiment.");
@@ -830,12 +755,9 @@ bool MainWindow::parseArgv(int argc, char *argv[]) {
       .add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.",
            "Ini file to be loaded on start.", configFile.toStdString())
       .add(poptmx::NOTE, "OPTIONS:");
-  foreach (auto & dobj, configPairs) {
-    const QString sname = configGroup(dobj.first) + "/" + dobj.second;
-    QObject * obj = dobj.first;
-    if (!obj)
-      qDebug() << "Zero QObject associated with config name" <<  sname << "report to developper.";
-    else if (PositionList* cobj = qobject_cast<PositionList*>(obj)) {
+  foreach (auto obj, configs) {
+    const QString sname = configName(obj);
+    if (PositionList* cobj = qobject_cast<PositionList*>(obj)) {
       const string listName = sname.split('/').last().toStdString() + ": ";
       addOpt(otable, cobj->motui, sname+"/motor", listName + "motor PV", listName + "EPICS PV of the motor record.");
       addOpt(otable, cobj->ui->nof, sname+"/nofsteps", listName, listName);
@@ -849,7 +771,6 @@ bool MainWindow::parseArgv(int argc, char *argv[]) {
       addOpt(otable, cobj->ui->selection, sname);
     else
       addOpt(otable, obj, sname);
-
   }
   otable.add_standard_options(&beverbose);
   return otable.parse(argc, argv);
@@ -1063,15 +984,13 @@ void MainWindow::updateUi_serials() {
 
 void MainWindow::onSwapSerial() {
   PositionList * ol = outerList;
+  const QVariant oCfg = ol->property(configProp);
   PositionList * il = innearList;
+  const QVariant iCfg = il->property(configProp);
   ui->innearListPlace->layout()->addWidget(ol);
   ui->outerListPlace->layout()->addWidget(il);
-  for ( auto & dobj : configPairs ) {
-    if (dobj.second == "innearseries")
-      dobj.first = innearList;
-    if (dobj.second == "outerseries")
-      dobj.first = outerList;
-  }
+  ol->setProperty(configProp, oCfg);
+  il->setProperty(configProp, iCfg);
   updateUi_serials();
   storeCurrentState();
 }
@@ -1455,15 +1374,13 @@ void MainWindow::updateUi_loops() {
 
 void MainWindow::onSwapLoops() {
   PositionList * ll = loopList;
+  const QVariant lCfg = ll->property(configProp);
   PositionList * sl = sloopList;
+  const QVariant sCfg = sl->property(configProp);
   ui->loopListPlace->layout()->addWidget(sl);
   ui->sloopListPlace->layout()->addWidget(ll);
-  for ( auto & dobj : configPairs ) {
-    if (dobj.second == "loopseries")
-      dobj.first = loopList;
-    if (dobj.second == "subloopseries")
-      dobj.first = sloopList;
-  }
+  sl->setProperty(configProp, sCfg);
+  ll->setProperty(configProp, lCfg);
   updateUi_loops();
   storeCurrentState();
 }
