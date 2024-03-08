@@ -54,7 +54,10 @@ public:
   QTableWidgetOtem(const QTableWidgetItem * other)
     : QObject()
     , QTableWidgetItem(*other)
-  {}
+  {
+    setProperty("whatsThis", other->whatsThis());
+    setProperty("toolTip", other->toolTip());
+  }
   int column() {
     QTableWidget * wdg = tableWidget();
     const int columns = wdg->columnCount();
@@ -87,7 +90,6 @@ public:
   explicit PositionList(QWidget *parent = 0);
   ~PositionList();
 
-  void putMotor(QCaMotorGUI * motor);
   void putLabel(const QString & lab) {ui->label->setText(lab);}
   bool amOK() {return allOK;}
   void freezList(bool fz) {freezListUpdates=fz;}

@@ -26,7 +26,6 @@ using namespace  std;
 #define sloopList qobject_cast<PositionList*> ( ui->sloopListPlace->layout()->itemAt(0)->widget() )
 
 
-static const char * configProp = "saveToConfig";
 static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
 static const QString ssText = "Start experiment";
 
@@ -86,259 +85,29 @@ public:
 static HWstate * preVideoState = 0;
 
 
-MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
-  QMainWindow(parent),
-  isLoadingState(false),
-  ui(new Ui::MainWindow),
-  bgOrigin(0),
-  bgAcquire(0),
-  bgEnter(0),
-  shutterPri(new Shutter(this)),
-  shutterSec(new Shutter(this)),
-  det(new Detector(this)),
-  tct(new TriggCT(this)),
-  thetaMotor(new QCaMotorGUI),
-  spiralMotor(new QCaMotorGUI),
-  bgMotor(new QCaMotorGUI),
-  dynoMotor(new QCaMotorGUI),
-  dyno2Motor(new QCaMotorGUI),
-  stopMe(true)
-{
-
-  ui->setupUi(this);
-  foreach ( QWidget * sprl , findChildren<QWidget*>(
-              QRegularExpression("spiral", QRegularExpression::CaseInsensitiveOption)) )
-    sprl->hide(); // until spiral CT is implemented
-  ui->control->finilize();
-  ui->control->setCurrentIndex(0);
-  foreach ( QMDoubleSpinBox * spb , findChildren<QMDoubleSpinBox*>() )
-    spb->setConfirmationRequired(false);
-  foreach ( QMSpinBox * spb , findChildren<QMSpinBox*>() )
-    spb->setConfirmationRequired(false);
-
-  prsSelection << ui->aqsSpeed << ui->stepTime << ui->flyRatio;
-  selectPRS(); // initial selection only
-  foreach (QMDoubleSpinBox* _prs, prsSelection)
-    connect( _prs, SIGNAL(entered()), SLOT(selectPRS()) );
-
-  ColumnResizer * resizer;
-  resizer = new ColumnResizer(this);
-  ui->preRunScript->addToColumnResizer(resizer);
-  ui->postRunScript->addToColumnResizer(resizer);
-  resizer = new ColumnResizer(this);
-  ui->preScanScript->addToColumnResizer(resizer);
-  ui->postScanScript->addToColumnResizer(resizer);
-  resizer = new ColumnResizer(this);
-  ui->preSubLoopScript->addToColumnResizer(resizer);
-  ui->postSubLoopScript->addToColumnResizer(resizer);
-  resizer = new ColumnResizer(this);
-  ui->preAqScript->addToColumnResizer(resizer);
-  ui->postAqScript->addToColumnResizer(resizer);
-
-  ui->startStop->setText(ssText);
-
-  ui->statusBar->setObjectName("StatusBar");
-  ui->statusBar->setStyleSheet("#StatusBar {color: rgba(255, 0, 0, 128);}");
-
-  QPushButton * save = new QPushButton("Save");
-  save->setFlat(true);
-  connect(save, SIGNAL(clicked()), SLOT(saveConfiguration()));
-  ui->statusBar->addPermanentWidget(save);
-
-  QPushButton * load = new QPushButton("Load");
-  load->setFlat(true);
-  connect(load, SIGNAL(clicked()), SLOT(loadConfiguration()));
-  ui->statusBar->addPermanentWidget(load);
-
-
-  for (int caqmod=0 ; caqmod < AQMODEEND ; caqmod++)
-    ui->aqMode->insertItem(caqmod, AqModeString( AqMode(caqmod) ));
-
-  ui->scanProgress->hide();
-  ui->dynoProgress->hide();
-  ui->serialProgress->hide();
-  ui->multiProgress->hide();
-  ui->stepTime->setSuffix("s");
-  ui->exposureInfo->setSuffix("s");
-  ui->detExposure->setSuffix("s");
-  ui->detPeriod->setSuffix("s");
-  foreach (Detector::Camera cam , Detector::knownCameras)
-    ui->detSelection->addItem(Detector::cameraName(cam));
-
-  innearList->putMotor(new QCaMotorGUI);
-  outerList->putMotor(new QCaMotorGUI);
-  loopList->putMotor(new QCaMotorGUI);
-  sloopList->putMotor(new QCaMotorGUI);
-  auto placeMotor = [](QCaMotorGUI *mot, QWidget *ctrlHere, QWidget *posHere){
-    mot->setupButton()->setToolTip(ctrlHere->toolTip());
-    mot->setupButton()->setWhatsThis(ctrlHere->whatsThis());
-    if (ctrlHere->property(configProp).isValid()) {
-      mot->setupButton()->setProperty(
-        configProp, ctrlHere->property(configProp));
-      ctrlHere->setProperty(configProp,QVariant());
-    }
-    ctrlHere->layout()->addWidget(mot->setupButton());
-    mot->currentPosition(true)->setToolTip(posHere->toolTip());
-    posHere->layout()->addWidget(mot->currentPosition(true));
-    QWidget::setTabOrder(ctrlHere->previousInFocusChain(), mot->setupButton());
-    QWidget::setTabOrder(mot->setupButton(), mot->currentPosition(true));
-  };
-  placeMotor(thetaMotor, ui->placeThetaMotor, ui->placeScanCurrent);
-  placeMotor(spiralMotor, ui->placeSpiralMotor, ui->placeSpiralCurrent);
-  placeMotor(bgMotor, ui->placeBGmotor, ui->placeBGcurrent);
-  placeMotor(dynoMotor, ui->placeDynoMotor, ui->placeDynoCurrent);
-  placeMotor(dyno2Motor, ui->placeDyno2Motor, ui->placeDyno2Current);
-
-  // can't make it lambda because have to use ## feature
-  #define placeShutter(wdgPrefix, shutUI) \
-    shutUI->selection->setToolTip(wdgPrefix##Selection->toolTip()); \
-    shutUI->selection->setWhatsThis(wdgPrefix##Selection->whatsThis()); \
-    if (wdgPrefix##Selection->property(configProp).isValid()) { \
-      shutUI->selection->setProperty(configProp, wdgPrefix##Selection->property(configProp)); \
-      wdgPrefix##Selection->setProperty(configProp,QVariant()); \
-    } \
-    wdgPrefix##Selection->layout()->addWidget(shutUI->selection); \
-    wdgPrefix##Status->layout()->addWidget(shutUI->status); \
-    wdgPrefix##Toggle->layout()->addWidget(shutUI->toggle); \
-    QWidget::setTabOrder(wdgPrefix##Selection->previousInFocusChain(), shutUI->selection); \
-    QWidget::setTabOrder(shutUI->selection, shutUI->toggle);
-  placeShutter(ui->placePShutter, shutterPri->ui);
-  placeShutter(ui->placeShutter, shutterSec->ui);
-  #undef placeShutter
-
-  connect(ui->browseExpPath, SIGNAL(clicked()), SLOT(onWorkingDirBrowse()));
-  connect(ui->checkSerial, SIGNAL(toggled(bool)), SLOT(onSerialCheck()));
-  connect(ui->checkFF, SIGNAL(toggled(bool)), SLOT(onFFcheck()));
-  connect(ui->checkDyno, SIGNAL(toggled(bool)), SLOT(onDynoCheck()));
-  connect(ui->checkMulti, SIGNAL(toggled(bool)), SLOT(onMultiCheck()));
-  connect(ui->testSerial, SIGNAL(clicked(bool)), SLOT(onSerialTest()));
-  connect(ui->testFF, SIGNAL(clicked()), SLOT(onFFtest()));
-  connect(ui->testScan, SIGNAL(clicked()), SLOT(onScanTest()));
-  connect(ui->testMulti, SIGNAL(clicked()), SLOT(onLoopTest()));
-  connect(ui->testDyno, SIGNAL(clicked()), SLOT(onDynoTest()));
-  connect(ui->dynoDirectionLock, SIGNAL(toggled(bool)), SLOT(onDynoDirectionLock()));
-  connect(ui->dynoSpeedLock, SIGNAL(toggled(bool)), SLOT(onDynoSpeedLock()));
-  connect(ui->dyno2, SIGNAL(toggled(bool)), SLOT(onDyno2()));
-  connect(ui->testDetector, SIGNAL(clicked()), SLOT(onDetectorTest()));
-  connect(ui->vidStartStop, SIGNAL(clicked()), SLOT(onVideoRecord()));
-  connect(ui->vidReady, SIGNAL(clicked()), SLOT(onVideoGetReady()));
-  connect(ui->startStop, SIGNAL(clicked()), SLOT(onStartStop()));
-  connect(ui->swapSerialLists, SIGNAL(clicked(bool)), SLOT(onSwapSerial()));
-  connect(ui->swapLoopLists, SIGNAL(clicked(bool)), SLOT(onSwapLoops()));
 
 
 
-  // updateUi's
-  {
-
-  updateUi_expPath();
-  updateUi_pathSync();
-  updateUi_serials();
-  updateUi_ffOnEachScan();
-  updateUi_scanRange();
-  updateUi_aqsPP();
-  updateUi_scanStep();
-  updateUi_expOverStep();
-  updateUi_thetaMotor();
-  updateUi_bgTravel();
-  updateUi_bgInterval();
-  updateUi_dfInterval();
-  updateUi_bgMotor();
-  updateUi_loops();
-  updateUi_dynoSpeed();
-  updateUi_dynoMotor();
-  updateUi_dyno2Speed();
-  updateUi_dyno2Motor();
-  updateUi_detector();
-  updateUi_aqMode();
-  updateUi_hdf();
-
-  }
-
-  onSerialCheck();
-  onFFcheck();
-  onDynoCheck();
-  onMultiCheck();
-  onDyno2();
-  onDetectorSelection();
-
-
-
-  QWidget * wdg = ui->centralWidget->nextInFocusChain();
-  while (wdg && wdg != ui->centralWidget) {
-    if ( ! ui->control->tabs().contains(wdg) ) {
-      QObject * obj = wdg;
-      if ( QAbstractButton * but = qobject_cast<QAbstractButton*>(wdg);
-          but && but->group() && but->group()->property(configProp).isValid() )
-        obj = but->group();
-      if (obj->property(configProp).isValid()) {
-        //QString fname = configGroup(obj) + "/" + obj->property(configProp).toString();
-        if (!configs.contains(obj))
-          configs << obj;
-      }
-    }
-    wdg = wdg->nextInFocusChain();
-  }
-  parseArgv(argc,argv);
-  storeCurrentState();
-
-  foreach (auto obj, configs) {
-    const char * sig = 0;
-    if ( qobject_cast<QLineEdit*>(obj) ||
-         qobject_cast<QPlainTextEdit*>(obj) ||
-         qobject_cast<UScript*>(obj) ||
-         qobject_cast<QSpinBox*>(obj) ||
-         qobject_cast<QAbstractSpinBox*>(obj) )
-      sig = SIGNAL(editingFinished());
-    else if (qobject_cast<QComboBox*>(obj))
-      sig = SIGNAL(currentIndexChanged(int));
-    else if (qobject_cast<QAbstractButton*>(obj))
-      sig = SIGNAL(toggled(bool));
-    else if ( qobject_cast<QButtonGroup*>(obj))
-      sig = SIGNAL(buttonClicked(int));
-    else if (qobject_cast<QCaMotorGUI*>(obj)) {
-      obj = qobject_cast<QCaMotorGUI*>(obj)->motor();
-      sig = SIGNAL(changedPv());
-    } else if (qobject_cast<QTableWidget*>(obj))
-      sig = SIGNAL(itemChanged(QTableWidgetItem*));
-    else if (qobject_cast<PositionList*>(obj))
-      sig = SIGNAL(parameterChanged());
-    else if (qobject_cast<Shutter*>(obj))
-      sig = SIGNAL(shutterChanged());
-    else
-      qDebug() << "Do not know how to connect object " << obj
-               << "to the" << SLOT(storeCurrentState());
-    if (sig)
-      connect (obj, sig, SLOT(storeCurrentState()));
-  }
-
-
-}
-
-
-MainWindow::~MainWindow() {
-  delete ui;
-}
-
-
-QString MainWindow::configName(QObject * obj) const {
+QString configName(QObject * obj) {
   if (const Shutter* shut = qobject_cast<const Shutter*>(obj))
     return configName(shut->ui->selection);
   else if (QCaMotorGUI* mot = qobject_cast<QCaMotorGUI*>(obj))
     return configName(mot->setupButton());
   else if (const QTableWidgetOtem* wdgitm = qobject_cast<const QTableWidgetOtem*>(obj))
-    return configName(wdgitm->tableWidget());
-  else if (const QButtonGroup* btns = qobject_cast<const QButtonGroup*>(obj))
-    foreach (QAbstractButton * but, btns->buttons())
-      return configName(but) + btns->property(configProp).toString();
-  else if  (QWidget * wdg = qobject_cast<QWidget*>(obj)) {
-    QString toRet;
-    foreach (QWidget * tabWdg , ui->control->tabs())
-      if ( tabWdg->isAncestorOf(wdg) )
-        toRet += tabWdg->property(configProp).toString() + "/";
-    return toRet + wdg->property(configProp).toString();
+    return configName(wdgitm->tableWidget()) + "/" + wdgitm->property(configProp).toString();
+  else if (const QButtonGroup* btns = qobject_cast<const QButtonGroup*>(obj)) {
+    if (btns->buttons().size())
+      return configName(btns->buttons().first()) + "/" + btns->property(configProp).toString();
+  } else if  (QWidget * wdg = qobject_cast<QWidget*>(obj)) {
+    QStringList toRet;
+    QObject * curO = wdg;
+    while (curO) {
+      if (curO->property(configProp).isValid())
+        toRet.push_front(curO->property(configProp).toString());
+      curO = curO->parent();
+    }
+    return toRet.join('/');
   }
-  //qDebug() << "RET EMPTY";
   return QString();
 };
 
@@ -401,6 +170,547 @@ QString obj2str (QObject* obj, bool clean=true) {
 
 
 
+int str2obj (QObject* obj, const QString & sval) {
+
+  QVariant rval = sval;
+  if (!obj) {
+    qDebug() << "Zero QObject";
+    return 0;
+
+  } else if (QLineEdit* cobj = qobject_cast<QLineEdit*>(obj))
+    cobj->setText(sval);
+
+  else if (QPlainTextEdit* cobj = qobject_cast<QPlainTextEdit*>(obj))
+    cobj->setPlainText(sval);
+
+  else if (QAbstractButton* cobj = qobject_cast<QAbstractButton*>(obj)) {
+    if ( rval.convert(QMetaType::Bool) )
+      cobj->setChecked(rval.toBool());
+    else {
+      qDebug() << sval << "can't convert to bool";
+      return 0;
+    }
+
+  } else if (QComboBox* cobj = qobject_cast<QComboBox*>(obj)) {
+    const int idx = cobj->findText(sval);
+    if ( idx >= 0 )
+      cobj->setCurrentIndex(idx);
+    else if ( cobj->isEditable() )
+      cobj->setEditText(sval);
+    else {
+      QStringList knownFields;
+      for (int cidx=0 ; cidx < cobj->count() ; cidx++ )
+        knownFields << cobj->itemText(cidx);
+      qDebug() << cobj->metaObject()->className() << sval << "not in existing values:" << knownFields;
+      return 0;
+    }
+
+  } else if (QSpinBox* cobj = qobject_cast<QSpinBox*>(obj)) {
+    if ( rval.convert(QMetaType::Int) )
+      cobj->setValue(rval.toInt());
+    else {
+      qDebug() << sval << "can't convert to integer";
+      return 0;
+    }
+
+  } else if (QDoubleSpinBox* cobj = qobject_cast<QDoubleSpinBox*>(obj)) {
+    if ( rval.convert(QMetaType::Double) )
+      cobj->setValue(rval.toDouble());
+    else {
+      qDebug() << sval << "can't convert to float";
+      return 0;
+    }
+
+  } else if (QTimeEdit* cobj = qobject_cast<QTimeEdit*>(obj)) {
+    if ( rval.convert(QMetaType::QTime) )
+      cobj->setTime(rval.toTime());
+    else {
+      qDebug() << sval << "can't convert to QTime";
+      return 0;
+    }
+
+  } else if (QLabel* cobj = qobject_cast<QLabel*>(obj))
+    cobj->setText(sval);
+
+  else if (UScript* cobj = qobject_cast<UScript*>(obj))
+    cobj->script->setPath(sval);
+
+  else if (QCaMotorGUI* cobj = qobject_cast<QCaMotorGUI*>(obj))
+    cobj->motor()->setPv(sval);
+
+  else if (QButtonGroup* cobj = qobject_cast<QButtonGroup*>(obj)) {
+    QStringList knownFields;
+    foreach (QAbstractButton * but, cobj->buttons()) {
+      knownFields << but->text();
+      if (but->text() == sval) {
+        but->setChecked(true);
+        return 1;
+      }
+    }
+    qDebug() << cobj->metaObject()->className() << sval << "not in existing values:" << knownFields;
+    return 0;
+
+  } else if (QTableWidgetOtem* cobj = qobject_cast<QTableWidgetOtem*>(obj)){
+    QTableWidget * wdg = cobj->tableWidget();
+    const int rows = wdg->rowCount();
+    const int column = cobj->column();
+    const QStringList list = sval.split(',');
+    if (list.size() != rows) {
+      QString msg = "Warning. List size " + QString::number(list.size()) + " produced from string \""
+                  + sval + "\" is not same as table size " + QString::number(rows) + ".";
+      if (PositionList * lst = qobject_cast<PositionList*>(wdg->parentWidget()))
+        msg += " Possibly size option " + configName(lst->ui->nof) + " is set after the content (option "
+             + configName(cobj) + ")?";
+      qDebug() << msg;
+    }
+    for (int row = 0 ; row < min(rows, list.size()) ; row++) {
+      if ( list[row].isEmpty() )
+        continue;
+      if ( QCheckBox* chBox = wdg->cellWidget(row, column)->findChild<QCheckBox*>() ) {
+        QVariant curv = QVariant::fromValue(list[row]);
+        if (curv.convert(QMetaType::Bool))
+          chBox->setChecked(curv.toBool());
+        else
+          qDebug() << sval << "can't convert to bool. Skipping row" << row ;
+      } else
+        wdg->item(row, column)->setText(list[row]);
+    }
+
+  } else {
+    qDebug() << "Cannot parse value of object" << obj
+             << "into cli arguments: unsupported type" << obj->metaObject()->className();
+    return 0;
+  }
+  return 1;
+}
+
+
+
+std::string type_desc (QObject* obj) {
+  if (!obj) {
+    qDebug() << "Zero QObject";
+    return "";
+  } else if (qobject_cast<const QLineEdit*>(obj))
+    return "string";
+  else if (qobject_cast<const QPlainTextEdit*>(obj))
+    return "text";
+  else if (qobject_cast<const QAbstractButton*>(obj))
+    return "bool";
+  else if (const QComboBox* cobj = qobject_cast<const QComboBox*>(obj))
+    return cobj->isEditable() ? "string" : "enum";
+  else if (qobject_cast<const QSpinBox*>(obj))
+    return "int";
+  else if (qobject_cast<const QDoubleSpinBox*>(obj))
+    return "float";
+  else if (qobject_cast<const QTimeEdit*>(obj))
+    return "QTime";
+  else if (qobject_cast<const QLabel*>(obj))
+    return "string";
+  else if (qobject_cast<const UScript*>(obj))
+    return "command";
+  else if (qobject_cast<const QCaMotorGUI*>(obj))
+    return "EpicsPV";
+  else if (qobject_cast<const QButtonGroup*>(obj))
+    return "enum";
+  else if (qobject_cast<const QTableWidgetOtem*>(obj))
+    return "list";
+  else
+    qDebug() << "Cannot add value of object" << obj
+             << "into cli arguments: unsupported type" << obj->metaObject()->className();
+  return obj->metaObject()->className();
+};
+int _conversion (QObject* _val, const string & in) {
+  str2obj(_val, QString::fromStdString(in));
+  return 1;
+}
+
+
+
+void addOpt( poptmx::OptionTable & otable, QObject * sobj, const QString & sname
+           , const string & preShort="", const string & preLong="" ){
+
+  if (Shutter* cobj = qobject_cast<Shutter*>(sobj)) {
+    addOpt( otable, cobj->ui->selection, sname
+          , cobj->whatsThis().toStdString(), cobj->toolTip().toStdString());
+    return;
+  }
+
+  string shortDesc;
+  string longDesc;
+  QString ttAdd = "\n\n--" + sname ;
+
+  if (QButtonGroup* cobj = qobject_cast< QButtonGroup*>(sobj)) {
+    QStringList knownFields;
+    foreach (QAbstractButton * but, cobj->buttons()) {
+      but->setToolTip(but->toolTip() + ttAdd + " \"" + but->text() + "\"");
+      knownFields << "'" + but->text() + "'";
+    }
+    shortDesc = cobj->property("whatsThis").toString().toStdString();
+    const QString tt = cobj->property("toolTip").toString();
+    longDesc = "Possible values: " + knownFields.join(", ").toStdString() + ".\n"
+             + tt.toStdString();
+    cobj->setProperty("toolTip", tt + ttAdd );
+  } else if (QComboBox* cobj = qobject_cast<QComboBox*>(sobj)) {
+    QStringList knownFields;
+    for (int cidx=0 ; cidx < cobj->count() ; cidx++ )
+      knownFields << "'" + cobj->itemText(cidx) + "'";
+    longDesc = "Possible values: " + knownFields.join(", ").toStdString()
+        + (cobj->isEditable() ? " or any text" : "") + ".\n";
+  } else if ( QAbstractSpinBox* cobj = qobject_cast<QAbstractSpinBox*>(sobj) ) {
+    QString specialValText = cobj->specialValueText();
+    if (!specialValText.isEmpty()) {
+      QString specialVal;
+      if (QSpinBox* sbobj = qobject_cast<QSpinBox*>(sobj))
+        specialVal = QString::number(sbobj->minimum());
+      else if (QDoubleSpinBox* sbobj = qobject_cast<QDoubleSpinBox*>(sobj))
+        specialVal = QString::number(sbobj->minimum());
+      else if (QTimeEdit* sbobj = qobject_cast<QTimeEdit*>(sobj))
+        specialVal = sbobj->minimumTime().toString();
+      longDesc = ("Special value " + specialVal + " for '"  + specialValText + "'.\n")
+          .toStdString();
+    }
+  }
+
+  if ( qobject_cast<QWidget*>(sobj)  ||  qobject_cast<QTableWidgetOtem*>(sobj)) {
+    variant<QWidget*, QTableWidgetOtem*> ctrlWdg = (QWidget*) nullptr;
+    if (QCaMotorGUI* cobj = qobject_cast<QCaMotorGUI*>(sobj))
+      ctrlWdg = cobj->setupButton();
+    else if (QWidget * wdg = qobject_cast<QWidget*>(sobj))
+      ctrlWdg = wdg;
+    else if (QTableWidgetOtem * item = qobject_cast<QTableWidgetOtem*>(sobj))
+      ctrlWdg = item;
+    shortDesc = visit( [](auto &x) { return x->whatsThis(); }, ctrlWdg).toStdString();
+    longDesc += visit( [](auto &x) { return x->toolTip(); }, ctrlWdg).toStdString();
+    ttAdd += " " + QString::fromStdString(type_desc(sobj));
+    visit( [&ttAdd](auto &x) { x->setToolTip( x->toolTip() + ttAdd ); }, ctrlWdg);
+  }
+
+  // adding option to parse table
+  if (shortDesc.empty() && preShort.empty())
+    qDebug() << "Empty whatsThis for " << sobj << QString::fromStdString(longDesc);
+  const string svalue = obj2str(sobj, false).toStdString();
+  otable.add( poptmx::OPTION, sobj, 0, sname.toStdString()
+            , shortDesc + preShort, longDesc + preLong
+            , svalue.empty() ? "<none>" : svalue);
+
+};
+
+
+
+
+
+MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
+  QMainWindow(parent),
+  isLoadingState(false),
+  ui(new Ui::MainWindow),
+  bgOrigin(0),
+  bgAcquire(0),
+  bgEnter(0),
+  shutterPri(new Shutter(this)),
+  shutterSec(new Shutter(this)),
+  det(new Detector(this)),
+  tct(new TriggCT(this)),
+  thetaMotor(new QCaMotorGUI),
+  spiralMotor(new QCaMotorGUI),
+  bgMotor(new QCaMotorGUI),
+  dynoMotor(new QCaMotorGUI),
+  dyno2Motor(new QCaMotorGUI),
+  stopMe(true)
+{
+
+  QList<QCaMotorGUI*> allMotors;
+  // Prepare UI
+  {
+
+  ui->setupUi(this);
+  foreach ( QWidget * sprl , findChildren<QWidget*>(
+              QRegularExpression("spiral", QRegularExpression::CaseInsensitiveOption)) )
+    sprl->hide(); // until spiral CT is implemented
+  ui->control->finilize();
+  ui->control->setCurrentIndex(0);
+  foreach ( QMDoubleSpinBox * spb , findChildren<QMDoubleSpinBox*>() )
+    spb->setConfirmationRequired(false);
+  foreach ( QMSpinBox * spb , findChildren<QMSpinBox*>() )
+    spb->setConfirmationRequired(false);
+
+  prsSelection << ui->aqsSpeed << ui->stepTime << ui->flyRatio;
+  selectPRS(); // initial selection only
+  foreach (QMDoubleSpinBox* _prs, prsSelection)
+    connect( _prs, SIGNAL(entered()), SLOT(selectPRS()) );
+
+  ColumnResizer * resizer;
+  resizer = new ColumnResizer(this);
+  ui->preRunScript->addToColumnResizer(resizer);
+  ui->postRunScript->addToColumnResizer(resizer);
+  resizer = new ColumnResizer(this);
+  ui->preScanScript->addToColumnResizer(resizer);
+  ui->postScanScript->addToColumnResizer(resizer);
+  resizer = new ColumnResizer(this);
+  ui->preSubLoopScript->addToColumnResizer(resizer);
+  ui->postSubLoopScript->addToColumnResizer(resizer);
+  resizer = new ColumnResizer(this);
+  ui->preAqScript->addToColumnResizer(resizer);
+  ui->postAqScript->addToColumnResizer(resizer);
+
+  ui->startStop->setText(ssText);
+  ui->statusBar->setObjectName("StatusBar");
+  ui->statusBar->setStyleSheet("#StatusBar {color: rgba(255, 0, 0, 128);}");
+  QPushButton * save = new QPushButton("Save");
+  save->setFlat(true);
+  connect(save, SIGNAL(clicked()), SLOT(saveConfiguration()));
+  ui->statusBar->addPermanentWidget(save);
+  QPushButton * load = new QPushButton("Load");
+  load->setFlat(true);
+  connect(load, SIGNAL(clicked()), SLOT(loadConfiguration()));
+  ui->statusBar->addPermanentWidget(load);
+
+  for (int caqmod=0 ; caqmod < AQMODEEND ; caqmod++)
+    ui->aqMode->insertItem(caqmod, AqModeString( AqMode(caqmod) ));
+  ui->scanProgress->hide();
+  ui->dynoProgress->hide();
+  ui->serialProgress->hide();
+  ui->multiProgress->hide();
+  ui->stepTime->setSuffix("s");
+  ui->exposureInfo->setSuffix("s");
+  ui->detExposure->setSuffix("s");
+  ui->detPeriod->setSuffix("s");
+  foreach (Detector::Camera cam , Detector::knownCameras)
+    ui->detSelection->addItem(Detector::cameraName(cam));
+
+  auto placeMotor = [&allMotors](QCaMotorGUI *mot, QWidget *ctrlHere, QWidget *posHere){
+    mot->setupButton()->setToolTip(ctrlHere->toolTip());
+    mot->setupButton()->setWhatsThis(ctrlHere->whatsThis());
+    if (ctrlHere->property(configProp).isValid()) {
+      mot->setupButton()->setProperty(
+        configProp, ctrlHere->property(configProp));
+      ctrlHere->setProperty(configProp,QVariant());
+    }
+    place(mot->setupButton(), ctrlHere);
+    place(mot->currentPosition(true), posHere);
+    allMotors << mot;
+  };
+  placeMotor(thetaMotor, ui->placeThetaMotor, ui->placeScanCurrent);
+  placeMotor(spiralMotor, ui->placeSpiralMotor, ui->placeSpiralCurrent);
+  placeMotor(bgMotor, ui->placeBGmotor, ui->placeBGcurrent);
+  placeMotor(dynoMotor, ui->placeDynoMotor, ui->placeDynoCurrent);
+  placeMotor(dyno2Motor, ui->placeDyno2Motor, ui->placeDyno2Current);
+
+  foreach( PositionList * lst, findChildren<PositionList*>() ) {
+    QCaMotorGUI * mot = lst->motui;
+    mot->setupButton()->setToolTip("Motor to position list item.");
+    allMotors << mot;
+  }
+
+  }
+
+  // Update Ui's
+  {
+
+  updateUi_expPath();
+  updateUi_pathSync();
+  updateUi_serials();
+  updateUi_ffOnEachScan();
+  updateUi_scanRange();
+  updateUi_aqsPP();
+  updateUi_scanStep();
+  updateUi_expOverStep();
+  updateUi_thetaMotor();
+  updateUi_bgTravel();
+  updateUi_bgInterval();
+  updateUi_dfInterval();
+  updateUi_bgMotor();
+  updateUi_loops();
+  updateUi_dynoSpeed();
+  updateUi_dynoMotor();
+  updateUi_dyno2Speed();
+  updateUi_dyno2Motor();
+  updateUi_detector();
+  updateUi_aqMode();
+  updateUi_hdf();
+
+  onSerialCheck();
+  onFFcheck();
+  onDynoCheck();
+  onMultiCheck();
+  onDyno2();
+  onDetectorSelection();
+
+  }
+
+  // Connect signals from UI elements
+  {
+  connect(ui->browseExpPath, SIGNAL(clicked()), SLOT(onWorkingDirBrowse()));
+  connect(ui->checkSerial, SIGNAL(toggled(bool)), SLOT(onSerialCheck()));
+  connect(ui->checkFF, SIGNAL(toggled(bool)), SLOT(onFFcheck()));
+  connect(ui->checkDyno, SIGNAL(toggled(bool)), SLOT(onDynoCheck()));
+  connect(ui->checkMulti, SIGNAL(toggled(bool)), SLOT(onMultiCheck()));
+  connect(ui->testSerial, SIGNAL(clicked(bool)), SLOT(onSerialTest()));
+  connect(ui->testFF, SIGNAL(clicked()), SLOT(onFFtest()));
+  connect(ui->testScan, SIGNAL(clicked()), SLOT(onScanTest()));
+  connect(ui->testMulti, SIGNAL(clicked()), SLOT(onLoopTest()));
+  connect(ui->testDyno, SIGNAL(clicked()), SLOT(onDynoTest()));
+  connect(ui->dynoDirectionLock, SIGNAL(toggled(bool)), SLOT(onDynoDirectionLock()));
+  connect(ui->dynoSpeedLock, SIGNAL(toggled(bool)), SLOT(onDynoSpeedLock()));
+  connect(ui->dyno2, SIGNAL(toggled(bool)), SLOT(onDyno2()));
+  connect(ui->testDetector, SIGNAL(clicked()), SLOT(onDetectorTest()));
+  connect(ui->vidStartStop, SIGNAL(clicked()), SLOT(onVideoRecord()));
+  connect(ui->vidReady, SIGNAL(clicked()), SLOT(onVideoGetReady()));
+  connect(ui->startStop, SIGNAL(clicked()), SLOT(onStartStop()));
+  connect(ui->swapSerialLists, SIGNAL(clicked(bool)), SLOT(onSwapSerial()));
+  connect(ui->swapLoopLists, SIGNAL(clicked(bool)), SLOT(onSwapLoops()));
+  }
+
+
+  // Populate list of configuration parameters with elements of the UI
+  // which have configProp ("saveToConfig") property set.
+  {
+  QList<QObject*> addThemAfterNof;
+  QWidget * wdg = ui->control;
+  while ( wdg = wdg->nextInFocusChain() ,
+          wdg && wdg != ui->control )
+  {
+    if ( ui->control->tabs().contains(wdg) )
+      continue;
+    QObject * obj = wdg;
+    if ( QAbstractButton * but = qobject_cast<QAbstractButton*>(wdg)
+       ; but && but->group() && but->group()->property(configProp).isValid() )
+      obj = but->group();
+    if ( ! obj->property(configProp).isValid()  )
+      continue;
+    if ( QAbstractButton * but = qobject_cast<QAbstractButton*>(wdg) ) {
+      foreach( QCaMotorGUI* mot, allMotors )
+        if (mot->setupButton() == but)
+          obj=mot;
+    }
+    if ( configs.contains(obj) )
+      continue;
+    if (PositionList* cobj = qobject_cast<PositionList*>(obj)) {
+      // Data in the columns must be loaded after correct number of raws are set via ui->nof of the list.
+      // Therefore instead of adding following to configs immediately, they are put aside and  added
+      // later when table is resized.
+      if (addThemAfterNof.size()) {
+        qDebug() << "Bug. PositionList table must be empty by now. How did I get here?";
+        configs.append(addThemAfterNof);
+        addThemAfterNof.clear();
+      }
+      addThemAfterNof << dynamic_cast<QTableWidgetOtem*>(cobj->ui->list->horizontalHeaderItem(0))
+                      << dynamic_cast<QTableWidgetOtem*>(cobj->ui->list->horizontalHeaderItem(3));
+    } else {
+      configs << obj;
+      if ( PositionList * parentPositionList = qobject_cast<PositionList*>(obj->parent())
+         ; parentPositionList  &&  parentPositionList->ui->nof == obj ) {
+        if (!addThemAfterNof.size())
+          qDebug() << "Bug. PositionList is empty wwhen must not be. How did I get here?";
+        else
+          configs.append(addThemAfterNof);
+        addThemAfterNof.clear();
+      }
+    }
+  }
+  }
+
+  // Load configuration and parse cmd options
+  {
+  bool beverbose=false;
+  string configFile = storedState.toStdString();
+
+  // Parse and load configuration file
+  poptmx::OptionTable ftable("this is fake option table", "just to get config file");
+  ftable.add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.", "");
+  string fakeval;
+  foreach (auto obj, configs)
+    ftable.add(poptmx::OPTION, &fakeval, 0, configName(obj).toStdString(), "shortDesc", "");
+  bool abool; // to emulate standard options
+  ftable.add(poptmx::OPTION, &abool, 'h', "help", "short", "long", "def");
+  ftable.add(poptmx::OPTION, &abool, 'u', "usage", "short", "long", "def");
+  ftable.add(poptmx::OPTION, &abool, 'v', "verbose", "short", "long", "def");
+  ftable.parse(argc,argv);
+  loadConfiguration(QString::fromStdString(configFile));
+
+  // Only after loading configFile, I prepare and parse argv properly.
+  poptmx::OptionTable otable("CT acquisition", "Executes CT experiment.");
+  otable
+      .add(poptmx::NOTE, "ARGUMENTS:")
+      .add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.",
+           "Ini file to be loaded on start.", configFile)
+      .add(poptmx::NOTE, "OPTIONS:");
+  QString lastSection = "";
+  foreach (auto obj, configs) {
+    QString sname = configName(obj);
+    if ( QString section = sname.split('/').first()
+       ; section != lastSection )
+    {
+      otable.add(poptmx::NOTE, "Section " + section.toStdString());
+      lastSection = section;
+    }
+    addOpt(otable, obj, sname);
+  }
+  bool startExp=false
+     , startVid=false
+     , reportHealth=false
+     , keepUi=false
+     , headless=false;
+  otable
+      .add(poptmx::NOTE, "ACTIONS:")
+      .add(poptmx::OPTION, &startExp, 'X', "startExp", "Starts the experiment",
+           "Launches execution of the experiment as if manually pressing \"Start\".")
+      .add(poptmx::OPTION, &startVid, 'V', "startVid", "Starts video recording",
+           "Launches video recording as if \"Get ready\" and \"Record\" buttons were pressed manually.")
+      .add(poptmx::OPTION, &reportHealth, 'O', "health", "Check if configuration allows start.",
+           "Check if loaded configuration is self consistent to allow experiment execution."
+           " Returns 0 if everything is fine, non-zero otherwise.")
+      .add(poptmx::OPTION, &keepUi, 'U', "keepUI", "Keeps UI open on completion",
+           "Has no effect if no launchers were started. By default application"
+           " exits after a launcher has finished. This option allows to keep it open.")
+      .add(poptmx::OPTION, &headless, 'H', "headless", "Starts launcher without UI",
+           "Only makes sense with one of the above processing launchers;"
+           " without it the flag is ignored and UI shows.");
+  otable.add_standard_options(&beverbose);
+  otable.parse(argc, argv);
+  storeCurrentState();
+
+
+  }
+
+  // connect changes in the configuration elements to store state
+  foreach (auto obj, configs) {
+    const char * sig = 0;
+    if ( qobject_cast<QLineEdit*>(obj) ||
+         qobject_cast<QPlainTextEdit*>(obj) ||
+         qobject_cast<UScript*>(obj) ||
+         qobject_cast<QSpinBox*>(obj) ||
+         qobject_cast<QAbstractSpinBox*>(obj) )
+      sig = SIGNAL(editingFinished());
+    else if (qobject_cast<QComboBox*>(obj))
+      sig = SIGNAL(currentIndexChanged(int));
+    else if (qobject_cast<QAbstractButton*>(obj))
+      sig = SIGNAL(toggled(bool));
+    else if ( qobject_cast<QButtonGroup*>(obj))
+      sig = SIGNAL(buttonClicked(int));
+    else if (qobject_cast<QCaMotorGUI*>(obj)) {
+      obj = qobject_cast<QCaMotorGUI*>(obj)->motor();
+      sig = SIGNAL(changedPv());
+    } else if (qobject_cast<QTableWidgetOtem*>(obj)) {
+      obj = qobject_cast<QTableWidgetOtem*>(obj)->tableWidget();
+      sig = SIGNAL(itemChanged(QTableWidgetItem*));
+    } else if (qobject_cast<Shutter*>(obj))
+      sig = SIGNAL(shutterChanged());
+    else
+      qDebug() << "Do not know how to connect object " << obj
+               << "to slot" << SLOT(storeCurrentState());
+    if (sig)
+      connect (obj, sig, SLOT(storeCurrentState()));
+  }
+
+
+}
+
+
+MainWindow::~MainWindow() {
+  delete ui;
+}
+
+
 void MainWindow::saveConfiguration(QString fileName) {
 
   if ( fileName.isEmpty() )
@@ -411,14 +721,9 @@ void MainWindow::saveConfiguration(QString fileName) {
   config.setValue("version", QString::number(APP_VERSION));
   foreach (auto obj, configs) {
     QString fname = configName(obj);
-    if (fname.startsWith("General/"))
+    if (fname.startsWith("general/", Qt::CaseInsensitive))
       fname.remove(0,8);
     if (const PositionList *pl = qobject_cast<const PositionList*>(obj)) {
-      config.setValue(fname, obj2str(pl->ui->label));
-      config.setValue(fname + "/motor", obj2str(pl->motui));
-      config.setValue(fname + "/nofsteps", obj2str(pl->ui->nof));
-      config.setValue(fname + "/step", obj2str(pl->ui->step));
-      config.setValue(fname + "/irregular", obj2str(pl->ui->irregular));
       config.setValue(fname + "/positions", obj2str(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(0))));
       config.setValue(fname + "/todos", obj2str(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(3))));
     } else if (const Shutter * shut =  qobject_cast<const Shutter*>(obj)) {
@@ -443,104 +748,6 @@ void MainWindow::saveConfiguration(QString fileName) {
 }
 
 
-
-int str2obj (QObject* obj, const QString & sval) {
-  QVariant rval = sval;
-  if (!obj) {
-    qDebug() << "Zero QObject";
-    return 0;
-  } else if (QLineEdit* cobj = qobject_cast<QLineEdit*>(obj))
-    cobj->setText(sval);
-  else if (QPlainTextEdit* cobj = qobject_cast<QPlainTextEdit*>(obj))
-    cobj->setPlainText(sval);
-  else if (QAbstractButton* cobj = qobject_cast<QAbstractButton*>(obj)) {
-    if ( rval.convert(QMetaType::Bool) )
-      cobj->setChecked(rval.toBool());
-    else {
-      qDebug() << sval << "can't convert to bool";
-      return 0;
-    }
-  } else if (QComboBox* cobj = qobject_cast<QComboBox*>(obj)) {
-    const int idx = cobj->findText(sval);
-    if ( idx >= 0 )
-      cobj->setCurrentIndex(idx);
-    else if ( cobj->isEditable() )
-      cobj->setEditText(sval);
-    else {
-      QStringList knownFields;
-      for (int cidx=0 ; cidx < cobj->count() ; cidx++ )
-        knownFields << cobj->itemText(cidx);
-      qDebug() << cobj->metaObject()->className() << sval << "not in existing values:" << knownFields;
-      return 0;
-    }
-  } else if (QSpinBox* cobj = qobject_cast<QSpinBox*>(obj)) {
-    if ( rval.convert(QMetaType::Int) )
-      cobj->setValue(rval.toInt());
-    else {
-      qDebug() << sval << "can't convert to integer";
-      return 0;
-    }
-  } else if (QDoubleSpinBox* cobj = qobject_cast<QDoubleSpinBox*>(obj)) {
-    if ( rval.convert(QMetaType::Double) )
-      cobj->setValue(rval.toDouble());
-    else {
-      qDebug() << sval << "can't convert to float";
-      return 0;
-    }
-  } else if (QTimeEdit* cobj = qobject_cast<QTimeEdit*>(obj)) {
-    if ( rval.convert(QMetaType::QTime) )
-      cobj->setTime(rval.toTime());
-    else {
-      qDebug() << sval << "can't convert to QTime";
-      return 0;
-    }
-  } else if (QLabel* cobj = qobject_cast<QLabel*>(obj))
-    cobj->setText(sval);
-  else if (UScript* cobj = qobject_cast<UScript*>(obj))
-    cobj->script->setPath(sval);
-  else if (QCaMotorGUI* cobj = qobject_cast<QCaMotorGUI*>(obj))
-    cobj->motor()->setPv(sval);
-  else if (QButtonGroup* cobj = qobject_cast<QButtonGroup*>(obj)) {
-    QStringList knownFields;
-    foreach (QAbstractButton * but, cobj->buttons()) {
-      knownFields << but->text();
-      if (but->text() == sval) {
-        but->setChecked(true);
-        return 1;
-      }
-    }
-    qDebug() << cobj->metaObject()->className() << sval << "not in existing values:" << knownFields;
-    return 0;
-  } else if (QTableWidgetOtem* cobj = qobject_cast<QTableWidgetOtem*>(obj)){
-    QTableWidget * wdg = cobj->tableWidget();
-    const int rows = wdg->rowCount();
-    const int column = cobj->column();
-    const QStringList list = sval.split(',');
-    if (list.size() != rows)
-      qDebug() << "Warning. List size" << list.size() << "produced from string" << sval
-               << "is not same as table size" << rows;
-    for (int row = 0 ; row < min(rows, list.size()) ; row++) {
-      if ( list[row].isEmpty() )
-        continue;
-      if ( QCheckBox* chBox = wdg->cellWidget(row, column)->findChild<QCheckBox*>() ) {
-        QVariant curv = QVariant::fromValue(list[row]);
-        if (curv.convert(QMetaType::Bool))
-          chBox->setChecked(curv.toBool());
-        else
-          qDebug() << sval << "can't convert to bool. Skipping row" << row ;
-      } else
-        wdg->item(row, column)->setText(list[row]);
-    }
-  } else {
-    qDebug() << "Cannot parse value of object" << obj
-             << "into cli arguments: unsupported type" << obj->metaObject()->className();
-    return 0;
-  }
-  return 1;
-}
-
-
-
 void MainWindow::loadConfiguration(QString fileName) {
 
   if ( fileName.isEmpty() )
@@ -549,7 +756,7 @@ void MainWindow::loadConfiguration(QString fileName) {
   isLoadingState=true;
 
   auto fromConf2Obj = [](QObject * obj, QString key, const QSettings & config){
-    if (key.startsWith("General/"))
+    if (key.startsWith("general/", Qt::CaseInsensitive))
       key.remove(0,8);
     if (!config.contains(key))
       qDebug() << "Key" << key << "not found in config file" << config.fileName();
@@ -571,10 +778,6 @@ void MainWindow::loadConfiguration(QString fileName) {
   foreach (auto obj, configs) {
     const QString fname = configName(obj);
     if (const PositionList *pl = qobject_cast<const PositionList*>(obj)) {
-      fromConf2Obj(pl->motui, fname + "/motor", config);
-      fromConf2Obj(pl->ui->nof, fname + "/nofsteps",config);
-      fromConf2Obj(pl->ui->step, fname + "/step",config);
-      fromConf2Obj(pl->ui->irregular, fname + "/irregular",config);
       fromConf2Obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(0)), fname + "/positions",config);
       fromConf2Obj(dynamic_cast<QTableWidgetOtem*>(pl->ui->list->horizontalHeaderItem(3)), fname + "/todos",config);
     } else if (Shutter * shut =  qobject_cast<Shutter*>(obj) ) {
@@ -594,197 +797,6 @@ void MainWindow::loadConfiguration(QString fileName) {
   isLoadingState=false;
 
 }
-
-
-
-void MainWindow::storeCurrentState() {
-  if (!isLoadingState)
-    saveConfiguration(storedState);
-}
-
-
-
-std::string type_desc (QObject* obj) {
-  if (!obj) {
-    qDebug() << "Zero QObject";
-    return "";
-  } else if (qobject_cast<const QLineEdit*>(obj))
-    return "string";
-  else if (qobject_cast<const QPlainTextEdit*>(obj))
-    return "string";
-  else if (qobject_cast<const QAbstractButton*>(obj))
-    return "bool";
-  else if (const QComboBox* cobj = qobject_cast<const QComboBox*>(obj))
-    return cobj->isEditable() ? "string" : "enum";
-  else if (qobject_cast<const QSpinBox*>(obj))
-    return "int";
-  else if (qobject_cast<const QDoubleSpinBox*>(obj))
-    return "float";
-  else if (qobject_cast<const QTimeEdit*>(obj))
-    return "QTime";
-  else if (qobject_cast<const QLabel*>(obj))
-    return "string";
-  else if (qobject_cast<const UScript*>(obj))
-    return "command";
-  else if (qobject_cast<const QCaMotorGUI*>(obj))
-    return "PV";
-  else if (qobject_cast<const QButtonGroup*>(obj))
-    return "enum";
-  else if (qobject_cast<const QTableWidgetOtem*>(obj))
-    return "list";
-  else
-    qDebug() << "Cannot add value of object" << obj
-             << "into cli arguments: unsupported type" << obj->metaObject()->className();
-  return obj->metaObject()->className();
-};
-int _conversion (QObject* _val, const string & in) {
-  str2obj(_val, QString::fromStdString(in));
-  return 1;
-}
-
-
-std::string type_desc (QString*) {return "QString";};
-int _conversion (QString* _val, const string & in) {
-  * _val = QString::fromStdString(in);
-  return 1;
-}
-
-
-void addOpt(poptmx::OptionTable & otable, QObject * sobj, const QString & sname, const string & preShort="", const string & preLong="" ){
-
-  string shortDesc;
-  string longDesc;
-  QString ttAdd = "\n\n--" + sname ;
-
-  if (const QButtonGroup* cobj = qobject_cast<const QButtonGroup*>(sobj)) {
-
-    QStringList knownFields;
-    foreach (QAbstractButton * but, cobj->buttons()) {
-      but->setToolTip(but->toolTip() + ttAdd + " \"" + but->text() + "\"");
-      knownFields << "'" + but->text() + "'";
-    }
-    longDesc = "Possible values: " + knownFields.join(", ").toStdString() + "." ;
-    if ( sobj->property("toolTip").isValid() )
-      longDesc += "\n" + sobj->property("toolTip").toString().toStdString();
-    if ( sobj->property("whatsThis").isValid() )
-      shortDesc = sobj->property("whatsThis").toString().toStdString();
-
-  } else {
-
-    if (QComboBox* cobj = qobject_cast<QComboBox*>(sobj)) {
-      QStringList knownFields;
-      for (int cidx=0 ; cidx < cobj->count() ; cidx++ )
-        knownFields << "'" + cobj->itemText(cidx) + "'";
-      longDesc = "Possible values: " + knownFields.join(", ").toStdString()
-               + (cobj->isEditable() ? " or any text" : "") + ".\n";
-    } else if ( QAbstractSpinBox* cobj = qobject_cast<QAbstractSpinBox*>(sobj) ) {
-      QString specialValText = cobj->specialValueText();
-      if (!specialValText.isEmpty()) {
-        QString specialVal;
-        if (QSpinBox* sbobj = qobject_cast<QSpinBox*>(sobj))
-          specialVal = QString::number(sbobj->minimum());
-        else if (QDoubleSpinBox* sbobj = qobject_cast<QDoubleSpinBox*>(sobj))
-          specialVal = QString::number(sbobj->minimum());
-        else if (QTimeEdit* sbobj = qobject_cast<QTimeEdit*>(sobj))
-          specialVal = sbobj->minimumTime().toString();
-        longDesc = ("Special value " + specialVal + " for '"  + specialValText + "'.\n")
-            .toStdString();
-      }
-    }
-
-    variant<QWidget*, QTableWidgetOtem*> ctrlWdg = (QWidget*) nullptr;
-    if (QCaMotorGUI* cobj = qobject_cast<QCaMotorGUI*>(sobj))
-      ctrlWdg = cobj->setupButton();
-    else if (Shutter* cobj = qobject_cast<Shutter*>(sobj))
-      ctrlWdg = cobj->ui->selection;
-    else if (QWidget * wdg = qobject_cast<QWidget*>(sobj))
-      ctrlWdg = wdg;
-    else if (QTableWidgetOtem * item = qobject_cast<QTableWidgetOtem*>(sobj))
-      ctrlWdg = item;
-    shortDesc = visit( [](auto &x) { return x->whatsThis(); }, ctrlWdg).toStdString();
-    longDesc += visit( [](auto &x) { return x->toolTip(); }, ctrlWdg).toStdString();
-    if (shortDesc.empty()) {
-      shortDesc = longDesc;
-      longDesc.clear();
-    }
-    ttAdd += " " + QString::fromStdString(type_desc(sobj));
-    visit( [&ttAdd](auto &x) { x->setToolTip( x->toolTip() + ttAdd ); }, ctrlWdg);
-
-  }
-
-  // adding option to parse table
-  const string svalue = obj2str(sobj, false).toStdString();
-  otable.add( poptmx::OPTION, sobj, 0, sname.toStdString(), preShort + shortDesc, preLong + longDesc
-            , svalue.empty() ? "<none>" : svalue);
-
-};
-
-
-bool MainWindow::parseArgv(int argc, char *argv[]) {
-
-  // Parse and load configuration file
-  QString configFile = storedState;
-  poptmx::OptionTable ftable("this is fake option table", "just to get config file");
-  ftable.add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.", "");
-  string fakeval;
-  foreach (auto obj, configs) {
-    const string fname = configName(obj).toStdString();
-    if (qobject_cast<const PositionList*>(obj))
-      ftable
-          .add(poptmx::OPTION, &fakeval, 0, fname+"/motor", "shortDesc", "")
-          .add(poptmx::OPTION, &fakeval, 0, fname+"/nofsteps", "shortDesc", "")
-          .add(poptmx::OPTION, &fakeval, 0, fname+"/step", "shortDesc", "")
-          .add(poptmx::OPTION, &fakeval, 0, fname+"/irregular", "shortDesc", "")
-          .add(poptmx::OPTION, &fakeval, 0, fname+"/positions", "shortDesc", "")
-          .add(poptmx::OPTION, &fakeval, 0, fname+"/todos", "shortDesc", "");
-    else
-      ftable.add(poptmx::OPTION, &fakeval, 0, fname, "shortDesc", "");
-  }
-  bool abool; // to emulate standard options
-  ftable.add(poptmx::OPTION, &abool, 'h', "help", "short", "long", "def");
-  ftable.add(poptmx::OPTION, &abool, 'u', "usage", "short", "long", "def");
-  ftable.add(poptmx::OPTION, &abool, 'v', "verbose", "short", "long", "def");
-  ftable.parse(argc,argv);
-  loadConfiguration(configFile);
-
-  // Only after loading configFile, I prepare and parse argv properly.
-  bool beverbose=false;
-  poptmx::OptionTable otable("CT acquisition", "Executes CT experiment.");
-  otable
-      .add(poptmx::NOTE, "ARGUMENTS:")
-      .add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.",
-           "Ini file to be loaded on start.", configFile.toStdString())
-      .add(poptmx::NOTE, "OPTIONS:");
-  foreach (auto obj, configs) {
-    const QString sname = configName(obj);
-    if (PositionList* cobj = qobject_cast<PositionList*>(obj)) {
-      const string listName = sname.split('/').last().toStdString() + ": ";
-      addOpt(otable, cobj->motui, sname+"/motor", listName + "motor PV", listName + "EPICS PV of the motor record.");
-      addOpt(otable, cobj->ui->nof, sname+"/nofsteps", listName, listName);
-      addOpt(otable, cobj->ui->step, sname+"/step", listName, listName);
-      addOpt(otable, cobj->ui->irregular, sname+"/irregular", listName, listName);
-      addOpt(otable,  dynamic_cast<QTableWidgetOtem*>(cobj->ui->list->horizontalHeaderItem(0))
-            , sname+"/positions", listName, listName);
-      addOpt(otable,  dynamic_cast<QTableWidgetOtem*>(cobj->ui->list->horizontalHeaderItem(3))
-            , sname+"/todos", listName, listName);
-    } else if (Shutter* cobj = qobject_cast<Shutter*>(obj))
-      addOpt(otable, cobj->ui->selection, sname);
-    else
-      addOpt(otable, obj, sname);
-  }
-  otable.add_standard_options(&beverbose);
-  return otable.parse(argc, argv);
-
-}
-
-
-
-
-
-
-
-
-
 
 
 Detector::ImageFormat MainWindow::uiImageFormat() const {
@@ -983,16 +995,34 @@ void MainWindow::updateUi_serials() {
 
 
 void MainWindow::onSwapSerial() {
+
   PositionList * ol = outerList;
-  const QVariant oCfg = ol->property(configProp);
   PositionList * il = innearList;
-  const QVariant iCfg = il->property(configProp);
+  QString tTi, tTo;
+  tTo = ol->property(configProp).toString();
+  tTi = il->property(configProp).toString();
+  ol->setProperty(configProp, tTi);
+  il->setProperty(configProp, tTo);
+
+  #define swapTT(elm) \
+    tTi = il->elm->toolTip(); \
+    tTo = ol->elm->toolTip(); \
+    ol->elm->setToolTip(tTi); \
+    il->elm->setToolTip(tTo); \
+
+  swapTT(ui->nof);
+  swapTT(ui->step);
+  swapTT(ui->irregular);
+  swapTT(motui->setupButton());
+  swapTT(ui->list->horizontalHeaderItem(0));
+  swapTT(ui->list->horizontalHeaderItem(3));
+  #undef swapTT
+
   ui->innearListPlace->layout()->addWidget(ol);
   ui->outerListPlace->layout()->addWidget(il);
-  ol->setProperty(configProp, oCfg);
-  il->setProperty(configProp, iCfg);
   updateUi_serials();
   storeCurrentState();
+
 }
 
 

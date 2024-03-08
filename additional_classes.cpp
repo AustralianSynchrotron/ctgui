@@ -350,18 +350,15 @@ UScript::UScript(QWidget *parent) :
   ui(new Ui::UScript),
   script (new Script(this))
 {
-
   ui->setupUi(this);
-
+  setFocusProxy(ui->path);
   connect(ui->path, SIGNAL(textChanged(QString)), script, SLOT(setPath(QString)));
   connect(ui->browse, SIGNAL(clicked()), SLOT(browse()));
   connect(ui->execute, SIGNAL(clicked()), SLOT(onStartStop()));
   connect(ui->path, SIGNAL(editingFinished()), SIGNAL(editingFinished()));
-
   connect(script, SIGNAL(started()), SLOT(updateState()));
   connect(script, SIGNAL(finished(int)), SLOT(updateState()));
   connect(script, SIGNAL(pathSet(QString)), SLOT(updatePath()));
-
 }
 
 

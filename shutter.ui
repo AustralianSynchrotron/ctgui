@@ -2,14 +2,6 @@
 <ui version="4.0">
  <class>Shutter</class>
  <widget class="QWidget" name="Shutter">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>454</width>
-    <height>72</height>
-   </rect>
-  </property>
   <property name="windowTitle">
    <string>Form</string>
   </property>
@@ -21,6 +13,9 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
+     </property>
+     <property name="focusPolicy">
+      <enum>Qt::ClickFocus</enum>
      </property>
      <property name="toolTip">
       <string>Current status of the shutter</string>
@@ -35,9 +30,6 @@
    </item>
    <item row="0" column="0">
     <widget class="QComboBox" name="selection">
-     <property name="toolTip">
-      <string>Shutter selection</string>
-     </property>
      <property name="insertPolicy">
       <enum>QComboBox::InsertAtTop</enum>
      </property>

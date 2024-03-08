@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2206</width>
-    <height>1104</height>
+    <width>1067</width>
+    <height>647</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -21,7 +21,7 @@
     <normaloff>:/CTguiIcon.png</normaloff>:/CTguiIcon.png</iconset>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayoutt">
+   <layout class="QVBoxLayout" name="_4">
     <item>
      <widget class="EasyTabWidget" name="control">
       <property name="focusPolicy">
@@ -31,7 +31,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>5</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -44,7 +44,7 @@
         <enum>Qt::TabFocus</enum>
        </property>
        <property name="saveToConfig" stdset="0">
-        <string>General</string>
+        <string>general</string>
        </property>
        <attribute name="title">
         <string>General</string>
@@ -247,7 +247,7 @@
           <item row="0" column="1">
            <widget class="UScript" name="preRunScript" native="true">
             <property name="focusPolicy">
-             <enum>Qt::TabFocus</enum>
+             <enum>Qt::StrongFocus</enum>
             </property>
             <property name="toolTip">
              <string>This script is executed right after hitting Start button, before anything else.</string>
@@ -263,7 +263,7 @@
           <item row="1" column="1">
            <widget class="UScript" name="postRunScript" native="true">
             <property name="focusPolicy">
-             <enum>Qt::TabFocus</enum>
+             <enum>Qt::StrongFocus</enum>
             </property>
             <property name="toolTip">
              <string>This script is executed as the very last step of the experiment, when all procedures are complete and just before releasing the UI.</string>
@@ -468,7 +468,7 @@
                    </size>
                   </property>
                   <property name="focusPolicy">
-                   <enum>Qt::TabFocus</enum>
+                   <enum>Qt::WheelFocus</enum>
                   </property>
                   <property name="toolTip">
                    <string>List of CT scans in the serial acquisition experiment</string>
@@ -538,7 +538,7 @@ p
                    </size>
                   </property>
                   <property name="focusPolicy">
-                   <enum>Qt::TabFocus</enum>
+                   <enum>Qt::WheelFocus</enum>
                   </property>
                   <property name="toolTip">
                    <string>List of CT scans in the serial acquisition experiment</string>
@@ -559,7 +559,7 @@ p
            <item row="2" column="1" colspan="3">
             <widget class="UScript" name="conditionScript" native="true">
              <property name="focusPolicy">
-              <enum>Qt::TabFocus</enum>
+              <enum>Qt::StrongFocus</enum>
              </property>
              <property name="toolTip">
               <string>Experiment finishes when execution of this script returns a non-zero value. Condition is checked between series.</string>
@@ -867,7 +867,7 @@ p
            <item row="5" column="1" colspan="3">
             <widget class="UScript" name="post2DScript" native="true">
              <property name="focusPolicy">
-              <enum>Qt::TabFocus</enum>
+              <enum>Qt::StrongFocus</enum>
              </property>
              <property name="toolTip">
               <string>This script is executed after finishing each innear series of scans in 2D series.</string>
@@ -883,7 +883,7 @@ p
            <item row="4" column="1" colspan="3">
             <widget class="UScript" name="pre2DScript" native="true">
              <property name="focusPolicy">
-              <enum>Qt::TabFocus</enum>
+              <enum>Qt::StrongFocus</enum>
              </property>
              <property name="toolTip">
               <string>This script is executed before starting each innear series of scans in 2D series.</string>
@@ -1071,7 +1071,7 @@ p
            <item row="19" column="1" colspan="6">
             <widget class="UScript" name="postScanScript" native="true">
              <property name="focusPolicy">
-              <enum>Qt::TabFocus</enum>
+              <enum>Qt::StrongFocus</enum>
              </property>
              <property name="toolTip">
               <string>This script is executed before each individual CT scan.</string>
@@ -1502,7 +1502,7 @@ p
            <item row="18" column="1" colspan="6">
             <widget class="UScript" name="preScanScript" native="true">
              <property name="focusPolicy">
-              <enum>Qt::TabFocus</enum>
+              <enum>Qt::StrongFocus</enum>
              </property>
              <property name="toolTip">
               <string>This script is executed before each individual CT scan.</string>
@@ -1959,7 +1959,7 @@ p
            <item row="3" column="1">
             <widget class="UScript" name="preSubLoopScript" native="true">
              <property name="focusPolicy">
-              <enum>Qt::TabFocus</enum>
+              <enum>Qt::StrongFocus</enum>
              </property>
              <property name="toolTip">
               <string>This script is executed before starting each series of sub-loop tiles in 2D tiling.</string>
@@ -1988,7 +1988,7 @@ p
            <item row="4" column="1">
             <widget class="UScript" name="postSubLoopScript" native="true">
              <property name="focusPolicy">
-              <enum>Qt::TabFocus</enum>
+              <enum>Qt::StrongFocus</enum>
              </property>
              <property name="toolTip">
               <string>This script is executed after finishing each series of sub-loop tiles in 2D tiling.</string>
@@ -2328,8 +2328,14 @@ p
              <property name="toolTip">
               <string>Use second motor for the dynamic shot imaging.</string>
              </property>
+             <property name="whatsThis">
+              <string>Dynamic shot with two motors</string>
+             </property>
              <property name="text">
               <string>Use Second motor</string>
+             </property>
+             <property name="saveToConfig" stdset="0">
+              <string>dyno2</string>
              </property>
             </widget>
            </item>
@@ -2395,6 +2401,9 @@ p
             <widget class="QSCheckBox" name="dynoDirectionLock">
              <property name="toolTip">
               <string>Use same direction for the second motor as in the first one.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Same direction as first</string>
              </property>
              <property name="text">
               <string>as first</string>
@@ -2490,6 +2499,9 @@ p
              </property>
              <property name="toolTip">
               <string>Use same speed for the second motor as in the first one.</string>
+             </property>
+             <property name="whatsThis">
+              <string>Same speed as first</string>
              </property>
              <property name="text">
               <string>as first</string>
@@ -2795,7 +2807,7 @@ p
              <item row="0" column="1">
               <widget class="UScript" name="preAqScript" native="true">
                <property name="focusPolicy">
-                <enum>Qt::TabFocus</enum>
+                <enum>Qt::StrongFocus</enum>
                </property>
                <property name="toolTip">
                 <string>This script is executed before starting any acquisition on the detector.</string>
@@ -2811,7 +2823,7 @@ p
              <item row="1" column="1">
               <widget class="UScript" name="postAqScript" native="true">
                <property name="focusPolicy">
-                <enum>Qt::TabFocus</enum>
+                <enum>Qt::StrongFocus</enum>
                </property>
                <property name="toolTip">
                 <string>This script is executed whenever the detector returns to idle state after acquisition.</string>
@@ -2836,7 +2848,7 @@ p
            <item row="2" column="1">
             <widget class="QComboBox" name="detSelection">
              <property name="toolTip">
-              <string>Detector in charge of all image acquisition in the experiment. Note: you may try to paste a PV of a detector which is not in the list. It may or may not work depending on the IOC implementation.</string>
+              <string>Detector in charge of all image acquisition in the experiment. Note: you may try to put a PV of a detector which is not in the list. It may or may not work depending on the IOC implementation.</string>
              </property>
              <property name="whatsThis">
               <string>Detector in the experiment</string>
@@ -2970,7 +2982,14 @@ p
              </property>
             </widget>
            </item>
-           <item row="0" column="1" colspan="3">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_29">
+             <property name="text">
+              <string>Shutters</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
             <layout class="QHBoxLayout" name="horizontalLayout_35">
              <item>
               <widget class="QLabel" name="label_30">
@@ -2989,12 +3008,12 @@ p
               </widget>
              </item>
              <item>
-              <widget class="QWidget" name="placePShutterSelection" native="true">
+              <widget class="Shutter" name="primaryShutter" native="true">
                <property name="focusPolicy">
                 <enum>Qt::TabFocus</enum>
                </property>
                <property name="toolTip">
-                <string>Primary shutter opens in the beginning of the experiment and closes in the end.</string>
+                <string>This shutter opens in the beginning of the experiment and closes in the end.</string>
                </property>
                <property name="whatsThis">
                 <string>Primary shutter</string>
@@ -3002,80 +3021,12 @@ p
                <property name="saveToConfig" stdset="0">
                 <string>primaryShutter</string>
                </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_15">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-               </layout>
               </widget>
              </item>
-             <item>
-              <widget class="QWidget" name="placePShutterToggle" native="true">
-               <layout class="QHBoxLayout" name="horizontalLayout_24">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QWidget" name="placePShutterStatus" native="true">
-                  <property name="toolTip">
-                   <string>Detector used in the experiment.</string>
-                  </property>
-                  <layout class="QHBoxLayout" name="horizontalLayout_29">
-                   <property name="spacing">
-                    <number>0</number>
-                   </property>
-                   <property name="leftMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                  </layout>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLabel" name="label_21">
-               <property name="focusPolicy">
-                <enum>Qt::TabFocus</enum>
-               </property>
-               <property name="text">
-                <string/>
-               </property>
-              </widget>
-             </item>
+            </layout>
+           </item>
+           <item row="0" column="2" colspan="2">
+            <layout class="QHBoxLayout" name="horizontalLayout_5">
              <item>
               <widget class="QLabel" name="label_12">
                <property name="sizePolicy">
@@ -3085,7 +3036,7 @@ p
                 </sizepolicy>
                </property>
                <property name="toolTip">
-                <string>This shutter is operates on each image series.</string>
+                <string>This shutter operates on each image series.</string>
                </property>
                <property name="text">
                 <string>secondary</string>
@@ -3093,12 +3044,12 @@ p
               </widget>
              </item>
              <item>
-              <widget class="QWidget" name="placeShutterSelection" native="true">
+              <widget class="Shutter" name="secondaryShutter" native="true">
                <property name="focusPolicy">
                 <enum>Qt::TabFocus</enum>
                </property>
                <property name="toolTip">
-                <string>Secondary shutter opens and closes for each detector acquisition.</string>
+                <string>This shutter opens and closes for each detector acquisition.</string>
                </property>
                <property name="whatsThis">
                 <string>Secondary shutter</string>
@@ -3106,78 +3057,9 @@ p
                <property name="saveToConfig" stdset="0">
                 <string>secondaryShutter</string>
                </property>
-               <layout class="QHBoxLayout" name="horizontalLayout_6">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <widget class="QWidget" name="placeShutterToggle" native="true">
-               <layout class="QHBoxLayout" name="horizontalLayout_20">
-                <property name="spacing">
-                 <number>0</number>
-                </property>
-                <property name="leftMargin">
-                 <number>0</number>
-                </property>
-                <property name="topMargin">
-                 <number>0</number>
-                </property>
-                <property name="rightMargin">
-                 <number>0</number>
-                </property>
-                <property name="bottomMargin">
-                 <number>0</number>
-                </property>
-                <item>
-                 <widget class="QWidget" name="placeShutterStatus" native="true">
-                  <property name="focusPolicy">
-                   <enum>Qt::TabFocus</enum>
-                  </property>
-                  <layout class="QHBoxLayout" name="horizontalLayout_12">
-                   <property name="spacing">
-                    <number>0</number>
-                   </property>
-                   <property name="leftMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                  </layout>
-                 </widget>
-                </item>
-               </layout>
               </widget>
              </item>
             </layout>
-           </item>
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_29">
-             <property name="text">
-              <string>Shutters</string>
-             </property>
-            </widget>
            </item>
           </layout>
          </widget>
@@ -3246,6 +3128,9 @@ p
                 <property name="toolTip">
                  <string>Number of frames in video</string>
                 </property>
+                <property name="whatsThis">
+                 <string>Videframes</string>
+                </property>
                 <property name="minimum">
                  <number>1</number>
                 </property>
@@ -3267,6 +3152,9 @@ p
               <item>
                <widget class="QTimeEdit" name="vidTime">
                 <property name="toolTip">
+                 <string>Maximum video duration</string>
+                </property>
+                <property name="whatsThis">
                  <string>Video duration</string>
                 </property>
                 <property name="currentSection">
@@ -3402,9 +3290,17 @@ p
    <header>positionlist.h</header>
    <container>1</container>
   </customwidget>
+  <customwidget>
+   <class>Shutter</class>
+   <extends>QWidget</extends>
+   <header>shutter.h</header>
+   <container>1</container>
+  </customwidget>
  </customwidgets>
  <tabstops>
+  <tabstop>control</tabstop>
   <tabstop>expPath</tabstop>
+  <tabstop>expDesc</tabstop>
   <tabstop>browseExpPath</tabstop>
   <tabstop>detPathSync</tabstop>
   <tabstop>tiffFormat</tabstop>
@@ -3418,7 +3314,7 @@ p
   <tabstop>checkSpiral</tabstop>
   <tabstop>preRunScript</tabstop>
   <tabstop>postRunScript</tabstop>
-  <tabstop>expDesc</tabstop>
+  <tabstop>startStop</tabstop>
   <tabstop>endNumber</tabstop>
   <tabstop>endTime</tabstop>
   <tabstop>endCondition</tabstop>
@@ -3482,10 +3378,8 @@ p
   <tabstop>dyno2Pos</tabstop>
   <tabstop>dyno2Neg</tabstop>
   <tabstop>testDyno</tabstop>
-  <tabstop>placePShutterSelection</tabstop>
-  <tabstop>label_21</tabstop>
-  <tabstop>placeShutterSelection</tabstop>
-  <tabstop>placeShutterStatus</tabstop>
+  <tabstop>primaryShutter</tabstop>
+  <tabstop>secondaryShutter</tabstop>
   <tabstop>detSelection</tabstop>
   <tabstop>preAqScript</tabstop>
   <tabstop>postAqScript</tabstop>
@@ -3495,8 +3389,6 @@ p
   <tabstop>vidReady</tabstop>
   <tabstop>vidStartStop</tabstop>
   <tabstop>testDetector</tabstop>
-  <tabstop>startStop</tabstop>
-  <tabstop>control</tabstop>
  </tabstops>
  <resources>
   <include location="ctgui.qrc"/>
@@ -3520,26 +3412,26 @@ p
   </connection>
  </connections>
  <buttongroups>
-  <buttongroup name="endConditionButtonGroup">
-   <property name="whatsThis" stdset="0">
-    <string>Condition for experiment complition</string>
-   </property>
-   <property name="toolTip" stdset="0">
-    <string>Sets the condition for experiment complition. Note that time condition cannot be used with 2D series.</string>
-   </property>
-   <property name="saveToConfig" stdset="0">
-    <string>endCondition</string>
-   </property>
-  </buttongroup>
   <buttongroup name="dyno2DirButtonGroup">
    <property name="whatsThis" stdset="0">
     <string>Direction of second dyno motion</string>
    </property>
-   <property name="dyno2/direction" stdset="0">
-    <string/>
-   </property>
    <property name="saveToConfig" stdset="0">
     <string>dyno2/direction</string>
+   </property>
+   <property name="toolTip" stdset="0">
+    <string>Direction where second dyno motor moves on acquisition</string>
+   </property>
+  </buttongroup>
+  <buttongroup name="dynoDirButtonGroup">
+   <property name="whatsThis" stdset="0">
+    <string>Direction of dyno motion</string>
+   </property>
+   <property name="saveToConfig" stdset="0">
+    <string>direction</string>
+   </property>
+   <property name="toolTip" stdset="0">
+    <string>Direction where dyno motor moves on acquisition.</string>
    </property>
   </buttongroup>
   <buttongroup name="imageFormatGroup">
@@ -3553,12 +3445,15 @@ p
     <string>imageFormat</string>
    </property>
   </buttongroup>
-  <buttongroup name="dynoDirButtonGroup">
+  <buttongroup name="endConditionButtonGroup">
    <property name="whatsThis" stdset="0">
-    <string>Direction of dyno motion</string>
+    <string>Condition for experiment complition</string>
+   </property>
+   <property name="toolTip" stdset="0">
+    <string>Sets the condition for experiment complition. Note that time condition cannot be used with 2D series.</string>
    </property>
    <property name="saveToConfig" stdset="0">
-    <string>direction</string>
+    <string>endCondition</string>
    </property>
   </buttongroup>
  </buttongroups>

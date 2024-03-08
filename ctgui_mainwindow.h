@@ -36,13 +36,14 @@ public:
 
   //QList< QPair<QObject*, QString> > configPairs;
   QObjectList configs;
-  QString configName(QObject* obj) const;
+  //QString configName(QObject* obj) const;
 
 
 public slots:
   void saveConfiguration(QString fileName = QString());
   void loadConfiguration(QString fileName = QString());
-  bool parseArgv(int argc, char *argv[]);
+  void storeCurrentState() { if (!isLoadingState) saveConfiguration(storedState); }
+
 
 private:
 
@@ -114,9 +115,6 @@ private:
   void addMessage(const QString & str);
 
 private slots:
-
-
-  void storeCurrentState();
 
   void updateUi_expPath();
   void updateUi_pathSync(); // important to have this and previous line in this order as the latter one relies on the jobs done in the first.

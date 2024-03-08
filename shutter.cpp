@@ -56,6 +56,7 @@ Shutter::Shutter(QWidget *parent)
 {
 
   ui->setupUi(this);
+  setFocusProxy(ui->selection);
   ui->selection->insertItems(0, listOfKnownShutters.keys());
   ui->selection->insertItem(0, "none"); // must be at the top (assumption for the onSelection())
 
@@ -128,7 +129,7 @@ void Shutter::waitForState(State st) {
   requestUpdate();
   if (state() != st)
     qtWait(this, SIGNAL(stateUpdated(State)), 2000);
-  if (state() != st) { // do it one more time 
+  if (state() != st) { // do it one more time
     requestUpdate();
     qtWait(this, SIGNAL(stateUpdated(State)), 2000);
   }
@@ -137,7 +138,7 @@ void Shutter::waitForState(State st) {
 void Shutter::open(bool wait) {
   doOpen.first->put(doOpen.second);
   if (amFake) return;
-  usleep(100000); 
+  usleep(100000);
   if (wait && state() != OPEN)
     waitForState(OPEN);
 }
@@ -146,7 +147,7 @@ void Shutter::close(bool wait) {
   doClose.first->put(doClose.second);
   if (amFake) return;
   usleep(100000);
-  if (wait && state() != CLOSED)    
+  if (wait && state() != CLOSED)
     waitForState(CLOSED);
 }
 

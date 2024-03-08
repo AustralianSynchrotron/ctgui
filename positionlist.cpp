@@ -1,5 +1,6 @@
 #include "positionlist.h"
 #include "ui_positionlist.h"
+#include "additional_classes.h"
 #include <QClipboard>
 #include <QPainter>
 
@@ -139,14 +140,21 @@ PositionList::PositionList(QWidget *parent)
   , allOK(false)
   , freezListUpdates(false)
   , ui(new Ui::PositionList)
-  , motui(0)
+  , motui(new QCaMotorGUI)
 {
 
   ui->setupUi(this);
+  setFocusProxy(ui->nof);
 
   // replace header items with identical QTableWidgetOtem
-  for (int col=0; col < ui->list->columnCount() ; col++)
-    ui->list->setHorizontalHeaderItem(col, new QTableWidgetOtem(ui->list->horizontalHeaderItem(col)));
+  for (int col=0; col < ui->list->columnCount() ; col++) {
+    QTableWidgetOtem *otem = new QTableWidgetOtem(ui->list->horizontalHeaderItem(col));
+    if (col==0)
+      otem->setProperty(configProp, "positions");
+    if (col==3)
+      otem->setProperty(configProp, "todos");
+    ui->list->setHorizontalHeaderItem(col, otem);
+  }
   ui->list->setItemDelegateForColumn(0, new NTableDelegate(ui->list));
   QHeaderView * header = ui->list->horizontalHeader();
   //PListHeader * header = new PListHeader(Qt::Horizontal, ui->list);
@@ -174,29 +182,15 @@ PositionList::PositionList(QWidget *parent)
   connect( ui->list, SIGNAL(itemChanged(QTableWidgetItem*)), SIGNAL(parameterChanged()));
   connect( ui->list->horizontalHeader(), SIGNAL(sectionClicked(int)), SLOT(updateToDo(int)));
   connect( ui->irregular, SIGNAL(toggled(bool)), ui->step, SLOT(setDisabled(bool)));
-
   updateNoF();
 
-}
+  motui->setupButton()->setProperty(configProp, ui->placeMotor->property(configProp));
+  ui->placeMotor->setProperty(configProp,QVariant());
+  motui->setupButton()->setWhatsThis("Motor");
+  place(motui->setupButton(), ui->placeMotor);
+  place(motui->currentPosition(true), ui->placePosition);
 
-
-PositionList::~PositionList() {
-  delete ui;
-}
-
-
-
-
-void PositionList::putMotor(QCaMotorGUI * motor) { // assume is called only once !
-
-  if (motui) // does not return on this error to make error visible
-    qDebug() << "ERROR! Motor cannot be set more than once." ;
-
-  motui=motor;
   QCaMotor * mot = motui->motor();
-  ui->placeMotor->layout()->addWidget(motui->setupButton());
-  ui->placePosition->layout()->addWidget(motui->currentPosition(true));
-
   connect( mot, SIGNAL(changedConnected(bool)),      SLOT(updateNoF()));
   connect( mot, SIGNAL(changedConnected(bool)),      SLOT(updateAmOK()));
   connect( mot, SIGNAL(changedPv(QString)),          SLOT(updateAmOK()));
@@ -205,11 +199,13 @@ void PositionList::putMotor(QCaMotorGUI * motor) { // assume is called only once
   connect( mot, SIGNAL(changedLoLimitStatus(bool)),  SLOT(updateAmOK()));
   connect( mot, SIGNAL(changedHiLimitStatus(bool)),  SLOT(updateAmOK()));
   connect( mot, SIGNAL(changedMoving(bool)),         SLOT(updateAmOK()));
-
   connect( mot, SIGNAL(changedPv(QString)), SIGNAL(parameterChanged()));
 
-  updateAmOK();
+}
 
+
+PositionList::~PositionList() {
+  delete ui;
 }
 
 

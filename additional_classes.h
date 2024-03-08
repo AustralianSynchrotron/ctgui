@@ -23,21 +23,29 @@ void prdn( const std::string & str );
 #ifndef CTGUIADDITIONALCLASSES
 #define CTGUIADDITIONALCLASSES
 
-/*
-namespace Ui {
-  class QSCheckBox;
+
+static const char * configProp = "saveToConfig";
+
+//auto prChain = [](QWidget * cobj){
+//  qDebug() << cobj->previousInFocusChain()->previousInFocusChain() << cobj->previousInFocusChain()
+//           << cobj
+//           << cobj->nextInFocusChain() << cobj->nextInFocusChain()->nextInFocusChain() ;
+//};
+
+inline void place(QWidget * wdg, QWidget *here) {
+  QWidget * prePlace = here->previousInFocusChain();
+  here->layout()->addWidget(wdg);
+  here->setFocusProxy(wdg);
+  QWidget::setTabOrder(prePlace, wdg);
 }
-*/
+
 
 class QSCheckBox : public QCheckBox {
   Q_OBJECT;
-  //Ui::QSCheckBox ui;
 public :
   QSCheckBox(QWidget * parent = 0);
-
 protected:
   virtual bool hitButton ( const QPoint & pos ) const ;
-
 };
 
 
