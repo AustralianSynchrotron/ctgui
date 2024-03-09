@@ -675,19 +675,20 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   // Only after loading configFile, I prepare and parse argv properly.
   poptmx::OptionTable otable = constructOptionTable(false);
 
-  #define timeToReturn(retVal, msg) {\
+  // using QApplication::exit instead of bare exit sometimes causes segfault
+  #define justExit(retVal, msg) {\
     if (!msg.empty()) \
       qDebug() << QString::fromStdString(msg); \
-    QTimer::singleShot(0, [](){QApplication::exit(retVal);}); \
+    QTimer::singleShot(0, [](){exit(retVal);}); \
     return; \
   }
 
   if (!otable.parse(argc, argv))
-    timeToReturn(0, string());
+    justExit(0, string());
   if ( ! startExp  &&  ! startVid ) {
     for (void * var : initializer_list<void*>{&headless, &keepUi, &failAfter} )
       if (otable.count(var))
-        timeToReturn(1, string("Option " + otable.desc(var) + " can only be used together with "
+        justExit(1, string("Option " + otable.desc(var) + " can only be used together with "
             + otable.desc(&startExp) + " or " + otable.desc(&startVid) +"."));
     keepUi=true;
     headless=false;
@@ -701,12 +702,12 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
 
   }
   if ( 1 < otable.count(&startExp) + otable.count(&startVid) + otable.count(&reportHealth) )
-    timeToReturn(1, string("Only one of the following options can be used at a time: " +
+    justExit(1, string("Only one of the following options can be used at a time: " +
         otable.desc(&startExp) + otable.desc(&startVid) + otable.desc(&reportHealth) + ".") );
   if (otable.count(&headless) && otable.count(&keepUi))
-    timeToReturn(1, string("Incompatible options " + otable.desc(&headless) + " and " + otable.desc(&keepUi) + "."));
+    justExit(1, string("Incompatible options " + otable.desc(&headless) + " and " + otable.desc(&keepUi) + "."));
 
-  #undef timeToReturn
+  #undef justExit
 
   }
 
