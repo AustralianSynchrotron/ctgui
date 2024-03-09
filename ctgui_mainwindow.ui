@@ -31,7 +31,7 @@
        <enum>QTabWidget::North</enum>
       </property>
       <property name="currentIndex">
-       <number>5</number>
+       <number>0</number>
       </property>
       <property name="elideMode">
        <enum>Qt::ElideNone</enum>
@@ -3227,6 +3227,9 @@ p
     </item>
     <item>
      <widget class="QPushButton" name="startStop">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <property name="text">
        <string>Start/Stop</string>
       </property>
@@ -3412,17 +3415,6 @@ p
   </connection>
  </connections>
  <buttongroups>
-  <buttongroup name="dyno2DirButtonGroup">
-   <property name="whatsThis" stdset="0">
-    <string>Direction of second dyno motion</string>
-   </property>
-   <property name="saveToConfig" stdset="0">
-    <string>dyno2/direction</string>
-   </property>
-   <property name="toolTip" stdset="0">
-    <string>Direction where second dyno motor moves on acquisition</string>
-   </property>
-  </buttongroup>
   <buttongroup name="dynoDirButtonGroup">
    <property name="whatsThis" stdset="0">
     <string>Direction of dyno motion</string>
@@ -3432,6 +3424,17 @@ p
    </property>
    <property name="toolTip" stdset="0">
     <string>Direction where dyno motor moves on acquisition.</string>
+   </property>
+  </buttongroup>
+  <buttongroup name="endConditionButtonGroup">
+   <property name="whatsThis" stdset="0">
+    <string>Condition for experiment complition</string>
+   </property>
+   <property name="toolTip" stdset="0">
+    <string>Sets the condition for experiment complition. Note that time condition cannot be used with 2D series.</string>
+   </property>
+   <property name="saveToConfig" stdset="0">
+    <string>endCondition</string>
    </property>
   </buttongroup>
   <buttongroup name="imageFormatGroup">
@@ -3445,15 +3448,15 @@ p
     <string>imageFormat</string>
    </property>
   </buttongroup>
-  <buttongroup name="endConditionButtonGroup">
+  <buttongroup name="dyno2DirButtonGroup">
    <property name="whatsThis" stdset="0">
-    <string>Condition for experiment complition</string>
-   </property>
-   <property name="toolTip" stdset="0">
-    <string>Sets the condition for experiment complition. Note that time condition cannot be used with 2D series.</string>
+    <string>Direction of second dyno motion</string>
    </property>
    <property name="saveToConfig" stdset="0">
-    <string>endCondition</string>
+    <string>dyno2/direction</string>
+   </property>
+   <property name="toolTip" stdset="0">
+    <string>Direction where second dyno motor moves on acquisition</string>
    </property>
   </buttongroup>
  </buttongroups>

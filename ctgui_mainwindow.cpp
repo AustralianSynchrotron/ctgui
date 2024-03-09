@@ -406,8 +406,8 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   bgOrigin(0),
   bgAcquire(0),
   bgEnter(0),
-  shutterPri(new Shutter(this)),
-  shutterSec(new Shutter(this)),
+  shutterPri(new Shutter),
+  shutterSec(new Shutter),
   det(new Detector(this)),
   tct(new TriggCT(this)),
   thetaMotor(new QCaMotorGUI),
@@ -611,67 +611,106 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
 
   // Load configuration and parse cmd options
   {
-  bool beverbose=false;
+
   string configFile = storedState.toStdString();
+  string fakestr;
+  bool fakebool;
+  auto constructOptionTable = [this,&configFile,&fakestr,&fakebool](bool fake) {
+
+    poptmx::OptionTable table("CT acquisition", "Executes CT experiment.");
+    table
+        .add(poptmx::NOTE, "ARGUMENTS:")
+        .add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.",
+             "Ini file to be loaded on start.", configFile)
+        .add(poptmx::NOTE, "OPTIONS:");
+    QString lastSection = "";
+    foreach (auto obj, configs) {
+      QString sname = configName(obj);
+      if ( QString section = sname.split('/').first()
+         ; section != lastSection )
+      {
+        table.add(poptmx::NOTE, "Section " + section.toStdString());
+        lastSection = section;
+      }
+      if (fake)
+        table.add(poptmx::OPTION, &fakestr, 0, configName(obj).toStdString(), "shortDesc", "");
+      else
+        addOpt(table, obj, sname);
+    }
+    table
+        .add(poptmx::NOTE, "ACTIONS:")
+        .add(poptmx::OPTION, &startExp, 0, "startExp", "Starts the experiment",
+             "Launches execution of the experiment as if manually pressing \"Start\".")
+        .add(poptmx::OPTION, &startVid, 0, "startVid", "Starts video recording",
+             "Launches video recording as if \"Get ready\" and \"Record\" buttons were pressed manually.")
+        .add(poptmx::OPTION, &reportHealth, 0, "health", "Check if configuration allows start.",
+             "Check if loaded configuration is self consistent to allow experiment execution."
+             " Returns 0 if everything is fine, non-zero otherwise.")
+        .add(poptmx::OPTION, &failAfter, 0, "fail", "Maximum time in seconds to wait for readiness",
+             "If the system does not become available for requested action withing specified time,"
+             " consider it a failure. Default is 1 second.")
+        .add(poptmx::OPTION, &keepUi, 0, "keepui", "Keeps UI open on completion.",
+             "Has no effect if no launchers were started. By default application"
+             " exits after a launcher has finished. This option allows to keep it open.")
+        .add(poptmx::OPTION, &headless, 0, "headless", "Starts launcher without UI.",
+             "Only makes sense with one of the above processing launchers;"
+             " without it the flag is ignored and UI shows.");
+    if (fake)
+      table
+          .add(poptmx::OPTION, &fakebool, 'h', "help", " ", "")
+          .add(poptmx::OPTION, &fakebool, 'u', "usage", " ", "")
+          .add(poptmx::OPTION, &fakebool, 'v', "verbose", " ", "");
+    else
+      table.add_standard_options(&beverbose);
+
+    return table;
+
+  };
+
 
   // Parse and load configuration file
-  poptmx::OptionTable ftable("this is fake option table", "just to get config file");
-  ftable.add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.", "");
-  string fakeval;
-  foreach (auto obj, configs)
-    ftable.add(poptmx::OPTION, &fakeval, 0, configName(obj).toStdString(), "shortDesc", "");
-  bool abool; // to emulate standard options
-  ftable.add(poptmx::OPTION, &abool, 'h', "help", "short", "long", "def");
-  ftable.add(poptmx::OPTION, &abool, 'u', "usage", "short", "long", "def");
-  ftable.add(poptmx::OPTION, &abool, 'v', "verbose", "short", "long", "def");
+  poptmx::OptionTable ftable = constructOptionTable(true);
   ftable.parse(argc,argv);
   loadConfiguration(QString::fromStdString(configFile));
-
   // Only after loading configFile, I prepare and parse argv properly.
-  poptmx::OptionTable otable("CT acquisition", "Executes CT experiment.");
-  otable
-      .add(poptmx::NOTE, "ARGUMENTS:")
-      .add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.",
-           "Ini file to be loaded on start.", configFile)
-      .add(poptmx::NOTE, "OPTIONS:");
-  QString lastSection = "";
-  foreach (auto obj, configs) {
-    QString sname = configName(obj);
-    if ( QString section = sname.split('/').first()
-       ; section != lastSection )
-    {
-      otable.add(poptmx::NOTE, "Section " + section.toStdString());
-      lastSection = section;
-    }
-    addOpt(otable, obj, sname);
+  poptmx::OptionTable otable = constructOptionTable(false);
+
+  #define timeToReturn(retVal, msg) {\
+    if (!msg.empty()) \
+      qDebug() << QString::fromStdString(msg); \
+    QTimer::singleShot(0, [](){QApplication::exit(retVal);}); \
+    return; \
   }
-  bool startExp=false
-     , startVid=false
-     , reportHealth=false
-     , keepUi=false
-     , headless=false;
-  otable
-      .add(poptmx::NOTE, "ACTIONS:")
-      .add(poptmx::OPTION, &startExp, 'X', "startExp", "Starts the experiment",
-           "Launches execution of the experiment as if manually pressing \"Start\".")
-      .add(poptmx::OPTION, &startVid, 'V', "startVid", "Starts video recording",
-           "Launches video recording as if \"Get ready\" and \"Record\" buttons were pressed manually.")
-      .add(poptmx::OPTION, &reportHealth, 'O', "health", "Check if configuration allows start.",
-           "Check if loaded configuration is self consistent to allow experiment execution."
-           " Returns 0 if everything is fine, non-zero otherwise.")
-      .add(poptmx::OPTION, &keepUi, 'U', "keepUI", "Keeps UI open on completion",
-           "Has no effect if no launchers were started. By default application"
-           " exits after a launcher has finished. This option allows to keep it open.")
-      .add(poptmx::OPTION, &headless, 'H', "headless", "Starts launcher without UI",
-           "Only makes sense with one of the above processing launchers;"
-           " without it the flag is ignored and UI shows.");
-  otable.add_standard_options(&beverbose);
-  otable.parse(argc, argv);
+
+  if (!otable.parse(argc, argv))
+    timeToReturn(0, string());
+  if ( ! startExp  &&  ! startVid ) {
+    for (void * var : initializer_list<void*>{&headless, &keepUi, &failAfter} )
+      if (otable.count(var))
+        timeToReturn(1, string("Option " + otable.desc(var) + " can only be used together with "
+            + otable.desc(&startExp) + " or " + otable.desc(&startVid) +"."));
+    keepUi=true;
+    headless=false;
+  } else {
+    if (!otable.count(&headless))
+      headless=false;
+    if (!otable.count(&keepUi))
+      keepUi=false;
+  }
+  if ( reportHealth ) {
+
+  }
+  if ( 1 < otable.count(&startExp) + otable.count(&startVid) + otable.count(&reportHealth) )
+    timeToReturn(1, string("Only one of the following options can be used at a time: " +
+        otable.desc(&startExp) + otable.desc(&startVid) + otable.desc(&reportHealth) + ".") );
+  if (otable.count(&headless) && otable.count(&keepUi))
+    timeToReturn(1, string("Incompatible options " + otable.desc(&headless) + " and " + otable.desc(&keepUi) + "."));
+
+  #undef timeToReturn
+
+  }
+
   storeCurrentState();
-
-
-  }
-
   // connect changes in the configuration elements to store state
   foreach (auto obj, configs) {
     const char * sig = 0;
@@ -702,8 +741,20 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
       connect (obj, sig, SLOT(storeCurrentState()));
   }
 
+  auto afterStart = [this](){
+    if ( ! this->headless )
+      this->show();
+    if (this->startExp)
+      this->onStartStop();
+    if (this->startVid)
+      this->onVideoRecord();
+    if ( ! this->keepUi )
+      this->close();
+  };
+  QTimer::singleShot(0, afterStart);
 
 }
+
 
 
 MainWindow::~MainWindow() {
@@ -1403,16 +1454,33 @@ void MainWindow::updateUi_loops() {
 
 
 void MainWindow::onSwapLoops() {
+
   PositionList * ll = loopList;
-  const QVariant lCfg = ll->property(configProp);
   PositionList * sl = sloopList;
-  const QVariant sCfg = sl->property(configProp);
+  QString tTl, tTs;
+  tTs = sl->property(configProp).toString();
+  tTl = ll->property(configProp).toString();
+  sl->setProperty(configProp, tTl);
+  ll->setProperty(configProp, tTs);
+  #define swapTT(elm) \
+    tTl = ll->elm->toolTip(); \
+    tTs = sl->elm->toolTip(); \
+    sl->elm->setToolTip(tTl); \
+    ll->elm->setToolTip(tTs); \
+
+  swapTT(ui->nof);
+  swapTT(ui->step);
+  swapTT(ui->irregular);
+  swapTT(motui->setupButton());
+  swapTT(ui->list->horizontalHeaderItem(0));
+  swapTT(ui->list->horizontalHeaderItem(3));
+  #undef swapTT
+
   ui->loopListPlace->layout()->addWidget(sl);
   ui->sloopListPlace->layout()->addWidget(ll);
-  sl->setProperty(configProp, sCfg);
-  ll->setProperty(configProp, lCfg);
   updateUi_loops();
   storeCurrentState();
+
 }
 
 
@@ -1777,7 +1845,8 @@ void MainWindow::check(QWidget * obj, bool status) {
 
     ui->testDetector->setEnabled (  inRun(ui->testDetector)
                                  || ( ! anyInRun && det->camera() && preReq[ui->tabDetector].first ) );
-    ui->videoWidget->setEnabled ( inRun(ui->vidStartStop) || ! det->isWriting() || preVideoState );
+    ui->videoWidget->setEnabled ( inRun(ui->vidStartStop) || preVideoState
+                                  || ( det->isConnected() && ! det->isWriting() ) );
     ui->testDyno->setEnabled ( inRun(ui->testDyno) || ( ! anyInRun &&
                                                preReq[ui->tabDetector].first &&
                                                preReq[ui->tabDyno].first ) );
@@ -1805,7 +1874,7 @@ void MainWindow::check(QWidget * obj, bool status) {
       if ( ! tabel.second )
         readyToStartCT &= tabel.first;
   }
-  ui->startStop->setEnabled(readyToStartCT || anyInRun );
+  ui->startStop->setEnabled( readyToStartCT || anyInRun );
   ui->startStop->setStyleSheet( anyInRun  ?  warnStyle  :  "" );
   ui->startStop->setText( anyInRun  ?  "Stop"  :  ssText );
 
@@ -2061,6 +2130,8 @@ bool MainWindow::onVideoGetReady() {
 
 void MainWindow::onVideoRecord() {
 
+  if ( ! ui->vidStartStop->isEnabled() )
+    return;
   if ( ! det->isConnected()  ||  inRun(ui->vidStartStop) ) {
     det->stopCapture();
     //restorePreVid();
@@ -2089,6 +2160,8 @@ void MainWindow::onVideoRecord() {
 
 
 void MainWindow::onStartStop() {
+  if ( ! ui->startStop->isEnabled() )
+    return;
   if ( inRun(ui->startStop) || ui->startStop->styleSheet() == warnStyle ) {
     stopAll();
     return;

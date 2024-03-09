@@ -49,6 +49,13 @@ private:
 
   Detector::ImageFormat uiImageFormat() const;
 
+  bool beverbose=false
+     , startExp=false
+     , startVid=false
+     , reportHealth=false
+     , keepUi=true
+     , headless=false;
+  float failAfter=1.0;
   bool isLoadingState;
 
   Ui::MainWindow *ui;
