@@ -169,7 +169,6 @@ QString obj2str (QObject* obj, bool clean=true) {
 }
 
 
-
 int str2obj (QObject* obj, const QString & sval) {
 
   QVariant rval = sval;
@@ -285,7 +284,6 @@ int str2obj (QObject* obj, const QString & sval) {
 }
 
 
-
 std::string type_desc (QObject* obj) {
   if (!obj) {
     qDebug() << "Zero QObject";
@@ -323,7 +321,6 @@ int _conversion (QObject* _val, const string & in) {
   str2obj(_val, QString::fromStdString(in));
   return 1;
 }
-
 
 
 void addOpt( poptmx::OptionTable & otable, QObject * sobj, const QString & sname
@@ -406,8 +403,6 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   bgOrigin(0),
   bgAcquire(0),
   bgEnter(0),
-  shutterPri(new Shutter),
-  shutterSec(new Shutter),
   det(new Detector(this)),
   tct(new TriggCT(this)),
   thetaMotor(new QCaMotorGUI),
@@ -539,7 +534,13 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
 
   // Connect signals from UI elements
   {
-  connect(ui->browseExpPath, SIGNAL(clicked()), SLOT(onWorkingDirBrowse()));
+  connect(ui->browseExpPath, &QPushButton::clicked, [this]() {
+    QDir startView( QDir::current() );
+    startView.cdUp();
+    const QString newdir = QFileDialog::getExistingDirectory(0, "Working directory", startView.path() );
+    if ( ! newdir.isEmpty() )
+      ui->expPath->setText(newdir);
+  } );
   connect(ui->checkSerial, SIGNAL(toggled(bool)), SLOT(onSerialCheck()));
   connect(ui->checkFF, SIGNAL(toggled(bool)), SLOT(onFFcheck()));
   connect(ui->checkDyno, SIGNAL(toggled(bool)), SLOT(onDynoCheck()));
@@ -676,6 +677,7 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   poptmx::OptionTable otable = constructOptionTable(false);
 
   // using QApplication::exit instead of bare exit sometimes causes segfault
+
   #define justExit(retVal, msg) {\
     if (!msg.empty()) \
       qDebug() << QString::fromStdString(msg); \
@@ -685,21 +687,23 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
 
   if (!otable.parse(argc, argv))
     justExit(0, string());
-  if ( ! startExp  &&  ! startVid ) {
+  if ( ! startExp  &&  ! startVid  &&  ! reportHealth ) {
     for (void * var : initializer_list<void*>{&headless, &keepUi, &failAfter} )
       if (otable.count(var))
         justExit(1, string("Option " + otable.desc(var) + " can only be used together with "
-            + otable.desc(&startExp) + " or " + otable.desc(&startVid) +"."));
+                           + otable.desc(&reportHealth) + ", "  + otable.desc(&startExp)
+                           + " or " + otable.desc(&startVid) +"."))
+            ;
     keepUi=true;
     headless=false;
+  } else if ( reportHealth ) {
+    keepUi=false;
+    headless=true;
   } else {
     if (!otable.count(&headless))
       headless=false;
     if (!otable.count(&keepUi))
       keepUi=false;
-  }
-  if ( reportHealth ) {
-
   }
   if ( 1 < otable.count(&startExp) + otable.count(&startVid) + otable.count(&reportHealth) )
     justExit(1, string("Only one of the following options can be used at a time: " +
@@ -707,7 +711,6 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   if (otable.count(&headless) && otable.count(&keepUi))
     justExit(1, string("Incompatible options " + otable.desc(&headless) + " and " + otable.desc(&keepUi) + "."));
 
-  #undef justExit
 
   }
 
@@ -742,17 +745,42 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
       connect (obj, sig, SLOT(storeCurrentState()));
   }
 
+  // Whithout this trick, further qtWait functions are all stuck until "afterStart"
+  // returns. I do not understand why this is the case - it has something to do
+  // with the way QCoreApplication and QEventLoop are executed.
+  qtWait(0);
+
   auto afterStart = [this](){
     if ( ! this->headless )
-      this->show();
-    if (this->startExp)
-      this->onStartStop();
-    if (this->startVid)
-      this->onVideoRecord();
-    if ( ! this->keepUi )
-      this->close();
+      show();
+    if (!startExp && !startVid && !reportHealth)
+      return;
+    if (! readyToStartCT )
+      qtWait(this, SIGNAL(readyForActionChanged()), failAfter*1000);
+    if (reportHealth) {
+      if (beverbose) {
+        if (readyToStartCT) {
+          qDebug() << "System is ready action.";
+        } else {
+          qDebug() << "System is NOT ready for action. QObjects reporting error are as follows:";
+          foreach ( QObject * elm, preReq.keys())
+            if ( ! preReq[elm].first )
+              qDebug() << "  class:" << elm->metaObject()->className()
+                       << "name:" << elm->objectName()
+                       << ( configs.contains(elm) ? "option: " + configName(elm) : "") ;
+        }
+      }
+      QTimer::singleShot(0, [this](){exit(!readyToStartCT);});
+    } if (startExp)
+      onStartStop();
+    if (startVid)
+      onVideoRecord();
+    if ( ! keepUi )
+      close();
   };
   QTimer::singleShot(0, afterStart);
+
+  #undef justExit
 
 }
 
@@ -858,14 +886,6 @@ Detector::ImageFormat MainWindow::uiImageFormat() const {
     return Detector::HDF;
   else
     return Detector::UNDEFINED; // should never happen
-}
-
-
-void MainWindow::addMessage(const QString & str) {
-//  str.size();
-//  ui->messages->append(
-//        QDateTime::currentDateTime().toString("dd/MM/yyyy_hh:mm:ss.zzz") +
-//        " " + str);
 }
 
 
@@ -1695,15 +1715,6 @@ void MainWindow::updateUi_detector() {
 }
 
 
-void MainWindow::onWorkingDirBrowse() {
-  QDir startView( QDir::current() );
-  startView.cdUp();
-  const QString newdir = QFileDialog::getExistingDirectory(0, "Working directory", startView.path() );
-  if ( ! newdir.isEmpty() )
-    ui->expPath->setText(newdir);
-}
-
-
 void MainWindow::onSerialCheck() {
   ui->control->setTabVisible(ui->tabSerial, ui->checkSerial->isChecked());
   check( ui->tabSerial, true );
@@ -1869,15 +1880,20 @@ void MainWindow::check(QWidget * obj, bool status) {
 
   }
 
-  bool readyToStartCT=status;
+  bool newReadyToStartCT=status;
   if ( status ) {
     foreach ( ReqP tabel, preReq)
       if ( ! tabel.second )
-        readyToStartCT &= tabel.first;
+        newReadyToStartCT &= tabel.first;
   }
   ui->startStop->setEnabled( readyToStartCT || anyInRun );
   ui->startStop->setStyleSheet( anyInRun  ?  warnStyle  :  "" );
   ui->startStop->setText( anyInRun  ?  "Stop"  :  ssText );
+  if (newReadyToStartCT != readyToStartCT) {
+    readyToStartCT = newReadyToStartCT;
+    emit readyForActionChanged();
+  }
+
 
 }
 
@@ -1899,7 +1915,7 @@ QString MainWindow::mkRun(QAbstractButton * btn, bool inr, const QString & txt) 
 
 // Returns true if the marked btn indicates the process is running.
 // Used *Test functions
-bool MainWindow::inRun(const QAbstractButton * btn) {
+bool MainWindow::inRun(QAbstractButton * btn) {
   return btn && preReq.contains(btn) && ! preReq[btn].first;
 }
 
@@ -1914,11 +1930,11 @@ void MainWindow::onSerialTest() {
   stopMe=false;
   const QString butText = mkRun(ui->testSerial, true, "Stop");
   det->waitWritten();
-  HWstate hw(det, shutterSec, shutterPri);
+  HWstate hw(det, ui->secondaryShutter, ui->primaryShutter);
   ui->ssWidget->setEnabled(false);
 
-  shutterPri->open();
-  shutterSec->open();
+  ui->primaryShutter->open();
+  ui->secondaryShutter->open();
   engineRun();
 
   hw.restore();
@@ -1939,10 +1955,10 @@ void MainWindow::onScanTest() {
   const QString butText = mkRun(ui->testScan, true, "Stop");
   ui->scanWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutterSec, shutterPri);
+  HWstate hw(det, ui->secondaryShutter, ui->primaryShutter);
 
-  shutterPri->open();
-  shutterSec->open();
+  ui->primaryShutter->open();
+  ui->secondaryShutter->open();
   engineRun();
 
   hw.restore();
@@ -1964,14 +1980,14 @@ void MainWindow::onFFtest() {
   const QString butText = mkRun(ui->testFF, true, "Stop");
   ui->ffWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutterSec, shutterPri);
+  HWstate hw(det, ui->secondaryShutter, ui->primaryShutter);
 
   moveToBG();
   acquireDF("", Shutter::CLOSED);
   det->waitWritten();
   acquireBG("");
   det->waitWritten();
-  shutterPri->close();
+  ui->primaryShutter->close();
 
   det->setAutoSave(false);
   hw.restore();
@@ -1994,14 +2010,14 @@ void MainWindow::onLoopTest() {
   const QString butText = mkRun(ui->testMulti, true, "Stop");
   ui->multiWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutterSec, shutterPri);
+  HWstate hw(det, ui->secondaryShutter, ui->primaryShutter);
 
-  shutterPri->open();
-  shutterSec->open();
+  ui->primaryShutter->open();
+  ui->secondaryShutter->open();
   acquireMulti("",  ( ui->aqMode->currentIndex() == STEPNSHOT  &&  ! ui->checkDyno->isChecked() )  ?
                       ui->aqsPP->value() : 1);
-  shutterSec->close();
-  shutterPri->close();
+  ui->secondaryShutter->close();
+  ui->primaryShutter->close();
   det->waitWritten();
 
   det->setAutoSave(false);
@@ -2023,13 +2039,13 @@ void MainWindow::onDynoTest() {
   const QString butText = mkRun(ui->testDyno, true, "Stop");
   ui->dynoWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutterSec, shutterPri);
+  HWstate hw(det, ui->secondaryShutter, ui->primaryShutter);
 
-  shutterPri->open();
-  shutterSec->open();
+  ui->primaryShutter->open();
+  ui->secondaryShutter->open();
   acquireDyno("");
-  shutterSec->close();
-  shutterPri->close();
+  ui->secondaryShutter->close();
+  ui->primaryShutter->close();
   det->waitWritten();
 
   det->setAutoSave(false);
@@ -2054,7 +2070,7 @@ void MainWindow::onDetectorTest() {
   ui->detectorWidget->setEnabled(false);
   ui->videoWidget->setEnabled(false);
   det->waitWritten();
-  HWstate hw(det, shutterSec, shutterPri);
+  HWstate hw(det, ui->secondaryShutter, ui->primaryShutter);
 
   const int nofFrames = [&](){
     if ( ui->aqMode->currentIndex() != STEPNSHOT )
@@ -2065,11 +2081,11 @@ void MainWindow::onDetectorTest() {
       return ui->aqsPP->value();
   } () ;
 
-  shutterPri->open();
-  shutterSec->open();
+  ui->primaryShutter->open();
+  ui->secondaryShutter->open();
   acquireDetector(det->name(uiImageFormat()) + "_SAMPLE", nofFrames);
-  shutterSec->close();
-  shutterPri->close();
+  ui->secondaryShutter->close();
+  ui->primaryShutter->close();
   det->waitWritten();
 
   det->setAutoSave(false);
@@ -2091,6 +2107,7 @@ static void restorePreVid() {
   delete tmpVST;
 }
 
+
 bool MainWindow::onVideoGetReady() {
   if (preVideoState) { // was prepared before
     if ( sender() == ui->vidReady ) { // release
@@ -2103,7 +2120,7 @@ bool MainWindow::onVideoGetReady() {
 
   if ( ! det->isConnected() )
     return false;
-  preVideoState = new HWstate(det, shutterSec, shutterPri);
+  preVideoState = new HWstate(det, ui->secondaryShutter, ui->primaryShutter);
   const Detector::ImageFormat fmt = uiImageFormat();
   det->waitWritten();
   if (  ! det->setName(fmt, det->name(fmt) + "_VIDEO")
@@ -2114,14 +2131,14 @@ bool MainWindow::onVideoGetReady() {
     return false;
   }
   ui->preAqScript->script->execute();
-  shutterPri->open();
-  shutterSec->open();
+  ui->primaryShutter->open();
+  ui->secondaryShutter->open();
   const bool toRet = det->start();
   ui->vidReady->setCheckable(toRet);
   ui->vidReady->setChecked(toRet);
   if (!toRet) {
-    shutterPri->close();
-    shutterSec->close();
+    ui->primaryShutter->close();
+    ui->secondaryShutter->close();
     restorePreVid();
   }
   return toRet;
@@ -2146,8 +2163,8 @@ void MainWindow::onVideoRecord() {
     det->startCapture();
     qtWait(250);
     det->waitCaptured();
-    shutterSec->close();
-    shutterPri->close();
+    ui->secondaryShutter->close();
+    ui->primaryShutter->close();
     det->waitWritten();
   }
   ui->detectorWidget->setEnabled(true);
@@ -2537,8 +2554,8 @@ int MainWindow::acquireBG(const QString &filetemplate) {
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( ui->bgExposure->value() ) ;
 
-  shutterSec->open();
-  shutterPri->open();
+  ui->secondaryShutter->open();
+  ui->primaryShutter->open();
   if (stopMe) goto onBgExit;
 
   det->setPeriod(det->exposure());
@@ -2558,7 +2575,7 @@ onBgExit:
   if ( ui->bgExposure->value() != ui->bgExposure->minimum() )
     det->setExposure( originalExposure ) ;
 
-  shutterSec->close();
+  ui->secondaryShutter->close();
   bgMotor->motor()->goUserPosition ( bgEnter, QCaMotor::STARTED );
   bgEnter = bgAcquire;
   // if (!stopMe)
@@ -2579,7 +2596,7 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
   if ( dfs<1 )
     return 0;
 
-  shutterSec->close();
+  ui->secondaryShutter->close();
   if (stopMe) goto onDfExit;
   det->waitWritten();
   if (stopMe) goto onDfExit;
@@ -2597,11 +2614,11 @@ int MainWindow::acquireDF(const QString &filetemplate, Shutter::State stateToGo)
   if (stopMe) goto onDfExit;
 
   if (stateToGo == Shutter::OPEN)
-    shutterSec->open();
+    ui->secondaryShutter->open();
   else if (stateToGo == Shutter::CLOSED)
-    shutterSec->close();
-  if ( ! stopMe && shutterSec->state() != stateToGo)
-    qtWait(shutterSec, SIGNAL(stateUpdated(State)), 500); /**/
+    ui->secondaryShutter->close();
+  if ( ! stopMe && ui->secondaryShutter->state() != stateToGo)
+    qtWait(ui->secondaryShutter, SIGNAL(stateUpdated(State)), 500); /**/
 
 
 onDfExit:
@@ -2634,7 +2651,7 @@ void MainWindow::engineRun () {
   QCaMotor * const outSMotor = outerList->motui->motor();
 
   const QString origname = det->name(uiImageFormat());
-  HWstate hw(det, shutterSec, shutterPri);
+  HWstate hw(det, ui->secondaryShutter, ui->primaryShutter);
 
   bgOrigin = bgMotor->motor()->getUserPosition();
   bgAcquire = bgOrigin + ui->bgTravel->value();
@@ -2935,8 +2952,8 @@ void MainWindow::engineRun () {
           setenv("CONTRASTTYPE", "SAMPLE", 1);
           if (stopMe) goto onEngineExit;
 
-          shutterPri->open();
-          shutterSec->open();
+          ui->primaryShutter->open();
+          ui->secondaryShutter->open();
           if (stopMe) goto onEngineExit;
 
           if (ui->checkMulti->isChecked())
@@ -3034,8 +3051,8 @@ void MainWindow::engineRun () {
         }
 
         setenv("CONTRASTTYPE", "SAMPLE", 1);
-        shutterPri->open();
-        shutterSec->open();
+        ui->primaryShutter->open();
+        ui->secondaryShutter->open();
         if (stopMe) goto onEngineExit;
         ui->preAqScript->script->execute();
         if (stopMe) goto onEngineExit;
@@ -3080,7 +3097,7 @@ void MainWindow::engineRun () {
         if (stopMe) goto onEngineExit;
         ui->postAqScript->script->execute();
         if (stopMe) goto onEngineExit;
-        shutterSec->close();
+        ui->secondaryShutter->close();
         if (stopMe) goto onEngineExit;
         if (doTriggCT)
           tct->stop(false);
@@ -3221,8 +3238,8 @@ onEngineExit:
   ui->scanProgress->setVisible(false);
   ui->serialProgress->setVisible(false);
 
-  shutterPri->close();
-  shutterSec->close();
+  ui->primaryShutter->close();
+  ui->secondaryShutter->close();
 
   thetaMotor->motor()->stop(QCaMotor::STOPPED);
   setMotorSpeed(thetaMotor, thetaSpeed);

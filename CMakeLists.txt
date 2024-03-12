@@ -2,8 +2,7 @@ cmake_minimum_required(VERSION 3.5)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
-project(ctgui
-        VERSION 2.0 )
+project(ctgui VERSION 2.0 )
 add_definitions(-DAPP_VERSION=${PROJECT_VERSION})
 
 set(CMAKE_AUTOMOC ON)

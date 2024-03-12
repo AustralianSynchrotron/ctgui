@@ -34,9 +34,6 @@ public:
   explicit MainWindow(int argc, char *argv[], QWidget *parent = 0);
   ~MainWindow();
 
-  //QList< QPair<QObject*, QString> > configPairs;
-  QObjectList configs;
-  //QString configName(QObject* obj) const;
 
 
 public slots:
@@ -56,26 +53,25 @@ private:
      , keepUi=true
      , headless=false;
   float failAfter=1.0;
-  bool isLoadingState;
+  bool isLoadingState=false;
+  bool readyToStartCT=false;
 
   Ui::MainWindow *ui;
   float bgOrigin;
   float bgAcquire;
   float bgEnter;
 
-  Shutter * shutterPri;
-  Shutter * shutterSec;
   Detector * det;
   TriggCT * tct;
-
   QCaMotorGUI * thetaMotor;
   QCaMotorGUI * spiralMotor;
   QCaMotorGUI * bgMotor;
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
 
+  QList<QObject*> configs;
   typedef QPair <bool,const QWidget*> ReqP;
-  QHash <const QObject*,  ReqP > preReq;
+  QHash <QObject*,  ReqP > preReq;
 
   QList< QMDoubleSpinBox* > prsSelection;
   QMDoubleSpinBox * selectedPRS() const ;
@@ -119,8 +115,6 @@ private:
 
   void stopAll();
 
-  void addMessage(const QString & str);
-
 private slots:
 
   void updateUi_expPath();
@@ -128,7 +122,6 @@ private slots:
   void updateUi_aqMode();
   void updateUi_hdf();
 
-  void onWorkingDirBrowse();
   void onSerialCheck();
   void onFFcheck();
   void onDynoCheck();
@@ -177,13 +170,14 @@ private slots:
   void onStartStop();
 
   QString mkRun(QAbstractButton * wdg, bool inr, const QString & txt=QString()); // mark button as running
-  bool inRun(const QAbstractButton * wdg);
+  bool inRun(QAbstractButton * wdg);
 
 
 
 signals:
 
   void requestToStopAcquisition();
+  void readyForActionChanged();
 
 };
 
