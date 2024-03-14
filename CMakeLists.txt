@@ -1,9 +1,11 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.9)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 project(ctgui VERSION 2.0 )
 add_definitions(-DAPP_VERSION=${PROJECT_VERSION})
+set(CMAKE_C_STANDARD "17")
+set(CMAKE_CXX_STANDARD "17")
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
@@ -30,9 +32,7 @@ if(NOT QCAMOTOR_INC)
 endif()
 include_directories(${QEPICSPV_INC})
 
-#set(CMAKE_EXECUTABLE_SUFFIX "_exp") # exerimental version
-
-add_executable(ctgui-exp
+add_executable(ctgui${EXESUFFIX}
     main.cpp
     ctgui_mainwindow.h
     ctgui_mainwindow.cpp
@@ -56,11 +56,11 @@ add_executable(ctgui-exp
     ctgui.qrc
 )
 
-target_compile_options(ctgui-exp
+target_compile_options(ctgui${EXESUFFIX}
   PRIVATE -fPIC
 )
 
-target_link_libraries(ctgui-exp
+target_link_libraries(ctgui${EXESUFFIX}
   qtpv
   qtpvwidgets
   qcamotor
@@ -77,7 +77,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${DESKTOPFILE}
 )
 
 
-install(TARGETS ctgui-exp
+install(TARGETS ctgui${EXESUFFIX}
     DESTINATION bin
 )
 
