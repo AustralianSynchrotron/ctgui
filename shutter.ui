@@ -18,7 +18,7 @@
       <enum>Qt::ClickFocus</enum>
      </property>
      <property name="toolTip">
-      <string>Current status of the shutter</string>
+      <string>Current status of the shutter.</string>
      </property>
      <property name="text">
       <string>status</string>
@@ -43,7 +43,7 @@
    <item row="0" column="2">
     <widget class="QPushButton" name="toggle">
      <property name="toolTip">
-      <string>Toggles the shutter</string>
+      <string>Toggles the shutter.</string>
      </property>
      <property name="text">
       <string>toggle</string>

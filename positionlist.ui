@@ -9,10 +9,10 @@
    <item row="2" column="2">
     <widget class="QSCheckBox" name="irregular">
      <property name="toolTip">
-      <string>Allows irregular (manually entered) position</string>
+      <string>Allows irregular (manually entered) position.</string>
      </property>
      <property name="whatsThis">
-      <string>Irregular step</string>
+      <string>Irregular step.</string>
      </property>
      <property name="text">
       <string>Irregular</string>
@@ -95,10 +95,10 @@ loop</string>
    <item row="0" column="2">
     <widget class="QSpinBox" name="nof">
      <property name="toolTip">
-      <string>Number of scans in serial acquisition</string>
+      <string>Number of scans in serial acquisition.</string>
      </property>
      <property name="whatsThis">
-      <string>Number of steps</string>
+      <string>Number of steps.</string>
      </property>
      <property name="minimum">
       <number>2</number>
@@ -117,7 +117,7 @@ loop</string>
       <string>Step size. Ignored for irregular step.</string>
      </property>
      <property name="whatsThis">
-      <string>Step size</string>
+      <string>Step size.</string>
      </property>
      <property name="minimum">
       <double>-2147483647.000000000000000</double>
@@ -173,10 +173,10 @@ loop</string>
        <string>Positions</string>
       </property>
       <property name="toolTip">
-       <string>Positions of the motor in the serial experiment</string>
+       <string>Positions of the motor in the serial experiment.</string>
       </property>
       <property name="whatsThis">
-       <string>Motor positions</string>
+       <string>Motor positions.</string>
       </property>
      </column>
      <column>
@@ -184,7 +184,7 @@ loop</string>
        <string>Go</string>
       </property>
       <property name="toolTip">
-       <string>Move motor here</string>
+       <string>Move motor here.</string>
       </property>
      </column>
      <column>
@@ -192,7 +192,7 @@ loop</string>
        <string>Get</string>
       </property>
       <property name="toolTip">
-       <string>Get position from current</string>
+       <string>Get position from current.</string>
       </property>
      </column>
      <column>
@@ -203,7 +203,7 @@ loop</string>
        <string>Click &quot;Do&quot; to (de)select all. Note that individual boxes are un-ticked when corresponding scan finishes and all boxes are re-ticked after the whole series has finished.</string>
       </property>
       <property name="whatsThis">
-       <string>ToDo list</string>
+       <string>ToDo list.</string>
       </property>
      </column>
     </widget>

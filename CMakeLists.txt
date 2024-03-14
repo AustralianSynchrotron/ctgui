@@ -32,7 +32,7 @@ include_directories(${QEPICSPV_INC})
 
 #set(CMAKE_EXECUTABLE_SUFFIX "_exp") # exerimental version
 
-add_executable(ctgui
+add_executable(ctgui-exp
     main.cpp
     ctgui_mainwindow.h
     ctgui_mainwindow.cpp
@@ -52,14 +52,15 @@ add_executable(ctgui
     positionlist.ui
     script.ui
     upvorcom.ui
+    indicators.hpp
     ctgui.qrc
 )
 
-target_compile_options(ctgui
+target_compile_options(ctgui-exp
   PRIVATE -fPIC
 )
 
-target_link_libraries(ctgui
+target_link_libraries(ctgui-exp
   qtpv
   qtpvwidgets
   qcamotor
@@ -76,7 +77,7 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${DESKTOPFILE}
 )
 
 
-install(TARGETS ctgui
+install(TARGETS ctgui-exp
     DESTINATION bin
 )
 

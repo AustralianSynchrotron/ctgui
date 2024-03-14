@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1067</width>
-    <height>647</height>
+    <width>2206</width>
+    <height>1104</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -50,7 +50,7 @@
         <string>General</string>
        </attribute>
        <attribute name="whatsThis">
-        <string>general</string>
+        <string>general.</string>
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
         <item row="6" column="0" colspan="2">
@@ -79,10 +79,10 @@
           <item row="2" column="1">
            <widget class="QSCheckBox" name="checkMulti">
             <property name="toolTip">
-             <string>Each frame in the CT scan is acquired as a series of tiles as configured in the &quot;Tiles&quot; tab</string>
+             <string>Each frame in the CT scan is acquired as a series of tiles as configured in the &quot;Tiles&quot; tab.</string>
             </property>
             <property name="whatsThis">
-             <string>Acquire tiled frame</string>
+             <string>Acquire tiled frame.</string>
             </property>
             <property name="text">
              <string>Tiles</string>
@@ -121,10 +121,10 @@
           <item row="1" column="1">
            <widget class="QSCheckBox" name="checkSerial">
             <property name="toolTip">
-             <string>Repeats CT scans as configured in the &quot;Serial&quot; tab</string>
+             <string>Repeats CT scans as configured in the &quot;Serial&quot; tab.</string>
             </property>
             <property name="whatsThis">
-             <string>Performs series of scans</string>
+             <string>Performs series of scans.</string>
             </property>
             <property name="text">
              <string>Serial scans</string>
@@ -140,7 +140,7 @@
              <string>Frames are triggered externally. The detector is set into the hardware triggering mode and relies on the externally generated TTL signal.</string>
             </property>
             <property name="whatsThis">
-             <string>Trigger frames externally</string>
+             <string>Trigger frames externally.</string>
             </property>
             <property name="text">
              <string>External triggering</string>
@@ -156,7 +156,7 @@
              <string>Acquires background and/or dark field callibration images as configured in the &quot;Flat field&quot; tab.</string>
             </property>
             <property name="whatsThis">
-             <string>Acquire flat field images</string>
+             <string>Acquire flat field images.</string>
             </property>
             <property name="text">
              <string>Flat field</string>
@@ -172,7 +172,7 @@
              <string>Each frame in the CT scan is acquired as the sample and detector are moving through the beam, thus 'brushing' the image large than the beam size. Configured in the &quot;Dynamic&quot; tab.</string>
             </property>
             <property name="whatsThis">
-             <string>Perform dynamic acquisition</string>
+             <string>Perform dynamic acquisition.</string>
             </property>
             <property name="text">
              <string>Dynamic shot</string>
@@ -185,10 +185,10 @@
           <item row="0" column="1" colspan="2">
            <widget class="QComboBox" name="aqMode">
             <property name="toolTip">
-             <string>Defines how frame acquisition is triggerred: by software (time), hardware (encoder) or step (individual)</string>
+             <string>Defines how frame acquisition is triggerred: by software (time), hardware (encoder) or step (individual).</string>
             </property>
             <property name="whatsThis">
-             <string>Acquisition mode</string>
+             <string>Acquisition mode.</string>
             </property>
             <property name="saveToConfig" stdset="0">
              <string>acquisitionmode</string>
@@ -201,7 +201,7 @@
              <string>Acquires series of images in the spiral CT mode configured in &quot;Scan&quot; tab.</string>
             </property>
             <property name="whatsThis">
-             <string>Perform spiral CT acquisition</string>
+             <string>Perform spiral CT acquisition.</string>
             </property>
             <property name="text">
              <string>Spiral CT</string>
@@ -219,7 +219,7 @@
            <string>Free form description of the experiment. It will be saved in the human readable configuration file together with the rest of experiment parameters.</string>
           </property>
           <property name="whatsThis">
-           <string>Description of the experiment</string>
+           <string>Description of the experiment.</string>
           </property>
           <property name="documentTitle">
            <string/>
@@ -253,7 +253,7 @@
              <string>This script is executed right after hitting Start button, before anything else.</string>
             </property>
             <property name="whatsThis">
-             <string>Script executed before the experiment</string>
+             <string>Script executed before the experiment.</string>
             </property>
             <property name="saveToConfig" stdset="0">
              <string>prerun</string>
@@ -269,7 +269,7 @@
              <string>This script is executed as the very last step of the experiment, when all procedures are complete and just before releasing the UI.</string>
             </property>
             <property name="whatsThis">
-             <string>Script executed after the experiment</string>
+             <string>Script executed after the experiment.</string>
             </property>
             <property name="saveToConfig" stdset="0">
              <string>postrun</string>
@@ -313,10 +313,10 @@
           <item row="0" column="1">
            <widget class="QLineEdit" name="expPath">
             <property name="toolTip">
-             <string>Path where frames configuration and logs are saved</string>
+             <string>Path where frames configuration and logs are saved.</string>
             </property>
             <property name="whatsThis">
-             <string>Current working directory</string>
+             <string>Current working directory.</string>
             </property>
             <property name="readOnly">
              <bool>true</bool>
@@ -329,7 +329,7 @@
           <item row="0" column="2">
            <widget class="QPushButton" name="browseExpPath">
             <property name="toolTip">
-             <string>Browse for the log file</string>
+             <string>Browse for the output directory</string>
             </property>
             <property name="text">
              <string>Browse</string>
@@ -339,10 +339,10 @@
           <item row="1" column="1" colspan="2">
            <widget class="QSCheckBox" name="detPathSync">
             <property name="toolTip">
-             <string>If ticked, tries to synchronize current working directory with the save path of the detectors' IOCs. Note that works well as long as new working directory is on the same level of the file system tree</string>
+             <string>If ticked, tries to synchronize current working directory with the save path of the detectors' IOCs. Note that works well as long as new working directory is on the same level of the file system tree.</string>
             </property>
             <property name="whatsThis">
-             <string>Synchronize CWD with the detector IOC</string>
+             <string>Synchronize CWD with the detector IOC.</string>
             </property>
             <property name="text">
              <string>Synchronize detector save directory with the working directory</string>
@@ -357,10 +357,10 @@
             <item>
              <widget class="QRadioButton" name="tiffFormat">
               <property name="toolTip">
-               <string>Frames are saved as individual TIFF images. Undesirable option because filesystem does not perform well with many small files</string>
+               <string>Frames are saved as individual TIFF images. Undesirable option because filesystem does not perform well with many small files.</string>
               </property>
               <property name="whatsThis">
-               <string>Saves frames into TIFF files</string>
+               <string>Saves frames into TIFF files.</string>
               </property>
               <property name="text">
                <string>TIFF</string>
@@ -376,10 +376,10 @@
             <item>
              <widget class="QRadioButton" name="hdfFormat">
               <property name="toolTip">
-               <string>Saves series of image frames into HDF5 container. Each series in the serial scans and flat field stacks are saved into individual container</string>
+               <string>Saves series of image frames into HDF5 container. Each series in the serial scans and flat field stacks are saved into individual container.</string>
               </property>
               <property name="whatsThis">
-               <string>Saves frames into HDF5 container(s)</string>
+               <string>Saves frames into HDF5 container(s).</string>
               </property>
               <property name="text">
                <string>HDF5</string>
@@ -413,7 +413,7 @@
         <string>Serial</string>
        </attribute>
        <attribute name="whatsThis">
-        <string>serialll</string>
+        <string>serialll.</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_tabConf">
         <item>
@@ -471,10 +471,10 @@
                    <enum>Qt::WheelFocus</enum>
                   </property>
                   <property name="toolTip">
-                   <string>List of CT scans in the serial acquisition experiment</string>
+                   <string>List of CT scans in the serial acquisition experiment.</string>
                   </property>
                   <property name="whatsThis">
-                   <string>List of serial scans</string>
+                   <string>List of serial scans.</string>
                   </property>
                   <property name="saveToConfig" stdset="0">
                    <string>outerseries</string>
@@ -493,7 +493,7 @@
                 </sizepolicy>
                </property>
                <property name="toolTip">
-                <string>swap innear and outer loops</string>
+                <string>swap innear and outer loops.</string>
                </property>
                <property name="text">
                 <string>s
@@ -541,10 +541,10 @@ p
                    <enum>Qt::WheelFocus</enum>
                   </property>
                   <property name="toolTip">
-                   <string>List of CT scans in the serial acquisition experiment</string>
+                   <string>List of CT scans in the serial acquisition experiment.</string>
                   </property>
                   <property name="whatsThis">
-                   <string>List of serial scans</string>
+                   <string>List of serial scans.</string>
                   </property>
                   <property name="saveToConfig" stdset="0">
                    <string>innearseries</string>
@@ -565,7 +565,7 @@ p
               <string>Experiment finishes when execution of this script returns a non-zero value. Condition is checked between series.</string>
              </property>
              <property name="whatsThis">
-              <string>End condition script</string>
+              <string>End condition script.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>stopscript</string>
@@ -617,7 +617,7 @@ p
                  <string>Delay between each individual CT scan in the series.</string>
                 </property>
                 <property name="whatsThis">
-                 <string>Delay between scans in series</string>
+                 <string>Delay between scans in series.</string>
                 </property>
                 <property name="displayFormat">
                  <string>HH:mm:ss.z</string>
@@ -640,10 +640,10 @@ p
            <item row="7" column="0" colspan="2">
             <widget class="QSCheckBox" name="ongoingSeries">
              <property name="toolTip">
-              <string>Starts CT scan from current rotation position of the motor, instead of returning initial position</string>
+              <string>Starts CT scan from current rotation position of the motor, instead of returning initial position.</string>
              </property>
              <property name="whatsThis">
-              <string>Non-stop series</string>
+              <string>Non-stop series.</string>
              </property>
              <property name="text">
               <string>Non-stop series</string>
@@ -659,7 +659,7 @@ p
               <string>Flat field collection is executed on each individual scan, rather than for the whole series.</string>
              </property>
              <property name="whatsThis">
-              <string>Flat field on each CT scan</string>
+              <string>Flat field on each CT scan.</string>
              </property>
              <property name="text">
               <string>Acquire flat field on each scan</string>
@@ -687,10 +687,10 @@ p
              <item>
               <widget class="QRadioButton" name="endNumber">
                <property name="toolTip">
-                <string>Experiment finishes after all configured series are acquired</string>
+                <string>Experiment finishes after all configured series are acquired.</string>
                </property>
                <property name="whatsThis">
-                <string>Finish on all series done</string>
+                <string>Finish on all series done.</string>
                </property>
                <property name="text">
                 <string>number of scans</string>
@@ -709,7 +709,7 @@ p
                 <string>Experiment finishes after time frame has elapsed. Note that time is checked between series, scan will not be interrupted if it elapses in the middle of acquisition.</string>
                </property>
                <property name="whatsThis">
-                <string>Finish on time elapsed</string>
+                <string>Finish on time elapsed.</string>
                </property>
                <property name="text">
                 <string>elapsed time</string>
@@ -725,7 +725,7 @@ p
                 <string>Finish on non-zero return from conditional script.</string>
                </property>
                <property name="whatsThis">
-                <string>Finish on script non-zero return</string>
+                <string>Finish on script non-zero return.</string>
                </property>
                <property name="text">
                 <string>script</string>
@@ -761,7 +761,7 @@ p
                  <string>Experiment finishes after this time has elapsed.</string>
                 </property>
                 <property name="whatsThis">
-                 <string>End condition time</string>
+                 <string>End condition time.</string>
                 </property>
                 <property name="minimumTime">
                  <time>
@@ -848,10 +848,10 @@ p
            <item row="0" column="3">
             <widget class="QCheckBox" name="serial2D">
              <property name="toolTip">
-              <string>Perform two dimensional series</string>
+              <string>Perform two dimensional series.</string>
              </property>
              <property name="whatsThis">
-              <string>2D series</string>
+              <string>2D series.</string>
              </property>
              <property name="text">
               <string>Second dimension</string>
@@ -873,7 +873,7 @@ p
               <string>This script is executed after finishing each innear series of scans in 2D series.</string>
              </property>
              <property name="whatsThis">
-              <string>Script executed after each internal series</string>
+              <string>Script executed after each internal series.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>postscript</string>
@@ -889,7 +889,7 @@ p
               <string>This script is executed before starting each innear series of scans in 2D series.</string>
              </property>
              <property name="whatsThis">
-              <string>Script executed before each internal series</string>
+              <string>Script executed before each internal series.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>prescript</string>
@@ -920,7 +920,7 @@ p
         <enum>Qt::WheelFocus</enum>
        </property>
        <property name="toolTip">
-        <string>CT scan parameters</string>
+        <string>CT scan parameters.</string>
        </property>
        <property name="saveToConfig" stdset="0">
         <string>scan</string>
@@ -929,7 +929,7 @@ p
         <string>Scan</string>
        </attribute>
        <attribute name="whatsThis">
-        <string>scan</string>
+        <string>scan.</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_3">
         <item>
@@ -955,7 +955,7 @@ p
               <string>Travel of spiral motor perpendicular to rotation axis during single CT scan.</string>
              </property>
              <property name="whatsThis">
-              <string>Spiral travel on single scan</string>
+              <string>Spiral travel on single scan.</string>
              </property>
              <property name="minimum">
               <double>-2147483647.000000000000000</double>
@@ -974,7 +974,7 @@ p
               <string>Number of frames acquired in each projection. Only makes sense in step-and-shot imaging modality.</string>
              </property>
              <property name="whatsThis">
-              <string>Number of frames per projection</string>
+              <string>Number of frames per projection.</string>
              </property>
              <property name="minimum">
               <number>1</number>
@@ -1020,7 +1020,7 @@ p
               <string>Time to travel single step between two projections.</string>
              </property>
              <property name="whatsThis">
-              <string>Time between projections</string>
+              <string>Time between projections.</string>
              </property>
              <property name="decimals">
               <number>3</number>
@@ -1077,7 +1077,7 @@ p
               <string>This script is executed before each individual CT scan.</string>
              </property>
              <property name="whatsThis">
-              <string>Script executed after CT scan</string>
+              <string>Script executed after CT scan.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>postscan</string>
@@ -1087,10 +1087,10 @@ p
            <item row="5" column="0" colspan="7">
             <widget class="QSCheckBox" name="scanAdd">
              <property name="toolTip">
-              <string>Add additional projection in the end of the scan to cover whole ark, rather than ark minus step </string>
+              <string>Add additional projection in the end of the scan to cover whole ark, rather than ark minus step .</string>
              </property>
              <property name="whatsThis">
-              <string>Additional projection in the end of the scan range</string>
+              <string>Additional projection in the end of the scan range.</string>
              </property>
              <property name="text">
               <string>Acquire projection in the end point</string>
@@ -1132,7 +1132,7 @@ p
               <string>Motor to move the sample along rotation axis in the spiral CT geometry.</string>
              </property>
              <property name="whatsThis">
-              <string>Spiral CT motor</string>
+              <string>Spiral CT motor.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>spiralMotor</string>
@@ -1176,7 +1176,7 @@ p
               <string>CT motor speed during the acquisition. Makes sense only in on-the-fly imaging modality.</string>
              </property>
              <property name="whatsThis">
-              <string>Rotation speed in CT</string>
+              <string>Rotation speed in CT.</string>
              </property>
              <property name="decimals">
               <number>5</number>
@@ -1247,7 +1247,7 @@ p
               <string>Motion step between projections.</string>
              </property>
              <property name="whatsThis">
-              <string>Scan step</string>
+              <string>Scan step.</string>
              </property>
              <property name="decimals">
               <number>6</number>
@@ -1279,7 +1279,7 @@ p
               <string>Acquisition ark in the scan.</string>
              </property>
              <property name="whatsThis">
-              <string>CT scan range</string>
+              <string>CT scan range.</string>
              </property>
              <property name="minimum">
               <double>-2147483647.000000000000000</double>
@@ -1338,7 +1338,7 @@ p
               <string>Spiral motor speed during the acquisition. Makes sense only in on-the-fly imaging modality.</string>
              </property>
              <property name="whatsThis">
-              <string>Translation speed in spiral CT</string>
+              <string>Translation speed in spiral CT.</string>
              </property>
              <property name="decimals">
               <number>5</number>
@@ -1381,7 +1381,7 @@ p
               <string>Number of projections in scan.</string>
              </property>
              <property name="whatsThis">
-              <string>Number of projections</string>
+              <string>Number of projections.</string>
              </property>
              <property name="minimum">
               <number>2</number>
@@ -1417,7 +1417,7 @@ p
               <string>Motor used for the CT scan motion.</string>
              </property>
              <property name="whatsThis">
-              <string>CT scan motor</string>
+              <string>CT scan motor.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>motor</string>
@@ -1461,7 +1461,7 @@ p
               <string>Number of full CT scans performed in spiral acquisition.</string>
              </property>
              <property name="whatsThis">
-              <string>Number of full scans in spiral CT</string>
+              <string>Number of full scans in spiral CT.</string>
              </property>
              <property name="minimum">
               <number>2</number>
@@ -1480,7 +1480,7 @@ p
               <string>Ratio of detector exposure to time between frames.</string>
              </property>
              <property name="whatsThis">
-              <string>Ration between exposure and step time</string>
+              <string>Ration between exposure and step time.</string>
              </property>
              <property name="decimals">
               <number>3</number>
@@ -1508,7 +1508,7 @@ p
               <string>This script is executed before each individual CT scan.</string>
              </property>
              <property name="whatsThis">
-              <string>Script executed before CT scan</string>
+              <string>Script executed before CT scan.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>prescan</string>
@@ -1546,7 +1546,7 @@ p
         <enum>Qt::TabFocus</enum>
        </property>
        <property name="toolTip">
-        <string>Flat field acquisition parameters</string>
+        <string>Flat field acquisition parameters.</string>
        </property>
        <property name="saveToConfig" stdset="0">
         <string>flatfield</string>
@@ -1555,7 +1555,7 @@ p
         <string>Flat field</string>
        </attribute>
        <attribute name="whatsThis">
-        <string>flatfield</string>
+        <string>flatfield.</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_13">
         <item>
@@ -1584,7 +1584,7 @@ p
               <string>Number of frames for background acquisition.</string>
              </property>
              <property name="whatsThis">
-              <string>Number of backgrounds</string>
+              <string>Number of backgrounds.</string>
              </property>
              <property name="maximum">
               <number>999999</number>
@@ -1597,10 +1597,10 @@ p
            <item row="5" column="1">
             <widget class="QDoubleSpinBox" name="bgExposure">
              <property name="toolTip">
-              <string>Detector exposure for background frames (0 for same as sample images)</string>
+              <string>Detector exposure for background frames (0 for same as sample images).</string>
              </property>
              <property name="whatsThis">
-              <string>Exposure for backgrounds</string>
+              <string>Exposure for backgrounds.</string>
              </property>
              <property name="specialValueText">
               <string>as sample</string>
@@ -1672,7 +1672,7 @@ p
               <string>Number of frames for dark field acquisition.</string>
              </property>
              <property name="whatsThis">
-              <string>Number of dark fields</string>
+              <string>Number of dark fields.</string>
              </property>
              <property name="maximum">
               <number>999999</number>
@@ -1715,7 +1715,7 @@ p
               <string>Motor used to remove sample from the beam for background acquisitions. CT scan motion.</string>
              </property>
              <property name="whatsThis">
-              <string>Background motor</string>
+              <string>Background motor.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>motor</string>
@@ -1759,7 +1759,7 @@ p
               <string>Travel distance for the background motor to move sample out of the beam.</string>
              </property>
              <property name="whatsThis">
-              <string>Background travel distance</string>
+              <string>Background travel distance.</string>
              </property>
              <property name="minimum">
               <double>-2147483647.000000000000000</double>
@@ -1784,7 +1784,7 @@ p
                     <string>Acquire backgrounds before start of the scan.</string>
                    </property>
                    <property name="whatsThis">
-                    <string>Backgrounds before scan</string>
+                    <string>Backgrounds before scan.</string>
                    </property>
                    <property name="text">
                     <string>Before</string>
@@ -1800,7 +1800,7 @@ p
                     <string>Acquire backgrounds after the scan is complete.</string>
                    </property>
                    <property name="whatsThis">
-                    <string>Backgrounds after scan</string>
+                    <string>Backgrounds after scan.</string>
                    </property>
                    <property name="text">
                     <string>After</string>
@@ -1819,7 +1819,7 @@ p
                  <string>Number of projections between background acquisitions.</string>
                 </property>
                 <property name="whatsThis">
-                 <string>Interval between backgrounds</string>
+                 <string>Interval between backgrounds.</string>
                 </property>
                 <property name="specialValueText">
                  <string>on start only</string>
@@ -1847,7 +1847,7 @@ p
                     <string>Acquire flat fields before start of the scan.</string>
                    </property>
                    <property name="whatsThis">
-                    <string>Dark fields before scan</string>
+                    <string>Dark fields before scan.</string>
                    </property>
                    <property name="text">
                     <string>Before</string>
@@ -1863,7 +1863,7 @@ p
                     <string>Acquire flat fields after the scan is complete.</string>
                    </property>
                    <property name="whatsThis">
-                    <string>Dark fields after scan</string>
+                    <string>Dark fields after scan.</string>
                    </property>
                    <property name="text">
                     <string>After</string>
@@ -1882,7 +1882,7 @@ p
                  <string>Number of projections between dark field acquisitions.</string>
                 </property>
                 <property name="whatsThis">
-                 <string>Interval between dark fields</string>
+                 <string>Interval between dark fields.</string>
                 </property>
                 <property name="specialValueText">
                  <string>on start only</string>
@@ -1937,7 +1937,7 @@ p
         <string>Tiles</string>
        </attribute>
        <attribute name="whatsThis">
-        <string>tiles</string>
+        <string>tiles.</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
@@ -2039,10 +2039,10 @@ p
                    <enum>Qt::TabFocus</enum>
                   </property>
                   <property name="toolTip">
-                   <string>List of tiles</string>
+                   <string>List of tiles.</string>
                   </property>
                   <property name="whatsThis">
-                   <string>List of tiles</string>
+                   <string>List of tiles.</string>
                   </property>
                   <property name="saveToConfig" stdset="0">
                    <string>loopseries</string>
@@ -2061,7 +2061,7 @@ p
                 </sizepolicy>
                </property>
                <property name="toolTip">
-                <string>swap innear and outer loops</string>
+                <string>swap innear and outer loops.</string>
                </property>
                <property name="text">
                 <string>s
@@ -2109,10 +2109,10 @@ p
                    <enum>Qt::TabFocus</enum>
                   </property>
                   <property name="toolTip">
-                   <string>List of tiles</string>
+                   <string>List of tiles.</string>
                   </property>
                   <property name="whatsThis">
-                   <string>List of tiles</string>
+                   <string>List of tiles.</string>
                   </property>
                   <property name="saveToConfig" stdset="0">
                    <string>subloopseries</string>
@@ -2154,7 +2154,7 @@ p
                  <string>Use single set of background images for all tiles.</string>
                 </property>
                 <property name="whatsThis">
-                 <string>Same background for all tiles</string>
+                 <string>Same background for all tiles.</string>
                 </property>
                 <property name="text">
                  <string>Same background for all images in loop(s).</string>
@@ -2170,10 +2170,10 @@ p
               <item>
                <widget class="QSCheckBox" name="subLoop">
                 <property name="toolTip">
-                 <string>Perform two dimensional tiling</string>
+                 <string>Perform two dimensional tiling.</string>
                 </property>
                 <property name="whatsThis">
-                 <string>2D tiling</string>
+                 <string>2D tiling.</string>
                 </property>
                 <property name="text">
                  <string>Second dimension</string>
@@ -2198,7 +2198,7 @@ p
         <item>
          <widget class="QPushButton" name="testMulti">
           <property name="toolTip">
-           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Test execution of the acquire projection procedure.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</string>
+           <string>&lt;html&gt;&lt;head/&gt;&lt;body&gt;&lt;p&gt;Test execution of the acquire projection procedure.&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;.</string>
           </property>
           <property name="text">
            <string>Test tiles acquisition</string>
@@ -2218,7 +2218,7 @@ p
         <string>Dynamic shot</string>
        </attribute>
        <attribute name="whatsThis">
-        <string>dyno</string>
+        <string>dyno.</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_2">
         <item>
@@ -2229,7 +2229,7 @@ p
              <item>
               <widget class="QRadioButton" name="dynoPos">
                <property name="toolTip">
-                <string>Positive travel</string>
+                <string>Positive travel.</string>
                </property>
                <property name="text">
                 <string>Positive</string>
@@ -2245,7 +2245,7 @@ p
              <item>
               <widget class="QRadioButton" name="dynoNeg">
                <property name="toolTip">
-                <string>Negative travel</string>
+                <string>Negative travel.</string>
                </property>
                <property name="text">
                 <string>Negative</string>
@@ -2262,7 +2262,7 @@ p
              <item>
               <widget class="QRadioButton" name="dyno2Pos">
                <property name="toolTip">
-                <string>Positive travel</string>
+                <string>Positive travel.</string>
                </property>
                <property name="text">
                 <string>Positive</string>
@@ -2278,7 +2278,7 @@ p
              <item>
               <widget class="QRadioButton" name="dyno2Neg">
                <property name="toolTip">
-                <string>Negative travel</string>
+                <string>Negative travel.</string>
                </property>
                <property name="text">
                 <string>Negative</string>
@@ -2299,7 +2299,7 @@ p
               <string>Second motor used for the motion in dynamic imaging.</string>
              </property>
              <property name="whatsThis">
-              <string>Second motor for dynamic shot</string>
+              <string>Second motor for dynamic shot.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>dyno2/motor</string>
@@ -2329,7 +2329,7 @@ p
               <string>Use second motor for the dynamic shot imaging.</string>
              </property>
              <property name="whatsThis">
-              <string>Dynamic shot with two motors</string>
+              <string>Dynamic shot with two motors.</string>
              </property>
              <property name="text">
               <string>Use Second motor</string>
@@ -2349,10 +2349,10 @@ p
            <item row="8" column="2">
             <widget class="QDoubleSpinBox" name="dyno2Speed">
              <property name="toolTip">
-              <string>Speed of the second motor in dynamic shot imaging modality</string>
+              <string>Speed of the second motor in dynamic shot imaging modality.</string>
              </property>
              <property name="whatsThis">
-              <string>Travel speed of the second dynamic motor</string>
+              <string>Travel speed of the second dynamic motor.</string>
              </property>
              <property name="maximum">
               <double>2147483647.000000000000000</double>
@@ -2403,7 +2403,7 @@ p
               <string>Use same direction for the second motor as in the first one.</string>
              </property>
              <property name="whatsThis">
-              <string>Same direction as first</string>
+              <string>Same direction as first.</string>
              </property>
              <property name="text">
               <string>as first</string>
@@ -2429,10 +2429,10 @@ p
            <item row="2" column="1" colspan="2">
             <widget class="QDoubleSpinBox" name="dynoSpeed">
              <property name="toolTip">
-              <string>Speed of the motor in dynamic shot imaging modality</string>
+              <string>Speed of the motor in dynamic shot imaging modality.</string>
              </property>
              <property name="whatsThis">
-              <string>Travel speed of the dynamic motor</string>
+              <string>Travel speed of the dynamic motor.</string>
              </property>
              <property name="maximum">
               <double>2147483647.000000000000000</double>
@@ -2458,7 +2458,7 @@ p
               <string>Motor used for the motion in dynamic imaging.</string>
              </property>
              <property name="whatsThis">
-              <string>Motor for dynamic shot</string>
+              <string>Motor for dynamic shot.</string>
              </property>
              <property name="saveToConfig" stdset="0">
               <string>motor</string>
@@ -2501,7 +2501,7 @@ p
               <string>Use same speed for the second motor as in the first one.</string>
              </property>
              <property name="whatsThis">
-              <string>Same speed as first</string>
+              <string>Same speed as first.</string>
              </property>
              <property name="text">
               <string>as first</string>
@@ -2520,7 +2520,7 @@ p
               </size>
              </property>
              <property name="toolTip">
-              <string>Current position of the dynamic motor</string>
+              <string>Current position of the dynamic motor.</string>
              </property>
              <layout class="QHBoxLayout" name="horizontalLayout_31">
               <property name="spacing">
@@ -2608,7 +2608,7 @@ p
         <enum>Qt::TabFocus</enum>
        </property>
        <property name="toolTip">
-        <string>Detector parameters</string>
+        <string>Detector parameters.</string>
        </property>
        <property name="saveToConfig" stdset="0">
         <string>hardware</string>
@@ -2617,7 +2617,7 @@ p
         <string>Hardware</string>
        </attribute>
        <attribute name="whatsThis">
-        <string>hardware</string>
+        <string>hardware.</string>
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout_">
         <item>
@@ -2813,7 +2813,7 @@ p
                 <string>This script is executed before starting any acquisition on the detector.</string>
                </property>
                <property name="whatsThis">
-                <string>Script executed before starting detector</string>
+                <string>Script executed before starting detector.</string>
                </property>
                <property name="saveToConfig" stdset="0">
                 <string>preacquire</string>
@@ -2829,7 +2829,7 @@ p
                 <string>This script is executed whenever the detector returns to idle state after acquisition.</string>
                </property>
                <property name="whatsThis">
-                <string>Script executed whenever detector stops</string>
+                <string>Script executed whenever detector stops.</string>
                </property>
                <property name="saveToConfig" stdset="0">
                 <string>postacquire</string>
@@ -2851,7 +2851,7 @@ p
               <string>Detector in charge of all image acquisition in the experiment. Note: you may try to put a PV of a detector which is not in the list. It may or may not work depending on the IOC implementation.</string>
              </property>
              <property name="whatsThis">
-              <string>Detector in the experiment</string>
+              <string>Detector in the experiment.</string>
              </property>
              <property name="editable">
               <bool>true</bool>
@@ -3016,7 +3016,7 @@ p
                 <string>This shutter opens in the beginning of the experiment and closes in the end.</string>
                </property>
                <property name="whatsThis">
-                <string>Primary shutter</string>
+                <string>Primary shutter.</string>
                </property>
                <property name="saveToConfig" stdset="0">
                 <string>primaryShutter</string>
@@ -3052,7 +3052,7 @@ p
                 <string>This shutter opens and closes for each detector acquisition.</string>
                </property>
                <property name="whatsThis">
-                <string>Secondary shutter</string>
+                <string>Secondary shutter.</string>
                </property>
                <property name="saveToConfig" stdset="0">
                 <string>secondaryShutter</string>
@@ -3100,7 +3100,7 @@ p
               <string>If true, acquire fixed number of images rather than waiting for manual stop.</string>
              </property>
              <property name="whatsThis">
-              <string>Fixed length video</string>
+              <string>Fixed length video.</string>
              </property>
              <property name="text">
               <string>fixed length</string>
@@ -3126,10 +3126,10 @@ p
               <item>
                <widget class="QMSpinBox" name="vidFrames">
                 <property name="toolTip">
-                 <string>Number of frames in video</string>
+                 <string>Number of frames in video.</string>
                 </property>
                 <property name="whatsThis">
-                 <string>Videframes</string>
+                 <string>Videframes.</string>
                 </property>
                 <property name="minimum">
                  <number>1</number>
@@ -3152,10 +3152,10 @@ p
               <item>
                <widget class="QTimeEdit" name="vidTime">
                 <property name="toolTip">
-                 <string>Maximum video duration</string>
+                 <string>Maximum video duration.</string>
                 </property>
                 <property name="whatsThis">
-                 <string>Video duration</string>
+                 <string>Video duration.</string>
                 </property>
                 <property name="currentSection">
                  <enum>QDateTimeEdit::HourSection</enum>
@@ -3417,7 +3417,7 @@ p
  <buttongroups>
   <buttongroup name="dynoDirButtonGroup">
    <property name="whatsThis" stdset="0">
-    <string>Direction of dyno motion</string>
+    <string>Direction of dyno motion.</string>
    </property>
    <property name="saveToConfig" stdset="0">
     <string>direction</string>
@@ -3426,23 +3426,12 @@ p
     <string>Direction where dyno motor moves on acquisition.</string>
    </property>
   </buttongroup>
-  <buttongroup name="endConditionButtonGroup">
-   <property name="whatsThis" stdset="0">
-    <string>Condition for experiment complition</string>
-   </property>
-   <property name="toolTip" stdset="0">
-    <string>Sets the condition for experiment complition. Note that time condition cannot be used with 2D series.</string>
-   </property>
-   <property name="saveToConfig" stdset="0">
-    <string>endCondition</string>
-   </property>
-  </buttongroup>
   <buttongroup name="imageFormatGroup">
    <property name="whatsThis" stdset="0">
-    <string>Image saving format</string>
+    <string>Image saving format.</string>
    </property>
    <property name="toolTip" stdset="0">
-    <string>Format for image frames storage</string>
+    <string>Format for image frames storage.</string>
    </property>
    <property name="saveToConfig" stdset="0">
     <string>imageFormat</string>
@@ -3450,13 +3439,24 @@ p
   </buttongroup>
   <buttongroup name="dyno2DirButtonGroup">
    <property name="whatsThis" stdset="0">
-    <string>Direction of second dyno motion</string>
+    <string>Direction of second dyno motion.</string>
    </property>
    <property name="saveToConfig" stdset="0">
     <string>dyno2/direction</string>
    </property>
    <property name="toolTip" stdset="0">
-    <string>Direction where second dyno motor moves on acquisition</string>
+    <string>Direction where second dyno motor moves on acquisition.</string>
+   </property>
+  </buttongroup>
+  <buttongroup name="endConditionButtonGroup">
+   <property name="whatsThis" stdset="0">
+    <string>Condition for experiment complition.</string>
+   </property>
+   <property name="toolTip" stdset="0">
+    <string>Sets the condition for experiment complition. Note that time condition cannot be used with 2D series.</string>
+   </property>
+   <property name="saveToConfig" stdset="0">
+    <string>endCondition</string>
    </property>
   </buttongroup>
  </buttongroups>

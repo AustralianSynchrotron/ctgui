@@ -20,18 +20,11 @@
 using namespace  std;
 
 
-#define innearList qobject_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
-#define outerList qobject_cast<PositionList*> ( ui->outerListPlace->layout()->itemAt(0)->widget() )
-#define loopList qobject_cast<PositionList*> ( ui->loopListPlace->layout()->itemAt(0)->widget() )
-#define sloopList qobject_cast<PositionList*> ( ui->sloopListPlace->layout()->itemAt(0)->widget() )
-
-
 static const QString warnStyle = "background-color: rgba(255, 0, 0, 128);";
 static const QString ssText = "Start experiment";
 
 const QString MainWindow::storedState =
               QStandardPaths::writableLocation(QStandardPaths::AppConfigLocation) + "/.ctgui";
-
 
 
 
@@ -393,6 +386,12 @@ void addOpt( poptmx::OptionTable & otable, QObject * sobj, const QString & sname
 };
 
 
+#define innearList qobject_cast<PositionList*> ( ui->innearListPlace->layout()->itemAt(0)->widget() )
+#define outerList  qobject_cast<PositionList*> ( ui->outerListPlace->layout()->itemAt(0)->widget() )
+#define loopList   qobject_cast<PositionList*> ( ui->loopListPlace->layout()->itemAt(0)->widget() )
+#define sloopList  qobject_cast<PositionList*> ( ui->sloopListPlace->layout()->itemAt(0)->widget() )
+
+
 
 
 
@@ -413,7 +412,7 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   stopMe(true)
 {
 
-  QList<QCaMotorGUI*> allMotors;
+
   // Prepare UI
   {
 
@@ -472,7 +471,7 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   foreach (Detector::Camera cam , Detector::knownCameras)
     ui->detSelection->addItem(Detector::cameraName(cam));
 
-  auto placeMotor = [&allMotors](QCaMotorGUI *mot, QWidget *ctrlHere, QWidget *posHere){
+  auto placeMotor = [this](QCaMotorGUI *mot, QWidget *ctrlHere, QWidget *posHere){
     mot->setupButton()->setToolTip(ctrlHere->toolTip());
     mot->setupButton()->setWhatsThis(ctrlHere->whatsThis());
     if (ctrlHere->property(configProp).isValid()) {
@@ -480,7 +479,12 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
         configProp, ctrlHere->property(configProp));
       ctrlHere->setProperty(configProp,QVariant());
     }
+    QString nm = ctrlHere->objectName();
+    if (nm.startsWith("place"))
+      nm.remove(0,5);
+    mot->setObjectName(nm);
     place(mot->setupButton(), ctrlHere);
+    mot->currentPosition(true)->setObjectName(nm+"Position");
     place(mot->currentPosition(true), posHere);
     allMotors << mot;
   };
@@ -492,11 +496,15 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
 
   foreach( PositionList * lst, findChildren<PositionList*>() ) {
     QCaMotorGUI * mot = lst->motui;
+    QString nm = lst->objectName() + "Motor";
+    mot->setObjectName(nm);
+    mot->currentPosition(true)->setObjectName(nm + "Position");
     mot->setupButton()->setToolTip("Motor to position list item.");
     allMotors << mot;
   }
 
   }
+
 
   // Update Ui's
   {
@@ -578,11 +586,8 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
       obj = but->group();
     if ( ! obj->property(configProp).isValid()  )
       continue;
-    if ( QAbstractButton * but = qobject_cast<QAbstractButton*>(wdg) ) {
-      foreach( QCaMotorGUI* mot, allMotors )
-        if (mot->setupButton() == but)
-          obj=mot;
-    }
+    if (QCaMotorGUI* mot = motorFromButton(wdg))
+      obj=mot;
     if ( configs.contains(obj) )
       continue;
     if (PositionList* cobj = qobject_cast<PositionList*>(obj)) {
@@ -618,7 +623,7 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   bool fakebool;
   auto constructOptionTable = [this,&configFile,&fakestr,&fakebool](bool fake) {
 
-    poptmx::OptionTable table("CT acquisition", "Executes CT experiment.");
+    poptmx::OptionTable table("CT acquisition..", "Executes CT experiment.");
     table
         .add(poptmx::NOTE, "ARGUMENTS:")
         .add(poptmx::ARGUMENT, &configFile, "configuration", "Configuration file.",
@@ -640,18 +645,18 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
     }
     table
         .add(poptmx::NOTE, "ACTIONS:")
-        .add(poptmx::OPTION, &startExp, 0, "startExp", "Starts the experiment",
+        .add(poptmx::OPTION, &startExp, 0, "startExp", "Starts the experiment.",
              "Launches execution of the experiment as if manually pressing \"Start\".")
-        .add(poptmx::OPTION, &startVid, 0, "startVid", "Starts video recording",
+        .add(poptmx::OPTION, &startVid, 0, "startVid", "Starts video recording.",
              "Launches video recording as if \"Get ready\" and \"Record\" buttons were pressed manually.")
         .add(poptmx::OPTION, &reportHealth, 0, "health", "Check if configuration allows start.",
              "Check if loaded configuration is self consistent to allow experiment execution."
              " Returns 0 if everything is fine, non-zero otherwise.")
-        .add(poptmx::OPTION, &failAfter, 0, "fail", "Maximum time in seconds to wait for readiness",
+        .add(poptmx::OPTION, &failAfter, 0, "fail", "Maximum time in seconds to wait for readiness.",
              "If the system does not become available for requested action withing specified time,"
              " consider it a failure. Default is 1 second.")
         .add(poptmx::OPTION, &keepUi, 0, "keepui", "Keeps UI open on completion.",
-             "Has no effect if no launchers were started. By default application"
+             "Has no effect if no launchers were started. By default application."
              " exits after a launcher has finished. This option allows to keep it open.")
         .add(poptmx::OPTION, &headless, 0, "headless", "Starts launcher without UI.",
              "Only makes sense with one of the above processing launchers;"
@@ -668,7 +673,6 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
 
   };
 
-
   // Parse and load configuration file
   poptmx::OptionTable ftable = constructOptionTable(true);
   ftable.parse(argc,argv);
@@ -677,7 +681,6 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   poptmx::OptionTable otable = constructOptionTable(false);
 
   // using QApplication::exit instead of bare exit sometimes causes segfault
-
   #define justExit(retVal, msg) {\
     if (!msg.empty()) \
       qDebug() << QString::fromStdString(msg); \
@@ -710,9 +713,9 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
         otable.desc(&startExp) + otable.desc(&startVid) + otable.desc(&reportHealth) + ".") );
   if (otable.count(&headless) && otable.count(&keepUi))
     justExit(1, string("Incompatible options " + otable.desc(&headless) + " and " + otable.desc(&keepUi) + "."));
-
-
   }
+  #undef justExit
+
 
   storeCurrentState();
   // connect changes in the configuration elements to store state
@@ -748,47 +751,79 @@ MainWindow::MainWindow(int argc, char *argv[], QWidget *parent) :
   // Whithout this trick, further qtWait functions are all stuck until "afterStart"
   // returns. I do not understand why this is the case - it has something to do
   // with the way QCoreApplication and QEventLoop are executed.
+  // It took me two full days to get to this single line of code :====
   qtWait(0);
-
-  auto afterStart = [this](){
-    if ( ! this->headless )
-      show();
-    if (!startExp && !startVid && !reportHealth)
-      return;
-    if (! readyToStartCT )
-      qtWait(this, SIGNAL(readyForActionChanged()), failAfter*1000);
-    if (reportHealth) {
-      if (beverbose) {
-        if (readyToStartCT) {
-          qDebug() << "System is ready action.";
-        } else {
-          qDebug() << "System is NOT ready for action. QObjects reporting error are as follows:";
-          foreach ( QObject * elm, preReq.keys())
-            if ( ! preReq[elm].first )
-              qDebug() << "  class:" << elm->metaObject()->className()
-                       << "name:" << elm->objectName()
-                       << ( configs.contains(elm) ? "option: " + configName(elm) : "") ;
-        }
-      }
-      QTimer::singleShot(0, [this](){exit(!readyToStartCT);});
-    } if (startExp)
-      onStartStop();
-    if (startVid)
-      onVideoRecord();
-    if ( ! keepUi )
-      close();
-  };
-  QTimer::singleShot(0, afterStart);
-
-  #undef justExit
+  QTimer::singleShot(0,  this, &MainWindow::afterStart);
 
 }
-
 
 
 MainWindow::~MainWindow() {
   delete ui;
 }
+
+
+void MainWindow::afterStart() {
+
+  if ( ! headless )
+    show();
+  if (!startExp && !startVid && !reportHealth)
+    return;
+  if (! readyToStartCT )
+    qtWait(this, SIGNAL(readyForActionChanged()), failAfter*1000);
+  if (! readyToStartCT ) {
+    qDebug() << "System is NOT ready for action. QObjects reporting error are as follows:";
+    if (beverbose) {
+      foreach ( QObject * elm, preReq.keys())
+        if ( ! preReq[elm].first ) {
+          QString desc;
+          if (QCaMotorGUI* mot = motorFromButton(elm)) {
+            desc = "  class: QCaMotor,"
+                   "  name: " + mot->objectName();
+            if (configs.contains(mot))
+              desc += ",  option: " + configName(mot);
+          } else {
+            desc = QString() + "  class: " + elm->metaObject()->className()
+                 + ",  name: " + elm->objectName();
+            if (configs.contains(elm))
+              desc += ",  option: " + configName(elm);
+          }
+          qDebug().noquote() << desc;
+        }
+    }
+    QTimer::singleShot(0, [this](){exit(1);});
+    return;
+  }
+
+  if (reportHealth) {
+    if (beverbose)
+      qDebug() << "System is ready for action.";
+    QTimer::singleShot(0, [this](){exit(0);});
+  } else if (startExp)
+    QTimer::singleShot(0, [this](){
+      onStartStop();
+      if (!keepUi)
+        close();
+    });
+   else if (startVid)
+    QTimer::singleShot(0, [this](){
+      onVideoRecord();
+      if (!keepUi)
+        close();
+    });
+
+};
+
+
+QCaMotorGUI * MainWindow::motorFromButton(const QObject * obj){
+  const QPushButton * but = qobject_cast<const QPushButton*>(obj);
+  if (!but)
+    return nullptr;
+  foreach( QCaMotorGUI* mot, allMotors )
+    if (mot->setupButton() == but)
+      return mot;
+  return nullptr;
+};
 
 
 void MainWindow::saveConfiguration(QString fileName) {
@@ -1625,6 +1660,17 @@ void MainWindow::updateUi_dyno2Motor() {
 
 
 void MainWindow::updateUi_detector() {
+
+  QProgressBar * guiBar = ui->detProgress;
+  auto updateCounter = [this,guiBar](int val){
+    QMutexLocker lock(&detProgMutex);
+    guiBar->setValue(val);
+    ui->detImageCounter->setValue(val);
+    if ( cliDetProgress  &&  cliDetProgress->current() < val  &&  ! cliDetProgress->is_completed() )
+      cliDetProgress->set_progress(val);
+  };
+
+
   if ( ! sender() ) {
     const char* thisSlot = SLOT(updateUi_detector());
     connect(ui->detSelection, SIGNAL(currentIndexChanged(int)), SLOT(onDetectorSelection()));
@@ -1633,8 +1679,7 @@ void MainWindow::updateUi_detector() {
     connect(ui->vidTime, SIGNAL(timeChanged(QTime)), thisSlot);
     connect(det, SIGNAL(connectionChanged(bool)), thisSlot);
     connect(det, SIGNAL(parameterChanged()), thisSlot);
-    connect(det, SIGNAL(counterChanged(int)), ui->detProgress, SLOT(setValue(int)));
-    connect(det, SIGNAL(counterChanged(int)), ui->detImageCounter, SLOT(setValue(int)));
+    connect(det, &Detector::counterChanged, updateCounter);
     connect(det, SIGNAL(lastNameChanged(QString)), ui->detFileLastName, SLOT(setText(QString)));
   }
 
@@ -1663,10 +1708,26 @@ void MainWindow::updateUi_detector() {
     ui->detFileTemplateHdf->setEnabled(enabme);
     ui->detPathHdf->setEnabled(enabme);
 
-
-    ui->detProgress->setMaximum( det->imageMode() == 2 ? det->toCapture() : det->number() );
-    ui->detProgress->setValue( det->imageMode() == 2 ? det->captured() : det->counter() );
-    ui->detProgress->setVisible( det->imageMode() == 2 ? det->isCapturing() : det->isAcquiring() );
+    bool progVisible = det->imageMode() == 2 ? det->isCapturing() : det->isAcquiring();
+    guiBar->setMaximum( det->imageMode() == 2 ? det->toCapture() : det->number() );
+    guiBar->setValue( det->imageMode() == 2 ? det->captured() : det->counter() );
+    guiBar->setVisible(progVisible);
+    {
+    QMutexLocker lock(&detProgMutex);
+    if (progVisible) {
+      if (!cliDetProgress && beverbose) {
+        cliDetProgress = new indicators::ProgressBar( indicators::option::MaxProgress{guiBar->maximum()}
+                                            , indicators::option::ShowPercentage{true}
+                                            , indicators::option::PostfixText{"Detector progress"});
+        cliDetProgress->set_progress(0);
+      }
+    } else if (cliDetProgress) {
+      if (!cliDetProgress->is_completed())
+        cliDetProgress->mark_as_completed();
+      delete cliDetProgress;
+      cliDetProgress=0;
+    }
+    }
     ui->detTotalImages->setValue(det->number());
     ui->exposureInfo->setValue(det->exposure());
     ui->detExposure->setValue(det->exposure());
@@ -1886,7 +1947,7 @@ void MainWindow::check(QWidget * obj, bool status) {
       if ( ! tabel.second )
         newReadyToStartCT &= tabel.first;
   }
-  ui->startStop->setEnabled( readyToStartCT || anyInRun );
+  ui->startStop->setEnabled( newReadyToStartCT || anyInRun );
   ui->startStop->setStyleSheet( anyInRun  ?  warnStyle  :  "" );
   ui->startStop->setText( anyInRun  ?  "Stop"  :  ssText );
   if (newReadyToStartCT != readyToStartCT) {
@@ -2195,14 +2256,8 @@ void MainWindow::stopAll() {
   stopMe=true;
   emit requestToStopAcquisition();
   det->stop();
-  innearList->motui->motor()->stop();
-  outerList->motui->motor()->stop();
-  thetaMotor->motor()->stop();
-  bgMotor->motor()->stop();
-  loopList->motui->motor()->stop();
-  sloopList->motui->motor()->stop();
-  dynoMotor->motor()->stop();
-  dyno2Motor->motor()->stop();
+  foreach (QCaMotorGUI * mot, allMotors)
+    mot->motor()->stop();
   foreach( Script * script, findChildren<Script*>() )
     script->stop();
 }
@@ -2739,8 +2794,8 @@ void MainWindow::engineRun () {
       attempt++;
     } while ( QFile::exists(cfgName) || QFile::exists(logName) ) ;
 
-    if ( attempt > 1  &&  QMessageBox::No == QMessageBox::question
-         (this, "Overwrite warning"
+    if ( sender() == ui->startStop  &&  attempt > 1
+         &&  QMessageBox::No == QMessageBox::question(this, "Overwrite warning"
           , "Current directory seems to contain earlier scans: configuration and/or log files are present.\n\n"
             " Existing data may be overwritten.\n"
             " Do you want to proceed?\n"
@@ -2762,11 +2817,10 @@ void MainWindow::engineRun () {
 
   }
 
-  if (   ui->endNumber->isChecked()
+  if (  sender() == ui->startStop  &&  ui->endNumber->isChecked()
      && (  ( doSerial1D  && !  outerList->doAll() )
         || ( doSerial2D  && ! innearList->doAll() ) )
-     && QMessageBox::No == QMessageBox::question
-         (this, "Skippins scans",
+     && QMessageBox::No == QMessageBox::question(this, "Skippins scans",
           "Some scans in the series are marked to be skipped.\n\n"
           " Do you want to proceed?\n"
           , QMessageBox::Yes | QMessageBox::No, QMessageBox::No)  )
@@ -3072,6 +3126,7 @@ void MainWindow::engineRun () {
         QList<ObjSig> stopSignals;
         stopSignals << ObjSig(det, SIGNAL(done()));
         stopSignals << ObjSig(thetaMotor->motor(), SIGNAL(stopped()));
+        stopSignals << ObjSig(this, SIGNAL(requestToStopAcquisition()));
         if (doTriggCT) {
           tct->start(true);
           stopSignals << ObjSig(tct, SIGNAL(stopped()));
@@ -3084,7 +3139,7 @@ void MainWindow::engineRun () {
         qtWait( stopSignals );
         if (   det->number() != totalProjections + doAdd
             || (doTriggCT && tct->isRunning())
-            || ! thetaMotor->motor()->isMoving()  ) {
+            /* || ! thetaMotor->motor()->isMoving() */  ) {
           ui->statusBar->showMessage("Unexpected condition during last experiment was observed. Check data.");
           //goto onEngineExit;
         }

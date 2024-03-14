@@ -3,7 +3,7 @@
 #include <QProcess>
 #include <QTime>
 #include <QApplication>
-
+#include "additional_classes.h"
 
 static const QString emptyStr="";
 

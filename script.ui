@@ -35,7 +35,7 @@
    <item row="0" column="1">
     <widget class="QPushButton" name="browse">
      <property name="toolTip">
-      <string>Browse for the exec file</string>
+      <string>Browse for the exec file.</string>
      </property>
      <property name="text">
       <string>Browse</string>
@@ -45,7 +45,7 @@
    <item row="0" column="2">
     <widget class="QPushButton" name="execute">
      <property name="toolTip">
-      <string>Execute command</string>
+      <string>Execute command.</string>
      </property>
      <property name="text">
       <string>Execute</string>

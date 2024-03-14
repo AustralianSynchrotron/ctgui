@@ -13,11 +13,13 @@
 #include <QTime>
 #include <QThread>
 #include <QAbstractSpinBox>
+#include <QMutex>
 
 #include "shutter.h"
 #include "detector.h"
 #include "triggct.h"
 #include "positionlist.h"
+#include "indicators.hpp"
 
 namespace Ui {
   class MainWindow;
@@ -62,16 +64,21 @@ private:
   float bgEnter;
 
   Detector * det;
+  indicators::ProgressBar* cliDetProgress=0;
+  QMutex detProgMutex;
   TriggCT * tct;
   QCaMotorGUI * thetaMotor;
   QCaMotorGUI * spiralMotor;
   QCaMotorGUI * bgMotor;
   QCaMotorGUI * dynoMotor;
   QCaMotorGUI * dyno2Motor;
+  QList<QCaMotorGUI*> allMotors;
+  QCaMotorGUI * motorFromButton(const QObject * obj);
 
   QList<QObject*> configs;
   typedef QPair <bool,const QWidget*> ReqP;
   QHash <QObject*,  ReqP > preReq;
+  void afterStart();
 
   QList< QMDoubleSpinBox* > prsSelection;
   QMDoubleSpinBox * selectedPRS() const ;
@@ -100,7 +107,6 @@ private:
     }
   }
 
-
   bool prepareDetector(const QString & filetemplate, int count);
   int acquireDetector();
   int acquireDetector(const QString & filetemplate, int count=1);
@@ -109,9 +115,6 @@ private:
   int acquireBG(const QString &filetemplate);
   int moveToBG();
   int acquireDF(const QString &filetemplate, Shutter::State stateToGo);
-
-//  QFile * logFile;
-//  QStringList accumulatedLog;
 
   void stopAll();
 
@@ -166,7 +169,6 @@ private slots:
 
   bool onVideoGetReady();
   void onVideoRecord();
-
   void onStartStop();
 
   QString mkRun(QAbstractButton * wdg, bool inr, const QString & txt=QString()); // mark button as running
