@@ -27,6 +27,7 @@ Detector::Detector(QObject * parent) :
   setExposurePv( new QEpicsPv(this) ),
   exposurePv( new QEpicsPv(this) ),
   periodPv( new QEpicsPv(this) ),
+  setPeriodPv( new QEpicsPv(this) ),
   numberPv( new QEpicsPv(this) ),
   counterPv( new QEpicsPv(this) ),
   triggerModePv( new QEpicsPv(this) ),
@@ -89,6 +90,7 @@ Detector::Detector(QObject * parent) :
   // common CAM params
   connect(exposurePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(periodPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
+  connect(setPeriodPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(numberPv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(triggerModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
   connect(imageModePv, SIGNAL(valueChanged(QVariant)), SIGNAL(parameterChanged()));
@@ -215,6 +217,7 @@ void Detector::setCamera(const QString & pvName) {
     setExposurePv->setPV(pvName+":CAM:AcquireTime");
     exposurePv->setPV(pvName+":CAM:AcquireTime_RBV");
     periodPv->setPV(pvName+":CAM:AcquirePeriod_RBV");
+    setPeriodPv->setPV(pvName+":CAM:AcquirePeriod");
     numberPv->setPV(pvName+":CAM:NumImages");
     counterPv->setPV(pvName+":CAM:NumImagesCounter_RBV");
     triggerModePv->setPV(pvName+":CAM:TriggerMode");
@@ -541,9 +544,9 @@ bool Detector::setExposure(double val) {
 bool Detector::setPeriod(double val) {
   if ( ! _camera )
     return true;
-  if ( ! periodPv->isConnected() || isAcquiring() )
+  if ( ! setPeriodPv->isConnected() || isAcquiring() )
     return false;
-  periodPv->set(val);
+  setPeriodPv->set(val);
   if (period() != val)
     qtWait(periodPv, SIGNAL(valueUpdated(QVariant)), 500);
   return period() == val;
