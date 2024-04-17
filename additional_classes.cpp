@@ -343,10 +343,6 @@ int Script::evaluate(const QString & par) {
 }
 
 
-namespace Ui {
-class UScript;
-}
-
 
 UScript::UScript(QWidget *parent) :
   QWidget(parent),
@@ -382,8 +378,6 @@ void UScript::addToColumnResizer(ColumnResizer * columnizer) {
   columnizer->addWidgetsFromGridLayout(ui->gridLayout, 2);
 }
 
-
-
 void UScript::updateState() {
   ui->browse->setEnabled( ! script->isRunning() );
   ui->path->setEnabled( ! script->isRunning() );
@@ -393,7 +387,8 @@ void UScript::updateState() {
 }
 
 void UScript::updatePath() {
-  ui->path->setText(script->path());
+  if ( script->path() != ui->path->text() )
+    ui->path->setText(script->path());
   ui->execute->setStyleSheet("");
   ui->path->setStyleSheet( script->evaluate() ? "color: rgba(255, 0, 0, 0);" : "");
 }

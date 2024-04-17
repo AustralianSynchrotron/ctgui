@@ -4,7 +4,6 @@
 #include <QMainWindow>
 #include <qcamotorgui.h>
 #include <qtpvwidgets.h>
-#include <QIcon>
 #include <QAbstractItemModel>
 #include <QSortFilterProxyModel>
 #include <QStandardItem>
