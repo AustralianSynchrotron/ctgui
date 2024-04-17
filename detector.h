@@ -44,6 +44,7 @@ private:
   QEpicsPv * setExposurePv; // AcquireTime
   QEpicsPv * exposurePv; // AcquireTime (_RBV)
   QEpicsPv * periodPv; // AcquirePeriod
+  QEpicsPv * setPeriodPv; // AcquirePeriod (_RBV)
   QEpicsPv * numberPv; //NumImages
   QEpicsPv * counterPv; // NumCapture
   QEpicsPv * triggerModePv;//TriggerMode
