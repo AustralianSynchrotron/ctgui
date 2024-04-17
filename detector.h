@@ -5,6 +5,7 @@
 #include <qtpv.h>
 #include <QTimer>
 #include <QDebug>
+#include <unistd.h>
 
 
 class Detector : public QObject {

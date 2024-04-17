@@ -907,6 +907,7 @@ bool Detector::start() {
     return true;
   if ( ! aqPv->isConnected() )
     return false;
+  // usleep(500000); // some detectors need this delay
   aqPv->set(1);
   if (!aqPv->get().toInt())
     qtWait(aqPv, SIGNAL(valueUpdated(QVariant)), 2000);
