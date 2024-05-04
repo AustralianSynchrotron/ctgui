@@ -5,14 +5,6 @@
   <property name="enabled">
    <bool>true</bool>
   </property>
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>2206</width>
-    <height>1104</height>
-   </rect>
-  </property>
   <property name="windowTitle">
    <string>CTgui</string>
   </property>
@@ -1048,7 +1040,7 @@ p
             </widget>
            </item>
            <item row="16" column="5">
-            <widget class="QLabel" name="label_34">
+            <widget class="QLabel" name="spiralScansLabel">
              <property name="text">
               <string>Scans</string>
              </property>
@@ -1395,7 +1387,7 @@ p
             </widget>
            </item>
            <item row="16" column="3">
-            <widget class="QLabel" name="label_31">
+            <widget class="QLabel" name="spiralTravelLabel">
              <property name="text">
               <string>Travel per scan</string>
              </property>
@@ -3415,17 +3407,6 @@ p
   </connection>
  </connections>
  <buttongroups>
-  <buttongroup name="dynoDirButtonGroup">
-   <property name="whatsThis" stdset="0">
-    <string>Direction of dyno motion.</string>
-   </property>
-   <property name="saveToConfig" stdset="0">
-    <string>direction</string>
-   </property>
-   <property name="toolTip" stdset="0">
-    <string>Direction where dyno motor moves on acquisition.</string>
-   </property>
-  </buttongroup>
   <buttongroup name="imageFormatGroup">
    <property name="whatsThis" stdset="0">
     <string>Image saving format.</string>
@@ -3437,15 +3418,15 @@ p
     <string>imageFormat</string>
    </property>
   </buttongroup>
-  <buttongroup name="dyno2DirButtonGroup">
+  <buttongroup name="dynoDirButtonGroup">
    <property name="whatsThis" stdset="0">
-    <string>Direction of second dyno motion.</string>
+    <string>Direction of dyno motion.</string>
    </property>
    <property name="saveToConfig" stdset="0">
-    <string>dyno2/direction</string>
+    <string>direction</string>
    </property>
    <property name="toolTip" stdset="0">
-    <string>Direction where second dyno motor moves on acquisition.</string>
+    <string>Direction where dyno motor moves on acquisition.</string>
    </property>
   </buttongroup>
   <buttongroup name="endConditionButtonGroup">
@@ -3457,6 +3438,17 @@ p
    </property>
    <property name="saveToConfig" stdset="0">
     <string>endCondition</string>
+   </property>
+  </buttongroup>
+  <buttongroup name="dyno2DirButtonGroup">
+   <property name="whatsThis" stdset="0">
+    <string>Direction of second dyno motion.</string>
+   </property>
+   <property name="saveToConfig" stdset="0">
+    <string>dyno2/direction</string>
+   </property>
+   <property name="toolTip" stdset="0">
+    <string>Direction where second dyno motor moves on acquisition.</string>
    </property>
   </buttongroup>
  </buttongroups>
