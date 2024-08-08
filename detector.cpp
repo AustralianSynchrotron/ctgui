@@ -146,6 +146,7 @@ QString Detector::cameraName(Detector::Camera cam) {
   case XeniaPPS : return "Xenia+PPS";
   case Eiger : return "Eiger";
   case EigerPPS : return "Eiger+PPS";
+  case SpecLogic: return "Spectrum Logic";
   default: return QString();
   }
 }
@@ -163,6 +164,7 @@ Detector::Camera Detector::camera(const QString & _cameraName) {
   if (_cameraName =="Xenia+PPS") return XeniaPPS;
   if (_cameraName =="Eiger") return Eiger;
   if (_cameraName =="Eiger+PPS") return EigerPPS;
+  if (_cameraName =="Spectrum Logic") return SpecLogic;
   return NONE;
 }
 
@@ -180,6 +182,7 @@ const QList<Detector::Camera> Detector::knownCameras = ( QList<Detector::Camera>
       << Detector::XeniaPPS
       << Detector::Eiger
       << Detector::EigerPPS
+      << Detector::SpecLogic
       ) ;
 
 
@@ -200,6 +203,7 @@ void Detector::setCamera(Camera _cam) {
   case XeniaPPS:      setCamera("SR99ID01DALSA");    break;
   case Eiger:         setCamera("SR08ID01E2");       break;
   case EigerPPS:      setCamera("SR08ID01E2");       break;
+  case SpecLogic :    setCamera("SR08ID01DETIOC11"); break;
   default:
     _camera = oldcam;
     foreach( QEpicsPv * pv, findChildren<QEpicsPv*>() )

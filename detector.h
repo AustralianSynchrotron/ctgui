@@ -27,6 +27,7 @@ public:
     XeniaPPS,
     Eiger,
     EigerPPS,
+    SpecLogic,
     BYPV
   };
 
