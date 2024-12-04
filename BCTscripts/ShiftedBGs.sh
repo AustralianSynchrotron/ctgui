@@ -1,11 +1,14 @@
 #!/bin/bash
 
 #USAGE="$0 <folder name> <frames to be acquired> <inshift>"
-USAGE="$0 <folder name> <frames to be acquired>"
+USAGE="$0 <folder name> <frames to be acquired> [suffix-with-an-underscore-at-the-start]"
+TOPDIR="2024-12-04-amir"
+DATALOC="/mnt/bctpro.data/${TOPDIR}"
+DATADET="/data/${TOPDIR}"
 
 #DATALOC="/mnt/asci.data/imbl/input"
-DATALOC="/mnt/bctpro.data/"
-DATADET="/data/"
+#DATALOC="/mnt/bctpro.data/"
+#DATADET="/data/"
 DETPV="SR08ID01E2"
 SHIFTMOT="SR08ID01BSS01:Z"
 
@@ -23,11 +26,11 @@ if [ -z "$2" ] ; then
     exit 1
 fi
 PROJ="$2"
-
-#if [ -z "$3" ] ; then
-#    echo "Error. No shifter position."
-#    exit 1
-#fi
+SUFFIX=""
+if [ "$3" ] ; then
+    SUFFIX="$3"
+    echo "suffix is $SUFFIX now"
+fi
 #INSHIFT="$3"
 #INORIGN="$(caget -t ${SHIFTMOT}.RBV)"
 INSHIFT=150
@@ -42,7 +45,7 @@ acquire() {
     caput ${DETPV}:CAM:NumImages $PROJ
     caput ${DETPV}:HDF:NumCapture $PROJ
     if [ ! -z "$1" ] ; then
-        caput -S  ${DETPV}:HDF:FileName "$1"    
+        caput -S  ${DETPV}:HDF:FileName "$1"
     fi
     caput ${DETPV}:HDF:AutoSave 1
     caput ${DETPV}:HDF:FileWriteMode 2
@@ -88,10 +91,10 @@ if caget ${DETPV}:HDF:FilePathExists_RBV | grep -q "No" ; then
     echo "Error. Detector can't see data path '$DETAQPATH'"
     exit 1
 fi
-
-acquire "BG_org"
+move ${SHIFTMOT} $INORIGN
+acquire "BG_org$SUFFIX"
 move ${SHIFTMOT} $INSHIFT
-acquire "BG_sft"
+acquire "BG_sft$SUFFIX"
 move ${SHIFTMOT} $INORIGN
 
 

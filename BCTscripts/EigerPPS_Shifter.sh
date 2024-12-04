@@ -127,4 +127,6 @@ caput SR08ID01BCT01:Pps_Det_Start 0
 sleep 1.0s
 latestLog="$(ls -t /mnt/bctpro.data/*.txt | head -n 1)"
 cp "$latestLog" "${LOCAQPATH}/"
+hdfname=`caget -St SR08ID01E2:HDF:FileName_RBV`
+cp "$latestLog" "${LOCAQPATH}/${hdfname}-PPSstream.txt"
 echo "DONE"
