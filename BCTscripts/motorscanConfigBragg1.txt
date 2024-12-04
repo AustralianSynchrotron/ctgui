@@ -1,0 +1,27 @@
+[General]
+2D=false
+afterScan=Prior position
+autoName=true
+saveDir=/home/imbl
+saveName=scan_2024-12-04_14-40-22.dat
+
+[detectors]
+1\detector=SR08ID01DAQ03:Measure
+2\detector=SR08ID01E2:STATS:MeanValue_RBV
+size=2
+
+[xmotors]
+1\end=0.02
+1\mode=Relative
+1\points=21
+1\pv=SR08ID01DCM01:BRAGG1
+1\start=-0.02
+size=1
+
+[ymotors]
+1\end=9.8189
+1\mode=Absolute
+1\points=41
+1\pv=SR08ID01EXP01:MOT5
+1\start=9.7789
+size=1

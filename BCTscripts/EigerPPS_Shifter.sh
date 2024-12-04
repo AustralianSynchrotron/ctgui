@@ -2,9 +2,9 @@
 
 USAGE="$0 <folder name> <projections> <shiftFrame> [filename] "
 
-#DATALOC="/mnt/asci.data/imbl/input"
-DATALOC="/mnt/bctpro.data/"
-DATADET="/data/"
+TOPDIR="2024-12-04-amir"
+DATALOC="/mnt/bctpro.data/${TOPDIR}"
+DATADET="/data/${TOPDIR}"
 DETPV="SR08ID01E2"
 SHIFTMOT="SR08ID01BSS01:Z"
 INSHIFT=150

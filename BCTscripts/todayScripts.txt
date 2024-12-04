@@ -1,0 +1,4 @@
+ID: 4509260R
+./ShiftedBGs.sh 4509260R/35kev/ 1000 _4kevThresh_24mGy_before
+./EigerPPS_Shifter.sh 4509260R/35kev/ 34596 17054 SAMPLE_4kevThresh_24mGy
+./ShiftedBGs.sh 4509260R/35kev/ 1000 _4kevThresh_24mGy_after
